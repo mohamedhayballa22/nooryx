@@ -1,5 +1,5 @@
 from sqlalchemy import (
-    Column, Integer, String, ForeignKey, DateTime, JSON, func, UniqueConstraint, 
+    Column, Integer, String, ForeignKey, DateTime, JSON, func, UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, declarative_base
@@ -9,7 +9,7 @@ Base = declarative_base()
 
 
 class InventoryTransaction(Base):
-    __tablename__ = "inventory_transactions"
+    __tablename__ = "inventory_txn"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     sku_id = Column(Integer, nullable=False, index=True)
@@ -54,7 +54,7 @@ class Serial(Base):
     )
     current_tx_id = Column(
         Integer,
-        ForeignKey("inventory_transactions.id", ondelete="SET NULL"),
+        ForeignKey("inventory_txn.id", ondelete="SET NULL"),
         nullable=True
     )
     created_at = Column(DateTime(timezone=True), server_default=func.now())
