@@ -40,6 +40,8 @@ class InventoryState(Base):
 
     version = Column(Integer, nullable=False, default=0)  # optimistic locking / OCC
 
+    __mapper_args__ = {"version_id_col": version}
+
 
 class Serial(Base):
     __tablename__ = "serials"
