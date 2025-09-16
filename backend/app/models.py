@@ -2,7 +2,7 @@ from sqlalchemy import (
     Column, Integer, String, ForeignKey, DateTime, JSON, func, UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship, declarative_base
+from sqlalchemy.orm import relationship, declarative_base, column_property
 import uuid
 
 Base = declarative_base()
@@ -35,7 +35,7 @@ class InventoryState(Base):
 
     on_hand = Column(Integer, nullable=False, default=0)
     reserved = Column(Integer, nullable=False, default=0)
-    available = Column(Integer, nullable=False, default=0)
+    available = column_property(on_hand - reserved)
 
     version = Column(Integer, nullable=False, default=0)  # optimistic locking / OCC
 
