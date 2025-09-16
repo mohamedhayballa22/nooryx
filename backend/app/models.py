@@ -3,6 +3,7 @@ from sqlalchemy import (
 )
 from sqlalchemy.dialects.postgresql import UUID
 from sqlalchemy.orm import relationship, declarative_base, column_property
+from sqlalchemy.ext.hybrid import hybrid_property
 import uuid
 
 Base = declarative_base()
@@ -60,6 +61,23 @@ class Serial(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     transaction = relationship("InventoryTransaction", backref="serials")
+
+    # Helper for lifecycle flags
+    @hybrid_property
+    def is_reserved(self):
+        return self.status == "reserved"
+
+    @is_reserved.expression
+    def is_reserved(cls):
+        return cls.status == "reserved"
+
+    @hybrid_property
+    def is_shipped(self):
+        return self.status == "shipped"
+
+    @is_shipped.expression
+    def is_shipped(cls):
+        return cls.status == "shipped"
 
 
 class Reservation(Base):
