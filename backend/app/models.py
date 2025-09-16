@@ -60,6 +60,55 @@ class InventoryTransaction(Base):
     )
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
+    # Transaction intent helpers
+    @hybrid_property
+    def is_inbound(self):
+        """True if this transaction increases inventory (positive quantity delta)."""
+        return self.qty > 0
+
+    @is_inbound.expression
+    def is_inbound(cls):
+        return cls.qty > 0
+
+    @hybrid_property
+    def is_outbound(self):
+        """True if this transaction decreases inventory (negative quantity delta)."""
+        return self.qty < 0
+
+    @is_outbound.expression
+    def is_outbound(cls):
+        return cls.qty < 0
+
+    @property
+    def narrative(self):
+        """Generate human-readable one-liner describing this transaction."""
+        qty_abs = abs(self.qty)
+        
+        templates = {
+            'receive': f"Received {qty_abs} units",
+            'ship': f"Shipped {qty_abs} units", 
+            'adjust': f"Adjusted by {self.qty:+d} units",
+            'reserve': f"Reserved {qty_abs} units",
+            'unreserve': f"Released {qty_abs} units from reservation",
+            'transfer': f"Transferred {qty_abs} units"
+        }
+        
+        base_narrative = templates.get(self.action, f"{self.action.title()}: {self.qty:+d} units")
+        
+        if self.reference:
+            base_narrative += f" (ref: {self.reference})"
+            
+        if self.location_id != 1:
+            base_narrative += f" at location {self.location_id}"
+            
+        if self.metadata:
+            if 'reason' in self.metadata:
+                base_narrative += f" - {self.metadata['reason']}"
+            elif 'batch' in self.metadata:
+                base_narrative += f" - batch {self.metadata['batch']}"
+                
+        return base_narrative
+
 
 class InventoryState(Base):
     """Current stock snapshot per SKU/location, derived from transactions but optimized for fast queries."""
