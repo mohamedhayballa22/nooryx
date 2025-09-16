@@ -98,3 +98,18 @@ class Reservation(Base):
     __table_args__ = (
         UniqueConstraint("order_id", "sku_id", "location_id", name="uq_order_sku_loc"),
     )
+
+    # Encapsulate "is this reservation actually valid right now?"
+    @hybrid_property
+    def is_active(self):
+        if self.status != "active":
+            return False
+        if self.expires_at is None:
+            return True
+        return self.expires_at >= func.now()
+
+    @is_active.expression
+    def is_active(cls):
+        return (cls.status == "active") & (
+            (cls.expires_at == None) | (cls.expires_at >= func.now())
+        )
