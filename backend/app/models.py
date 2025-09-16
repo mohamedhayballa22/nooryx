@@ -13,18 +13,19 @@ class InventoryTransaction(Base):
     __tablename__ = "inventory_txn"
 
     id = Column(Integer, primary_key=True, autoincrement=True)
-    sku_id = Column(Integer, nullable=False, index=True)
-    location_id = Column(Integer, nullable=False, index=True, default=1)
-    qty = Column(Integer, nullable=False)  # +ve for receipts, -ve for shipments
+    sku_id = Column(Integer, nullable=False, index=True, doc="SKU identifier this transaction applies to.")
+    location_id = Column(Integer, nullable=False, index=True, default=1, doc="Warehouse/location where the transaction occurred.")
+    qty = Column(Integer, nullable=False, doc="Quantity delta (+ve = receipt, -ve = shipment).")
 
     type = Column(
         String,
-        nullable=False,  # e.g. 'receive', 'ship', 'adjust', 'reserve', 'unreserve', 'transfer'
+        nullable=False,
+        doc="Nature of transaction: receive, ship, adjust, reserve, unreserve, transfer."
     )
-    reference = Column(String, nullable=True)  # order id, supplier invoice, etc.
-    metadata = Column(JSON, nullable=True)
+    reference = Column(String, nullable=True, doc="External reference (order id, supplier invoice, etc.).")
+    metadata = Column(JSON, nullable=True, doc="Free-form JSON for contextual details (reason codes, batch numbers).")
 
-    created_by = Column(String, nullable=True)
+    created_by = Column(String, nullable=True, doc="Actor who created the transaction (user/service).")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
 
@@ -34,11 +35,11 @@ class InventoryState(Base):
     sku_id = Column(Integer, primary_key=True)
     location_id = Column(Integer, primary_key=True, default=1)
 
-    on_hand = Column(Integer, nullable=False, default=0)
-    reserved = Column(Integer, nullable=False, default=0)
-    available = column_property(on_hand - reserved)
+    on_hand = Column(Integer, nullable=False, default=0, doc="Total physical stock recorded at this location.")
+    reserved = Column(Integer, nullable=False, default=0, doc="Units promised to orders but not yet shipped.")
+    available = column_property(on_hand - reserved, doc="Derived: sellable units (on_hand - reserved).")
 
-    version = Column(Integer, nullable=False, default=0)  # optimistic locking / OCC
+    version = Column(Integer, nullable=False, default=0, doc="Optimistic concurrency control version counter.")
 
     __mapper_args__ = {"version_id_col": version}
 
@@ -47,18 +48,20 @@ class Serial(Base):
     __tablename__ = "serials"
 
     serial = Column(String, primary_key=True)
-    sku_id = Column(Integer, nullable=False, index=True)
-    location_id = Column(Integer, nullable=False, index=True, default=1)
+    sku_id = Column(Integer, nullable=False, index=True, doc="SKU identifier this serial belongs to.")
+    location_id = Column(Integer, nullable=False, index=True, default=1, doc="Current warehouse/location of this serial.")
 
     status = Column(
         String,
-        nullable=False,  # 'in_stock','reserved','shipped','in_repair'
-        default="in_stock"
+        nullable=False,
+        default="in_stock",
+        doc="Lifecycle state of this unit: in_stock, reserved, shipped, in_repair."
     )
     current_tx_id = Column(
         Integer,
         ForeignKey("inventory_txn.id", ondelete="SET NULL"),
-        nullable=True
+        nullable=True,
+        doc="Pointer to the last inventory transaction affecting this serial."
     )
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
@@ -86,13 +89,18 @@ class Reservation(Base):
     __tablename__ = "reservations"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    order_id = Column(String, nullable=False, index=True)
-    sku_id = Column(Integer, nullable=False, index=True)
-    location_id = Column(Integer, nullable=False, index=True, default=1)
-    qty = Column(Integer, nullable=False)
+    order_id = Column(String, nullable=False, index=True, doc="Business order identifier this reservation belongs to.")
+    sku_id = Column(Integer, nullable=False, index=True, doc="SKU being reserved.")
+    location_id = Column(Integer, nullable=False, index=True, default=1, doc="Location where stock is reserved from.")
+    qty = Column(Integer, nullable=False, doc="Number of units reserved.")
 
-    expires_at = Column(DateTime(timezone=True), nullable=True)
-    status = Column(String, nullable=False, default="active")  # active, fulfilled, cancelled, expired
+    expires_at = Column(DateTime(timezone=True), nullable=True, doc="Optional expiry timestamp after which reservation auto-releases.")
+    status = Column(
+        String,
+        nullable=False,
+        default="active",
+        doc="Lifecycle: active, fulfilled, cancelled, expired."
+    )
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
