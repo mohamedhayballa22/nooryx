@@ -143,6 +143,73 @@ class InventoryState(Base):
 
     __mapper_args__ = {"version_id_col": version}
 
+    def update_state(self, txn: "InventoryTransaction", ship_from: str | None = None):
+        """
+        Apply an inventory transaction to this state.
+        
+        Args:
+            txn (InventoryTransaction): The transaction instance.
+            ship_from (str | None): If 'on_hand' or 'reserved', ship specifically from that bucket.
+                                    If None, attempt from reserved first then on_hand.
+        
+        Raises:
+            ValueError: If the transaction cannot be applied (e.g. oversell, insufficient reserved).
+        """
+        action = txn.action
+        qty = txn.qty
+
+        if action == "receive":
+            self.on_hand += qty
+
+        elif action == "reserve":
+            units = abs(qty)
+            if self.available < units:
+                raise ValueError("Not enough available stock to reserve")
+            self.on_hand -= units
+            self.reserved += units
+
+        elif action == "unreserve":
+            units = abs(qty)
+            if self.reserved < units:
+                raise ValueError("Not enough reserved stock to unreserve")
+            self.reserved -= units
+            self.on_hand += units
+
+        elif action == "ship":
+            units = abs(qty)
+
+            if ship_from == "reserved":
+                if self.reserved < units:
+                    raise ValueError("Not enough reserved stock to ship")
+                self.reserved -= units
+
+            elif ship_from == "on_hand":
+                if self.on_hand < units:
+                    raise ValueError("Not enough on_hand stock to ship")
+                self.on_hand -= units
+
+            else:  # ship from reserved first, then on_hand
+                if self.reserved >= units:
+                    self.reserved -= units
+                else:
+                    remainder = units - self.reserved
+                    if self.on_hand < remainder:
+                        raise ValueError("Not enough total stock to ship")
+                    self.reserved = 0
+                    self.on_hand -= remainder
+
+        elif action == "adjust":
+            self.on_hand += qty
+            if self.on_hand < 0:
+                raise ValueError("Adjustment leads to negative on_hand")
+
+        elif action == "transfer":
+            # TODO: Transfer semantics (source and destination)
+            pass
+
+        else:
+            raise ValueError(f"Unsupported transaction action: {action}")
+
 
 class Serial(Base):
     """Tracks individual serialized units (e.g. devices) with lifecycle state and transaction linkage."""
