@@ -9,11 +9,10 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship, declarative_base, column_property
+from sqlalchemy.orm import relationship, column_property
 from sqlalchemy.ext.hybrid import hybrid_property
 import uuid
-
-Base = declarative_base()
+from app.core.db import Base
 
 
 class InventoryTransaction(Base):
@@ -49,7 +48,7 @@ class InventoryTransaction(Base):
         nullable=True,
         doc="External reference (order id, supplier invoice, etc.).",
     )
-    metadata = Column(
+    txn_metadata = Column(
         JSON,
         nullable=True,
         doc="Free-form JSON for contextual details (reason codes, batch numbers).",
@@ -101,11 +100,11 @@ class InventoryTransaction(Base):
         if self.location_id != 1:
             base_narrative += f" at location {self.location_id}"
             
-        if self.metadata:
-            if 'reason' in self.metadata:
-                base_narrative += f" - {self.metadata['reason']}"
-            elif 'batch' in self.metadata:
-                base_narrative += f" - batch {self.metadata['batch']}"
+        if self.txn_metadata:
+            if 'reason' in self.txn_metadata:
+                base_narrative += f" - {self.txn_metadata['reason']}"
+            elif 'batch' in self.txn_metadata:
+                base_narrative += f" - batch {self.txn_metadata['batch']}"
                 
         return base_narrative
 
