@@ -1,8 +1,9 @@
 from typing import Optional, Tuple
 
-from sqlalchemy.orm import Session
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.models import InventoryTransaction, InventoryState
 from app.services.transaction.errors import (
@@ -13,8 +14,8 @@ from app.services.transaction.errors import (
 )
 
 
-def apply_txn(
-    session: Session,
+async def apply_txn(
+    session: AsyncSession,
     txn: InventoryTransaction,
     *,
     ship_from: Optional[str] = None,
@@ -23,7 +24,7 @@ def apply_txn(
     Apply a transaction: persist txn row and update inventory state.
 
     Args:
-        session: SQLAlchemy Session (caller controls commit/rollback).
+        session: SQLAlchemy AsyncSession (caller controls commit/rollback).
         txn: InventoryTransaction instance (not yet persisted).
         ship_from: forwarded to InventoryState.update_state (None | "reserved" | "on_hand").
 
@@ -33,37 +34,32 @@ def apply_txn(
     Raises:
         TransactionError or one of its subclasses for structured frontend-friendly errors.
         DatabaseError for unexpected DB exceptions.
-    Notes:
-        - This function uses a SAVEPOINT (session.begin_nested()) to keep this operation atomic
-          relative to the surrounding transaction.
-        - Caller should commit when appropriate.
     """
     try:
-        with session.begin_nested():
-            session.add(txn)
-            session.flush()
+        session.add(txn)
 
-            state = (
-                session.query(InventoryState)
-                .filter_by(sku_id=txn.sku_id, location_id=txn.location_id)
-                .with_for_update()
-                .one_or_none()
+        result = await session.execute(
+            select(InventoryState)
+            .filter_by(sku_id=txn.sku_id, location_id=txn.location_id)
+            .with_for_update()
+        )
+        state = result.scalar_one_or_none()
+
+        if state is None:
+            state = InventoryState(
+                sku_id=txn.sku_id, 
+                location_id=txn.location_id,
+                on_hand=txn.qty,
+                reserved=0,
             )
-
-            if state is None:
-                state = InventoryState(sku_id=txn.sku_id, location_id=txn.location_id)
-                session.add(state)
-                session.flush()
-
+            session.add(state)
+        else:
             try:
                 state.update_state(txn, ship_from=ship_from)
             except ValueError as ve:
                 raise map_errors(ve)
 
-            session.add(state)
-            session.flush()
-
-            return txn, state
+        return txn, state
 
     except TransactionError:
         raise
