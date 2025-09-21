@@ -41,7 +41,6 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
             )
         
         response = await call_next(request)
-        print(f"Rate limit info: {info}")
         
         response.headers["X-RateLimit-Limit"] = str(self.default_capacity)
         response.headers["X-RateLimit-Remaining"] = str(info["remaining"])
