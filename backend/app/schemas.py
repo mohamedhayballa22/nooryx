@@ -3,7 +3,7 @@ from typing import Optional, Dict, Any, Union, Literal
 
 
 class BaseTxn(BaseModel):
-    sku_id: int
+    sku_id: str
     location_id: int = 1
     reference: Optional[str] = None
     metadata: Optional[Dict[str, Any]] = None

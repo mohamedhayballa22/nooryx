@@ -22,7 +22,7 @@ class InventoryTransaction(Base):
 
     id = Column(Integer, primary_key=True, autoincrement=True)
     sku_id = Column(
-        Integer,
+        String,
         nullable=False,
         index=True,
         doc="SKU identifier this transaction applies to.",
@@ -114,7 +114,7 @@ class InventoryState(Base):
 
     __tablename__ = "inventory_state"
 
-    sku_id = Column(Integer, primary_key=True)
+    sku_id = Column(String, primary_key=True)
     location_id = Column(Integer, primary_key=True, default=1)
 
     on_hand = Column(
@@ -217,7 +217,7 @@ class Serial(Base):
 
     serial = Column(String, primary_key=True)
     sku_id = Column(
-        Integer,
+        String,
         nullable=False,
         index=True,
         doc="SKU identifier this serial belongs to.",
@@ -276,7 +276,7 @@ class Reservation(Base):
         index=True,
         doc="Business order identifier this reservation belongs to.",
     )
-    sku_id = Column(Integer, nullable=False, index=True, doc="SKU being reserved.")
+    sku_id = Column(String, nullable=False, index=True, doc="SKU being reserved.")
     location_id = Column(
         Integer,
         nullable=False,
