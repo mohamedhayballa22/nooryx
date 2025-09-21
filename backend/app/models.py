@@ -142,14 +142,12 @@ class InventoryState(Base):
 
     __mapper_args__ = {"version_id_col": version}
 
-    def update_state(self, txn: "InventoryTransaction", ship_from: str | None = None):
+    def update_state(self, txn: "InventoryTransaction"):
         """
         Apply an inventory transaction to this state.
         
         Args:
             txn (InventoryTransaction): The transaction instance.
-            ship_from (str | None): If 'on_hand' or 'reserved', ship specifically from that bucket.
-                                    If None, attempt from reserved first then on_hand.
         
         Raises:
             ValueError: If the transaction cannot be applied (e.g. oversell, insufficient reserved).
@@ -164,7 +162,6 @@ class InventoryState(Base):
             units = abs(qty)
             if self.available < units:
                 raise ValueError("Not enough available stock to reserve")
-            self.on_hand -= units
             self.reserved += units
 
         elif action == "unreserve":
@@ -172,39 +169,48 @@ class InventoryState(Base):
             if self.reserved < units:
                 raise ValueError("Not enough reserved stock to unreserve")
             self.reserved -= units
-            self.on_hand += units
 
         elif action == "ship":
+            ship_from = txn.txn_metadata.get("ship_from") if txn.txn_metadata else None
             units = abs(qty)
 
             if ship_from == "reserved":
                 if self.reserved < units:
                     raise ValueError("Not enough reserved stock to ship")
                 self.reserved -= units
-
-            elif ship_from == "on_hand":
-                if self.on_hand < units:
-                    raise ValueError("Not enough on_hand stock to ship")
                 self.on_hand -= units
 
-            else:  # ship from reserved first, then on_hand
+
+            elif ship_from == "available":
+                if self.available < units:
+                    raise ValueError("Not enough available stock to ship")
+                self.on_hand -= units
+
+            else:  # ship from reserved first, then available (available being on_hand - reserved)
                 if self.reserved >= units:
                     self.reserved -= units
+                    self.on_hand -= units
                 else:
-                    remainder = units - self.reserved
-                    if self.on_hand < remainder:
+                    if self.on_hand < units:
                         raise ValueError("Not enough total stock to ship")
                     self.reserved = 0
-                    self.on_hand -= remainder
+                    self.on_hand -= units 
 
         elif action == "adjust":
             self.on_hand += qty
             if self.on_hand < 0:
-                raise ValueError("Adjustment leads to negative on_hand")
-
-        elif action == "transfer":
-            # TODO: Transfer semantics (source and destination)
-            pass
+                raise ValueError("Not enough available stock")
+            
+        elif action in ("transfer_out", "transfer_in"):
+            units = abs(qty)
+            
+            if action == "transfer_out":
+                # Outbound transfer
+                if self.on_hand < units:
+                    raise ValueError("Not enough on_hand stock to transfer out")
+                self.on_hand -= units
+            else:  # transfer_in
+                self.on_hand += units
 
         else:
             raise ValueError(f"Unsupported transaction action: {action}")

@@ -1,4 +1,4 @@
-from typing import Optional, Tuple
+from typing import Tuple
 
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.orm.exc import StaleDataError
@@ -16,9 +16,7 @@ from app.services.transaction.errors import (
 
 async def apply_txn(
     session: AsyncSession,
-    txn: InventoryTransaction,
-    *,
-    ship_from: Optional[str] = None,
+    txn: InventoryTransaction
 ) -> Tuple[InventoryTransaction, InventoryState]:
     """
     Apply a transaction: persist txn row and update inventory state.
@@ -55,7 +53,7 @@ async def apply_txn(
             session.add(state)
         else:
             try:
-                state.update_state(txn, ship_from=ship_from)
+                state.update_state(txn)
             except ValueError as ve:
                 raise map_errors(ve)
 
