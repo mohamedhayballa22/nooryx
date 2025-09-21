@@ -6,7 +6,7 @@ class BaseTxn(BaseModel):
     sku_id: str
     location_id: int = 1
     reference: Optional[str] = None
-    metadata: Optional[Dict[str, Any]] = None
+    txn_metadata: Optional[Dict[str, Any]] = None
     created_by: Optional[str] = None
 
 
@@ -18,6 +18,7 @@ class ReceiveTxn(BaseTxn):
 class ShipTxn(BaseTxn):
     action: Literal["ship"] = "ship"
     qty: int = Field(lt=0)
+    txn_metadata: Optional[Dict[str, Any]] = Field(None, description="Can optionally include ship_from")
 
 
 class AdjustTxn(BaseTxn):
@@ -38,7 +39,7 @@ class UnreserveTxn(BaseTxn):
 class TransferTxn(BaseTxn):
     action: Literal["transfer"] = "transfer"
     qty: int = Field(..., ne=0)
-    metadata: Dict[str, Any] = Field(..., description="Must include target_location_id")
+    txn_metadata: Dict[str, Any] = Field(..., description="Must include target_location_id")
 
 
 # Union type for OpenAPI
