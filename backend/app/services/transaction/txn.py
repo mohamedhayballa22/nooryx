@@ -5,7 +5,8 @@ from sqlalchemy.orm.exc import StaleDataError
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.models import InventoryTransaction, InventoryState
+from app.models import InventoryTransaction, InventoryState, Location
+from app.schemas import AdjustTxn, ReceiveTxn, ShipTxn, ReserveTxn, TransferTxn, UnreserveTxn
 from app.services.transaction.errors import (
     TransactionError,
     ConcurrencyConflict,
@@ -16,15 +17,14 @@ from app.services.transaction.errors import (
 
 async def apply_txn(
     session: AsyncSession,
-    txn: InventoryTransaction
+    txn: AdjustTxn | ReceiveTxn | ShipTxn | ReserveTxn | UnreserveTxn | TransferTxn
 ) -> Tuple[InventoryTransaction, InventoryState]:
     """
     Apply a transaction: persist txn row and update inventory state.
 
     Args:
         session: SQLAlchemy AsyncSession (caller controls commit/rollback).
-        txn: InventoryTransaction instance (not yet persisted).
-        ship_from: forwarded to InventoryState.update_state (None | "reserved" | "on_hand").
+        txn: Transaction payload.
 
     Returns:
         (persisted_txn, updated_state)
@@ -33,6 +33,23 @@ async def apply_txn(
         TransactionError or one of its subclasses for structured frontend-friendly errors.
         DatabaseError for unexpected DB exceptions.
     """
+    # Get location record
+    result = await session.execute(
+        select(Location).filter_by(name=txn.location)
+    )
+    location = result.scalar_one_or_none()
+
+    if not location:
+        location = Location(name=txn.location)
+        session.add(location)
+        await session.flush()
+
+    txn_dict = txn.model_dump()
+    txn_dict['location_id'] = location.id
+    txn_dict.pop('location', None)  # Remove location name (unknown to the ORM)
+    txn = InventoryTransaction(**txn_dict)
+    txn.location = location
+
     try:
         session.add(txn)
 
