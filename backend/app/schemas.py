@@ -4,7 +4,7 @@ from typing import Optional, Dict, Any, Union, Literal
 
 class BaseTxn(BaseModel):
     sku_id: str
-    location_id: int = 1
+    location: str
     reference: Optional[str] = None
     txn_metadata: Optional[Dict[str, Any]] = None
     created_by: Optional[str] = None
@@ -24,6 +24,7 @@ class ShipTxn(BaseTxn):
 class AdjustTxn(BaseTxn):
     action: Literal["adjust"] = "adjust"
     qty: int = Field(..., ne=0)
+    txn_metadata: Dict[str, Any] = Field(..., description="Must include reason")
 
 
 class ReserveTxn(BaseTxn):
@@ -37,9 +38,9 @@ class UnreserveTxn(BaseTxn):
 
 
 class TransferTxn(BaseTxn):
-    action: Literal["transfer"] = "transfer"
+    action: Literal["transfer", "transfer_in", "transfer_out"] = "transfer"
     qty: int = Field(..., ne=0)
-    txn_metadata: Dict[str, Any] = Field(..., description="Must include target_location_id")
+    txn_metadata: Dict[str, Any] = Field(..., description="Must include target_location")
 
 
 # Union type for OpenAPI
