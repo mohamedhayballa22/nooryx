@@ -29,9 +29,9 @@ class InventoryTransaction(Base):
     )
     location_id = Column(
         Integer,
+        ForeignKey("locations.id"),
         nullable=False,
         index=True,
-        default=1,
         doc="Warehouse/location where the transaction occurred.",
     )
     qty = Column(
@@ -58,6 +58,8 @@ class InventoryTransaction(Base):
         String, nullable=True, doc="Actor who created the transaction (user/service)."
     )
     created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    location = relationship("Location", backref="transactions")
 
     # Transaction intent helpers
     @hybrid_property
@@ -97,8 +99,7 @@ class InventoryTransaction(Base):
         if self.reference:
             base_narrative += f" (ref: {self.reference})"
             
-        if self.location_id != 1:
-            base_narrative += f" at location {self.location_id}"
+        base_narrative += f" at {self.location.name}"
             
         if self.txn_metadata:
             if 'reason' in self.txn_metadata:
@@ -115,7 +116,14 @@ class InventoryState(Base):
     __tablename__ = "inventory_state"
 
     sku_id = Column(String, primary_key=True)
-    location_id = Column(Integer, primary_key=True, default=1)
+    location_id = Column(
+        Integer,
+        ForeignKey("locations.id"),
+        primary_key=True,
+        nullable=False,
+        index=True,
+        doc="Warehouse/location where the transaction occurred.",
+    )
 
     on_hand = Column(
         Integer,
@@ -139,6 +147,8 @@ class InventoryState(Base):
         default=0,
         doc="Optimistic concurrency control version counter.",
     )
+
+    location = relationship("Location", backref="inventory_states")
 
     __mapper_args__ = {"version_id_col": version}
 
@@ -230,10 +240,10 @@ class Serial(Base):
     )
     location_id = Column(
         Integer,
+        ForeignKey("locations.id"),
         nullable=False,
         index=True,
-        default=1,
-        doc="Current warehouse/location of this serial.",
+        doc="Warehouse/location where the transaction occurred.",
     )
 
     status = Column(
@@ -251,6 +261,7 @@ class Serial(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     transaction = relationship("InventoryTransaction", backref="serials")
+    location = relationship("Location", backref="serials")
 
     # Helper for lifecycle flags
     @hybrid_property
@@ -285,10 +296,10 @@ class Reservation(Base):
     sku_id = Column(String, nullable=False, index=True, doc="SKU being reserved.")
     location_id = Column(
         Integer,
+        ForeignKey("locations.id"),
         nullable=False,
         index=True,
-        default=1,
-        doc="Location where stock is reserved from.",
+        doc="Warehouse/location where the transaction occurred.",
     )
     qty = Column(Integer, nullable=False, doc="Number of units reserved.")
 
@@ -309,6 +320,8 @@ class Reservation(Base):
         DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
     )
 
+    location = relationship("Location", backref="reservations")
+
     __table_args__ = (
         UniqueConstraint("order_id", "sku_id", "location_id", name="uq_order_sku_loc"),
     )
@@ -327,3 +340,11 @@ class Reservation(Base):
         return (cls.status == "active") & (
             (cls.expires_at == None) | (cls.expires_at >= func.now())
         )
+    
+
+class Location(Base):
+    __tablename__ = "locations"
+
+    id = Column(Integer, primary_key=True)
+    name = Column(String(100), index=True, unique=True, nullable=False, doc="Warehouse/location where the transaction occurred.")
+    code = Column(String(20), nullable=True)
