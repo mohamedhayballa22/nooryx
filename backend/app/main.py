@@ -2,7 +2,7 @@ from fastapi import FastAPI, Depends
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from app.schemas import ReceiveTxn, ShipTxn, AdjustTxn, ReserveTxn, UnreserveTxn, TransferTxn
-from app.models import InventoryTransaction, InventoryState, Location
+from app.models import InventoryState, Location
 
 from app.core.config import settings
 from app.core.db import get_session
