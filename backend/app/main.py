@@ -1,15 +1,28 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, status
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
-from app.schemas import ReceiveTxn, ShipTxn, AdjustTxn, ReserveTxn, UnreserveTxn, TransferTxn
+from app.schemas import (
+    ReceiveTxn,
+    ShipTxn,
+    AdjustTxn,
+    ReserveTxn,
+    UnreserveTxn,
+    TransferTxn,
+)
 from app.models import InventoryState, Location
 
 from app.core.config import settings
 from app.core.db import get_session
 from app.services.transaction.txn import apply_txn
 from app.middleware.rate_limit import RateLimitMiddleware
+from app.middleware.correlation import CorrelationIdMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from starlette.requests import Request
+from starlette.responses import JSONResponse
+from starlette.exceptions import HTTPException as StarletteHTTPException
+from app.core.logger_config import logger
+from fastapi.exceptions import RequestValidationError, HTTPException
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -17,7 +30,7 @@ def custom_generate_unique_id(route: APIRoute) -> str:
         tag = route.tags[0]
     else:
         tag = route.name
-    
+
     return f"{tag}-{route.name}"
 
 
@@ -26,6 +39,9 @@ app = FastAPI(
     generate_unique_id_function=custom_generate_unique_id,
     debug=settings.ENVIRONMENT == "dev",
 )
+
+# Correlation/Request tracking
+app.add_middleware(CorrelationIdMiddleware)
 
 # CORS
 app.add_middleware(
@@ -42,12 +58,72 @@ app.add_middleware(
     # User can make 25 requests instantly (burst)
     default_capacity=25,
     # Then limited to 5 requests per second
-    default_rate=5
+    default_rate=5,
     # After 5 seconds of no activity, back to full 25 burst capacity
 )
 
+
+@app.exception_handler(Exception)
+async def global_exception_handler(request: Request, exc: Exception):
+    """
+    Global exception handler for any unhandled exceptions.
+    This is a safety net in case middleware doesn't catch something.
+    """
+    logger.error(
+        "unhandled_exception",
+        method=request.method,
+        path=request.url.path,
+        error=str(exc),
+        error_type=type(exc).__name__,
+    )
+
+    return JSONResponse(
+        status_code=500, content={"detail": "An internal server error occurred."}
+    )
+
+
+@app.exception_handler(StarletteHTTPException)
+async def http_exception_handler(request: Request, exc: StarletteHTTPException):
+    """Handle HTTP exceptions (400, 404, etc.)"""
+    request.state.error_detail = exc.detail
+    return JSONResponse(status_code=exc.status_code, content={"error": {"detail": exc.detail}})
+
+
+@app.exception_handler(RequestValidationError)
+async def validation_exception_handler(request: Request, exc: RequestValidationError):
+    """
+    Transform Pydantic validation errors into a consistent, minimal error envelope.
+    """
+    errors = []
+    for err in exc.errors():
+        field = ".".join(map(str, err.get("loc", [])))
+        if field.startswith("body."):
+            field = field[5:]
+
+        errors.append({
+            "field": field,
+            "error": err.get("msg"),
+        })
+
+    request.state.error_detail = errors
+
+    return JSONResponse(
+        status_code=422,
+        content={
+            "error": {
+                "type": "validation_error",
+                "message": "Invalid request payload",
+                "details": errors,
+            }
+        },
+    )
+
+
 @app.post("/inventory/receive")
-async def receive_stock(txn: ReceiveTxn, db: AsyncSession = Depends(get_session),):
+async def receive_stock(
+    txn: ReceiveTxn,
+    db: AsyncSession = Depends(get_session),
+):
     txn, _ = await apply_txn(db, txn)
 
     response_data = {
@@ -59,9 +135,13 @@ async def receive_stock(txn: ReceiveTxn, db: AsyncSession = Depends(get_session)
     await db.commit()
 
     return response_data
+
 
 @app.post("/inventory/ship")
-async def ship_stock(txn: ShipTxn, db: AsyncSession = Depends(get_session),):
+async def ship_stock(
+    txn: ShipTxn,
+    db: AsyncSession = Depends(get_session),
+):
     txn, _ = await apply_txn(db, txn)
 
     response_data = {
@@ -73,9 +153,13 @@ async def ship_stock(txn: ShipTxn, db: AsyncSession = Depends(get_session),):
     await db.commit()
 
     return response_data
+
 
 @app.post("/inventory/adjust")
-async def adjust_stock(txn: AdjustTxn, db: AsyncSession = Depends(get_session),):
+async def adjust_stock(
+    txn: AdjustTxn,
+    db: AsyncSession = Depends(get_session),
+):
     txn, _ = await apply_txn(db, txn)
 
     response_data = {
@@ -87,9 +171,13 @@ async def adjust_stock(txn: AdjustTxn, db: AsyncSession = Depends(get_session),)
     await db.commit()
 
     return response_data
+
 
 @app.post("/inventory/reserve")
-async def reserve_stock(txn: ReserveTxn, db: AsyncSession = Depends(get_session),):
+async def reserve_stock(
+    txn: ReserveTxn,
+    db: AsyncSession = Depends(get_session),
+):
     txn, _ = await apply_txn(db, txn)
 
     response_data = {
@@ -101,9 +189,13 @@ async def reserve_stock(txn: ReserveTxn, db: AsyncSession = Depends(get_session)
     await db.commit()
 
     return response_data
+
 
 @app.post("/inventory/unreserve")
-async def unreserve_stock(txn: UnreserveTxn, db: AsyncSession = Depends(get_session),):
+async def unreserve_stock(
+    txn: UnreserveTxn,
+    db: AsyncSession = Depends(get_session),
+):
     txn, _ = await apply_txn(db, txn)
 
     response_data = {
@@ -116,8 +208,12 @@ async def unreserve_stock(txn: UnreserveTxn, db: AsyncSession = Depends(get_sess
 
     return response_data
 
+
 @app.post("/inventory/transfer")
-async def transfer_stock(txn: TransferTxn, db: AsyncSession = Depends(get_session),):
+async def transfer_stock(
+    txn: TransferTxn,
+    db: AsyncSession = Depends(get_session),
+):
     txn_data = txn.model_dump()
     source_location = txn_data["location"]
     target_location = txn_data.get("txn_metadata", {}).get("target_location")
@@ -125,26 +221,28 @@ async def transfer_stock(txn: TransferTxn, db: AsyncSession = Depends(get_sessio
         raise ValueError("Missing target_location in txn_metadata")
     qty = abs(txn_data["qty"])
     sku_id = txn_data["sku_id"]
-    
+
     # Validate source and target are different
     if source_location == target_location:
         raise ValueError("Source and target locations must be different")
-    
+
     # Resolve source location ID
     result = await db.execute(select(Location).filter_by(name=source_location))
     source_loc = result.scalar_one_or_none()
     if not source_loc:
         raise ValueError(f"Source location {source_location} does not exist")
-    
+
     # Get source inventory state
     source_state = await db.get(InventoryState, (sku_id, source_loc.id))
     if not source_state:
         raise ValueError("Source doesn't exist")
-    
+
     # Check if source has enough inventory
     if source_state.available < qty:
-        raise ValueError(f"Not enough inventory available at {source_location}. Available: {source_state.available}, Requested: {qty}")
-    
+        raise ValueError(
+            f"Not enough inventory available at {source_location}. Available: {source_state.available}, Requested: {qty}"
+        )
+
     # Outbound txn (transfer_out)
     outbound_txn_data = txn_data.copy()
     outbound_txn_data["qty"] = -qty
@@ -162,12 +260,12 @@ async def transfer_stock(txn: TransferTxn, db: AsyncSession = Depends(get_sessio
     # Apply them
     _, _ = await apply_txn(db, outbound_txn)
     _, _ = await apply_txn(db, inbound_txn)
-    
+
     response_data = {
         "sku_id": sku_id,
         "narrative": f"Transferred {qty} units from {source_location} to {target_location}",
     }
-    
+
     await db.commit()
-    
+
     return response_data
