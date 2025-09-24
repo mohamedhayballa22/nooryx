@@ -56,6 +56,8 @@ async def apply_txn(
         state = state_result.scalar_one_or_none()
 
         if state is None:
+            if txn_payload.action != "receive":
+                raise TransactionBadRequest(detail=f"{txn_payload.sku_id} doesn't exist in {txn_payload.location}")
             state = InventoryState(
                 sku_id=db_txn.sku_id, 
                 location_id=db_txn.location_id,
