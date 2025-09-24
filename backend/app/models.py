@@ -9,10 +9,11 @@ from sqlalchemy import (
     UniqueConstraint,
 )
 from sqlalchemy.dialects.postgresql import UUID
-from sqlalchemy.orm import relationship, column_property
+from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 import uuid
 from app.core.db import Base
+from app.services.transaction.exceptions import TransactionBadRequest
 
 
 class InventoryTransaction(Base):
@@ -167,7 +168,7 @@ class InventoryState(Base):
             txn (InventoryTransaction): The transaction instance.
         
         Raises:
-            ValueError: If the transaction cannot be applied (e.g. oversell, insufficient reserved).
+            TransactionBadRequest: If the transaction cannot be applied due to stock levels or the action is not supported.
         """
         action = txn.action
         qty = txn.qty
@@ -178,13 +179,13 @@ class InventoryState(Base):
         elif action == "reserve":
             units = abs(qty)
             if self.available < units:
-                raise ValueError("Not enough available stock to reserve")
+                raise TransactionBadRequest(detail="Not enough available stock to reserve")
             self.reserved += units
 
         elif action == "unreserve":
             units = abs(qty)
             if self.reserved < units:
-                raise ValueError("Not enough reserved stock to unreserve")
+                raise TransactionBadRequest(detail="Not enough reserved stock to unreserve")
             self.reserved -= units
 
         elif action == "ship":
@@ -193,14 +194,13 @@ class InventoryState(Base):
 
             if ship_from == "reserved":
                 if self.reserved < units:
-                    raise ValueError("Not enough reserved stock to ship")
+                    raise TransactionBadRequest(detail="Not enough reserved stock to ship")
                 self.reserved -= units
                 self.on_hand -= units
 
-
             elif ship_from == "available":
                 if self.available < units:
-                    raise ValueError("Not enough available stock to ship")
+                    raise TransactionBadRequest(detail="Not enough available stock to ship")
                 self.on_hand -= units
 
             else:  # ship from reserved first, then available (available being on_hand - reserved)
@@ -209,28 +209,27 @@ class InventoryState(Base):
                     self.on_hand -= units
                 else:
                     if self.on_hand < units:
-                        raise ValueError("Not enough total stock to ship")
+                        raise TransactionBadRequest(detail="Not enough total on-hand stock to ship")
                     self.reserved = 0
                     self.on_hand -= units 
 
         elif action == "adjust":
             self.on_hand += qty
             if self.on_hand < 0:
-                raise ValueError("Not enough available stock")
+                raise TransactionBadRequest(detail="Adjustment results in negative on-hand quantity")
             
         elif action in ("transfer_out", "transfer_in"):
             units = abs(qty)
             
             if action == "transfer_out":
-                # Outbound transfer
                 if self.on_hand < units:
-                    raise ValueError("Not enough on_hand stock to transfer out")
+                    raise TransactionBadRequest(detail="Not enough on-hand stock to transfer out")
                 self.on_hand -= units
             else:  # transfer_in
                 self.on_hand += units
 
         else:
-            raise ValueError(f"Unsupported transaction action: {action}")
+            raise TransactionBadRequest(f"Unsupported transaction action: {action}")
 
 
 class Serial(Base):
