@@ -137,9 +137,6 @@ class InventoryState(Base):
         default=0,
         doc="Units promised to orders but not yet shipped.",
     )
-    available = column_property(
-        on_hand - reserved, doc="Derived: sellable units (on_hand - reserved)."
-    )
 
     version = Column(
         Integer,
@@ -151,6 +148,16 @@ class InventoryState(Base):
     location = relationship("Location", backref="inventory_states")
 
     __mapper_args__ = {"version_id_col": version}
+
+    @hybrid_property
+    def available(self):
+        """Derived: sellable units (on_hand - reserved)."""
+        return self.on_hand - self.reserved
+
+    @available.expression
+    def available(cls):
+        """SQL-level expression for the 'available' property."""
+        return cls.on_hand - cls.reserved
 
     def update_state(self, txn: "InventoryTransaction"):
         """
