@@ -124,12 +124,17 @@ async def receive_stock(
     txn: ReceiveTxn,
     db: AsyncSession = Depends(get_session),
 ):
-    txn, _ = await apply_txn(db, txn)
+    applied_txn, updated_state = await apply_txn(db, txn)
 
     response_data = {
-        "sku_id": txn.sku_id,
-        "location_id": txn.location_id,
-        "narrative": txn.narrative,
+        "narrative": applied_txn.narrative,
+        "inventory_state": {
+            "sku_id": updated_state.sku_id,
+            "location_id": updated_state.location_id,
+            "on_hand": updated_state.on_hand,
+            "available": updated_state.available,
+            "reserved": updated_state.reserved
+        }
     }
 
     await db.commit()
@@ -142,12 +147,17 @@ async def ship_stock(
     txn: ShipTxn,
     db: AsyncSession = Depends(get_session),
 ):
-    txn, _ = await apply_txn(db, txn)
+    applied_txn, updated_state = await apply_txn(db, txn)
 
     response_data = {
-        "sku_id": txn.sku_id,
-        "location_id": txn.location_id,
-        "narrative": txn.narrative,
+        "narrative": applied_txn.narrative,
+        "inventory_state": {
+            "sku_id": updated_state.sku_id,
+            "location_id": updated_state.location_id,
+            "on_hand": updated_state.on_hand,
+            "available": updated_state.available,
+            "reserved": updated_state.reserved
+        }
     }
 
     await db.commit()
@@ -160,12 +170,17 @@ async def adjust_stock(
     txn: AdjustTxn,
     db: AsyncSession = Depends(get_session),
 ):
-    txn, _ = await apply_txn(db, txn)
+    applied_txn, updated_state = await apply_txn(db, txn)
 
     response_data = {
-        "sku_id": txn.sku_id,
-        "location_id": txn.location_id,
-        "narrative": txn.narrative,
+        "narrative": applied_txn.narrative,
+        "inventory_state": {
+            "sku_id": updated_state.sku_id,
+            "location_id": updated_state.location_id,
+            "on_hand": updated_state.on_hand,
+            "available": updated_state.available,
+            "reserved": updated_state.reserved
+        }
     }
 
     await db.commit()
@@ -178,12 +193,17 @@ async def reserve_stock(
     txn: ReserveTxn,
     db: AsyncSession = Depends(get_session),
 ):
-    txn, _ = await apply_txn(db, txn)
+    applied_txn, updated_state = await apply_txn(db, txn)
 
     response_data = {
-        "sku_id": txn.sku_id,
-        "location_id": txn.location_id,
-        "narrative": txn.narrative,
+        "narrative": applied_txn.narrative,
+        "inventory_state": {
+            "sku_id": updated_state.sku_id,
+            "location_id": updated_state.location_id,
+            "on_hand": updated_state.on_hand,
+            "available": updated_state.available,
+            "reserved": updated_state.reserved
+        }
     }
 
     await db.commit()
@@ -196,12 +216,17 @@ async def unreserve_stock(
     txn: UnreserveTxn,
     db: AsyncSession = Depends(get_session),
 ):
-    txn, _ = await apply_txn(db, txn)
+    applied_txn, updated_state = await apply_txn(db, txn)
 
     response_data = {
-        "sku_id": txn.sku_id,
-        "location_id": txn.location_id,
-        "narrative": txn.narrative,
+        "narrative": applied_txn.narrative,
+        "inventory_state": {
+            "sku_id": updated_state.sku_id,
+            "location_id": updated_state.location_id,
+            "on_hand": updated_state.on_hand,
+            "available": updated_state.available,
+            "reserved": updated_state.reserved
+        }
     }
 
     await db.commit()
@@ -258,12 +283,25 @@ async def transfer_stock(
     inbound_txn = TransferTxn(**inbound_txn_data)
 
     # Apply them
-    _, _ = await apply_txn(db, outbound_txn)
-    _, _ = await apply_txn(db, inbound_txn)
+    _, source_updated_state = await apply_txn(db, outbound_txn)
+    _, target_updated_state = await apply_txn(db, inbound_txn)
 
     response_data = {
-        "sku_id": sku_id,
         "narrative": f"Transferred {qty} units from {source_location} to {target_location}",
+        "source_inventory_state": {
+            "sku_id": source_updated_state.sku_id,
+            "location_id": source_updated_state.location_id,
+            "on_hand": source_updated_state.on_hand,
+            "available": source_updated_state.available,
+            "reserved": source_updated_state.reserved
+        },
+        "target_inventory_state": {
+            "sku_id": target_updated_state.sku_id,
+            "location_id": target_updated_state.location_id,
+            "on_hand": target_updated_state.on_hand,
+            "available": target_updated_state.available,
+            "reserved": target_updated_state.reserved
+        }
     }
 
     await db.commit()
