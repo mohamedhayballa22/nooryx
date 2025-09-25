@@ -5,15 +5,23 @@ from .config import settings
 
 
 engine = create_async_engine(
-    settings.DATABASE_URL, pool_pre_ping=True, pool_recycle=3600
+    settings.DATABASE_URL,
+    pool_pre_ping=True,
+    pool_recycle=3600,
+    pool_size=15,
+    max_overflow=20,
+)
+
+async_session_maker = async_sessionmaker(
+    bind=engine,
+    autoflush=False,
+    autocommit=False,
+    expire_on_commit=False,
 )
 
 
 async def get_session():
-    async_session = async_sessionmaker(
-        autocommit=False, autoflush=False, expire_on_commit=False, bind=engine
-    )
-    async with async_session() as session:
+    async with async_session_maker() as session:
         try:
             yield session
         except Exception:
