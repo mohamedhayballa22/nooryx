@@ -90,6 +90,20 @@ wheels = [
 ]
 
 [[package]]
+name = "fastapi-pagination"
+version = "0.14.2"
+source = { registry = "https://pypi.org/simple" }
+dependencies = [
+    { name = "fastapi" },
+    { name = "pydantic" },
+    { name = "typing-extensions" },
+]
+sdist = { url = "https://files.pythonhosted.org/packages/58/7b/678a4f6ea551dbba5a5e34559030570f1cebea55ccc9b5eb06fd35a13a42/fastapi_pagination-0.14.2.tar.gz", hash = "sha256:ffea771a2c5f2aa38f76a915206ea08d3e26e5344a8f2c6a884f519498322d9f", size = 566169 }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/ef/80/880bcea032603bcc3df41c989f10618f60be02db67d9978ccb5f235c14db/fastapi_pagination-0.14.2-py3-none-any.whl", hash = "sha256:3772bf5311b13190de059e67505dfce85f13498e81f2bcc6f8df3485067dec0c", size = 52551 },
+]
+
+[[package]]
 name = "greenlet"
 version = "3.2.4"
 source = { registry = "https://pypi.org/simple" }
@@ -202,6 +216,7 @@ dependencies = [
     { name = "alembic" },
     { name = "asyncpg" },
     { name = "fastapi" },
+    { name = "fastapi-pagination" },
     { name = "pydantic-settings" },
     { name = "redis", extra = ["hiredis"] },
     { name = "sqlalchemy" },
@@ -214,6 +229,7 @@ requires-dist = [
     { name = "alembic", specifier = ">=1.16.5" },
     { name = "asyncpg", specifier = ">=0.30.0" },
     { name = "fastapi", specifier = ">=0.116.2" },
+    { name = "fastapi-pagination", specifier = ">=0.14.2" },
     { name = "pydantic-settings", specifier = ">=2.10.1" },
     { name = "redis", extras = ["hiredis"], specifier = ">=6.4.0" },
     { name = "sqlalchemy", specifier = ">=2.0.43" },
