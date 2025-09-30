@@ -129,7 +129,7 @@ export function AppSidebar() {
                 <SidebarMenuButton className="cursor-pointer h-auto py-2">
                   <div className="flex items-center w-full min-w-0 group-data-[collapsible=icon]:justify-center">
                     <Avatar className="rounded-lg">
-                      <AvatarFallback className="rounded-lg">{initials}</AvatarFallback>
+                      <AvatarFallback className="rounded-lg"><strong>{initials}</strong></AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col items-start min-w-0 flex-1 ml-2 group-data-[collapsible=icon]:hidden">
                       <span className="font-medium truncate w-full text-left">{userName}</span>
