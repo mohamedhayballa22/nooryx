@@ -43,7 +43,14 @@ class TransferTxn(BaseTxn):
     txn_metadata: Dict[str, Any] = Field(..., description="Must include target_location")
 
 
-# Union type for OpenAPI
-InventoryTransactionIn = Union[
-    ReceiveTxn, ShipTxn, AdjustTxn, ReserveTxn, UnreserveTxn, TransferTxn
-]
+class InventoryItemResponse(BaseModel):
+    sku: str
+    product_name: str
+    location: str
+    available: int
+    last_transaction: str
+    status: str
+
+    class Config:
+        from_attributes = True
+        

@@ -1,6 +1,10 @@
-from fastapi import FastAPI, Depends
+from fastapi import FastAPI, Depends, Query
+from fastapi_pagination import add_pagination
+from fastapi_pagination.ext.sqlalchemy import apaginate
+from fastapi_pagination import Page
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
+from typing import Optional
 from app.schemas import (
     ReceiveTxn,
     ShipTxn,
@@ -8,8 +12,10 @@ from app.schemas import (
     ReserveTxn,
     UnreserveTxn,
     TransferTxn,
+    InventoryItemResponse
 )
-from app.models import InventoryState, Location
+from app.models import InventoryState, Location, InventoryTransaction
+from enum import Enum
 
 from app.core.config import settings
 from app.core.db import get_session
@@ -17,7 +23,9 @@ from app.services.transaction.txn import apply_txn
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, func, case, or_, and_
+from sqlalchemy.orm import selectinload
+from typing import List
 from starlette.requests import Request
 from starlette.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
@@ -61,6 +69,8 @@ app.add_middleware(
     default_rate=5,
     # After 5 seconds of no activity, back to full 25 burst capacity
 )
+
+add_pagination(app)
 
 
 @app.exception_handler(Exception)
@@ -307,3 +317,141 @@ async def transfer_stock(
     await db.commit()
 
     return response_data
+
+class StockStatus(str, Enum):
+    OUT_OF_STOCK = "Out of Stock"
+    LOW_STOCK = "Low Stock"
+    IN_STOCK = "In Stock"
+
+@app.get("/inventory", response_model=Page[InventoryItemResponse])
+async def get_inventory(
+    db: AsyncSession = Depends(get_session),
+    # Filtering parameters
+    search: Optional[str] = Query(None, description="Search across SKU and location (partial match)"),
+    stock_status: Optional[List[StockStatus]] = Query(
+        None, 
+        description="Filter by stock status (can specify multiple)"
+    ),
+    # Sorting parameters
+    sort_by: Optional[str] = Query(
+        "sku", 
+        description="Sort by field",
+        regex="^(sku|product_name|location|available|status)$"
+    ),
+    order: Optional[str] = Query(
+        "asc", 
+        description="Sort order",
+        regex="^(asc|desc)$"
+    )
+):
+    """
+    Returns current inventory status across all SKUs and locations.
+    Efficiently joins inventory state with latest transaction per SKU/location.
+    
+    Supports searching across SKU and location, filtering by stock status, and sorting by multiple fields.
+    """
+    
+    # Subquery to get the most recent transaction for each SKU/location
+    latest_txn_subq = (
+        select(
+            InventoryTransaction.sku_id,
+            InventoryTransaction.location_id,
+            func.max(InventoryTransaction.id).label("max_txn_id")
+        )
+        .group_by(
+            InventoryTransaction.sku_id,
+            InventoryTransaction.location_id
+        )
+        .subquery()
+    )
+    
+    # Define the status case expression for reuse
+    status_expr = case(
+        (InventoryState.available == 0, "Out of Stock"),
+        (InventoryState.available < 10, "Low Stock"),
+        else_="In Stock"
+    ).label("status")
+    
+    # Main query joining inventory state with latest transaction
+    query = (
+        select(
+            InventoryState.sku_id.label("sku"),
+            InventoryState.sku_id.label("product_name"),
+            Location.name.label("location"),
+            InventoryState.available.label("available"),
+            InventoryTransaction,
+            status_expr
+        )
+        .join(Location, InventoryState.location_id == Location.id)
+        .outerjoin(
+            latest_txn_subq,
+            (InventoryState.sku_id == latest_txn_subq.c.sku_id) &
+            (InventoryState.location_id == latest_txn_subq.c.location_id)
+        )
+        .outerjoin(
+            InventoryTransaction,
+            InventoryTransaction.id == latest_txn_subq.c.max_txn_id
+        )
+        .options(selectinload(InventoryTransaction.location))
+    )
+    
+    # Apply search filter across SKU and location
+    if search:
+        query = query.where(
+            or_(
+                InventoryState.sku_id.ilike(f"%{search}%"),
+                Location.name.ilike(f"%{search}%")
+            )
+        )
+    
+    # Apply stock_status filter at the database level if possible
+    # This optimizes by filtering before pagination
+    if stock_status:
+        status_conditions = []
+        for status in stock_status:
+            if status == StockStatus.OUT_OF_STOCK:
+                status_conditions.append(InventoryState.available == 0)
+            elif status == StockStatus.LOW_STOCK:
+                status_conditions.append(
+                    and_(InventoryState.available > 0, InventoryState.available < 10)
+                )
+            elif status == StockStatus.IN_STOCK:
+                status_conditions.append(InventoryState.available >= 10)
+        
+        if status_conditions:
+            query = query.where(or_(*status_conditions))
+    
+    # Apply sorting
+    sort_mapping = {
+        "sku": InventoryState.sku_id,
+        "product_name": InventoryState.sku_id,  # Same as sku in current implementation
+        "location": Location.name,
+        "available": InventoryState.available,
+        "status": status_expr
+    }
+    
+    sort_column = sort_mapping.get(sort_by, InventoryState.sku_id)
+    
+    if order == "desc":
+        query = query.order_by(sort_column.desc())
+    else:
+        query = query.order_by(sort_column.asc())
+    
+    if sort_by != "location":
+        query = query.order_by(Location.name)
+    
+    return await apaginate(
+        db, 
+        query,
+        transformer=lambda rows: [
+            InventoryItemResponse(
+                sku=row.sku,
+                product_name=row.product_name,
+                location=row.location,
+                available=row.available,
+                last_transaction=row.InventoryTransaction.narrative if row.InventoryTransaction else "No transactions yet",
+                status=row.status
+            )
+            for row in rows
+        ]
+    )
