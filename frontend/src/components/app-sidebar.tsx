@@ -60,18 +60,18 @@ export function AppSidebar() {
       {/* Header */}
 
     <SidebarHeader>
-    <div className="flex items-center group-data-[collapsible=icon]:justify-center">
-        <Image
-        src="/mock-logo.svg"
-        alt="Nooryx logo"
-        width={25}
-        height={25}
-        className="flex-shrink-0 pt-1"
-        />
-        <span className="ml-2 text-xl font-bold group-data-[collapsible=icon]:hidden">
-        Nooryx
-        </span>
-    </div>
+        <div className="flex items-center group-data-[collapsible=icon]:justify-center pb-4 ml-2 group-data-[collapsible=icon]:ml-0">
+            <Image
+                src="/mock-logo.svg"
+                alt="Nooryx logo"
+                width={25}
+                height={25}
+                className="flex-shrink-0 pt-1"
+            />
+            <span className="ml-2 text-xl font-bold group-data-[collapsible=icon]:hidden">
+                Nooryx
+            </span>
+        </div>
     </SidebarHeader>
 
       {/* Main Menu */}
