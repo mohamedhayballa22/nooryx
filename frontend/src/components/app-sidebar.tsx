@@ -11,7 +11,7 @@ import {
   ChevronUp,
   ClipboardClock,
   ChartSpline,
-  Warehouse,
+  Box,
 } from "lucide-react"
 
 import {
@@ -39,7 +39,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 
 const mainItems = [
   { title: "Dashboard", url: "dashboard", icon: ChartSpline },
-  { title: "Stock", url: "stock", icon: Warehouse },
+  { title: "Inventory", url: "inventory", icon: Box },
   { title: "Audit Trail", url: "audit-trail", icon: ClipboardClock },
   { title: "Notifications", url: "#", icon: Bell },
 ]
