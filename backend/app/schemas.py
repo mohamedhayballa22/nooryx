@@ -54,3 +54,19 @@ class InventoryItemResponse(BaseModel):
     class Config:
         from_attributes = True
         
+
+class TransactionHistoryResponse(BaseModel):
+    id: int
+    date: str
+    actor: str
+    action: str
+    quantity: int
+    sku: str
+    location: str
+    stock_before: int
+    stock_after: int
+    metadata: Optional[Dict[str, Any]] = None
+
+    class Config:
+        from_attributes = True
+        
