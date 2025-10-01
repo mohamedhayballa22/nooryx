@@ -106,7 +106,7 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {loading ? (
+            {loading || data.length === 0 ? (
               Array.from({ length: pagination.pageSize }).map((_, index) => (
                 <TableRow key={index}>
                   {columns.map((_, cellIndex) => (
@@ -146,7 +146,6 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* ✅ Reusable pagination */}
       <PaginationControls
         pageIndex={pagination.pageIndex}
         pageSize={pagination.pageSize}
