@@ -1,6 +1,9 @@
+// hooks/use-transactions.ts
 "use client"
 
-import { useCallback, useEffect, useRef, useState } from "react"
+import { useState, useEffect } from "react"
+import { useDebounce } from "@/hooks/use-debounce"
+import { PaginationState } from "@tanstack/react-table"
 
 export interface TransactionItem {
   id: number
@@ -25,101 +28,123 @@ export interface TransactionsResponse {
   pages: number
 }
 
-export function useTransactions(
-  initialPageIndex = 0,
-  initialPageSize = 10
-) {
-  const [pageIndex, setPageIndex] = useState<number>(initialPageIndex)
-  const [pageSize, setPageSizeState] = useState<number>(initialPageSize)
+const INITIAL_PAGINATION: PaginationState = { pageIndex: 0, pageSize: 10 }
+const INITIAL_ACTION_FILTERS = [
+  "added",
+  "shipped",
+  "reserved",
+  "transferred",
+  "adjusted",
+  "unreserved",
+]
 
-  const [items, setItems] = useState<TransactionItem[]>([])
-  const [totalItems, setTotalItems] = useState<number>(0)
-  const [totalPages, setTotalPages] = useState<number>(0)
+export function useTransactions() {
+  const [data, setData] = useState<TransactionItem[]>([])
+  const [loading, setLoading] = useState(true)
+  const [error, setError] = useState<string | null>(null)
 
-  const [loading, setLoading] = useState<boolean>(false)
-  const [error, setError] = useState<Error | null>(null)
+  // Controls
+  const [pagination, setPagination] = useState<PaginationState>(INITIAL_PAGINATION)
+  const [totalPages, setTotalPages] = useState(0)
+  const [totalItems, setTotalItems] = useState(0)
 
-  // to avoid race conditions
-  const abortRef = useRef<AbortController | null>(null)
-  const mountedRef = useRef(true)
+  const [search, setSearch] = useState("")
+  const [sortBy, setSortBy] = useState<string | null>(null)
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc")
+  const [actionFilters, setActionFilters] = useState<string[]>(INITIAL_ACTION_FILTERS)
+
+  const debouncedSearch = useDebounce(search, 500)
 
   useEffect(() => {
-    mountedRef.current = true
-    return () => {
-      mountedRef.current = false
-      abortRef.current?.abort()
-    }
-  }, [])
+    const controller = new AbortController()
+    const { signal } = controller
 
-  // When pageSize changes we reset to first page
-  const setPageSize = useCallback((size: number) => {
-    setPageSizeState(size)
-    setPageIndex(0)
-  }, [])
-
-  const fetchPage = useCallback(
-    async (pageIdx = pageIndex, size = pageSize) => {
-      abortRef.current?.abort()
-      const controller = new AbortController()
-      abortRef.current = controller
-
-      setLoading(true)
-      setError(null)
-
+    const fetchTransactions = async () => {
       try {
-        const apiPage = pageIdx + 1
+        setLoading(true)
+        setError(null)
 
-        const url = `http://localhost:8000/transactions?page=${apiPage}&size=${size}`
+        const params = new URLSearchParams({
+          page: String(pagination.pageIndex + 1),
+          size: String(pagination.pageSize),
+        })
 
-        const res = await fetch(url, { signal: controller.signal })
+        if (debouncedSearch) {
+          params.append("search", debouncedSearch)
+        }
+        if (sortBy) {
+          params.append("sort_by", sortBy)
+          params.append("order", sortOrder)
+        }
+        actionFilters.forEach((action) => {
+          params.append("action", action)
+        })
 
-        if (!res.ok) {
-          throw new Error(`Failed to fetch transactions: ${res.status} ${res.statusText}`)
+        const response = await fetch(
+          `http://localhost:8000/transactions?${params.toString()}`,
+          { signal }
+        )
+
+        if (!response.ok) {
+          throw new Error("Failed to fetch transactions")
         }
 
-        const data: TransactionsResponse = await res.json()
-
-        if (!mountedRef.current) return
-
-        setItems(data.items ?? [])
-        setTotalItems(data.total ?? 0)
-        setTotalPages(data.pages ?? Math.max(1, Math.ceil((data.total ?? 0) / (data.size ?? size))))
-
-        // keep local pageIndex in sync with backend (backend returns 1-based page)
-        const backendPageIndex = Math.max(0, (data.page ?? apiPage) - 1)
-        if (backendPageIndex !== pageIdx) {
-          setPageIndex(backendPageIndex)
-        }
+        const result: TransactionsResponse = await response.json()
+        setData(result.items)
+        setTotalPages(result.pages)
+        setTotalItems(result.total)
       } catch (err: any) {
         if (err.name === "AbortError") {
-          // aborted -> ignore
-          return
+          console.log("Fetch aborted")
+        } else {
+          setError(err instanceof Error ? err.message : "An unknown error occurred")
+          setData([])
         }
-        setError(err)
       } finally {
-        if (mountedRef.current) setLoading(false)
+        setLoading(false)
       }
-    },
-    [pageIndex, pageSize]
-  )
+    }
 
-  // auto-fetch when pageIndex/size change
+    fetchTransactions()
+    return () => controller.abort()
+  }, [
+    pagination.pageIndex,
+    pagination.pageSize,
+    debouncedSearch,
+    sortBy,
+    sortOrder,
+    actionFilters,
+  ])
+
+  // Reset to page 0 when filters/search/sort change
   useEffect(() => {
-    fetchPage(pageIndex, pageSize)
-  }, [pageIndex, pageSize])
+    if (pagination.pageIndex !== 0) {
+      setPagination((prev) => ({ ...prev, pageIndex: 0 }))
+    }
+  }, [debouncedSearch, actionFilters, sortBy, sortOrder])
 
-  const refetch = useCallback(() => fetchPage(pageIndex, pageSize), [fetchPage, pageIndex, pageSize])
+  const onSortChange = (newSortBy: string | null, newSortOrder: "asc" | "desc") => {
+    setSortBy(newSortBy)
+    setSortOrder(newSortOrder)
+  }
 
   return {
-    items,
-    totalItems,
-    totalPages,
-    pageIndex,
-    pageSize,
+    data,
     loading,
     error,
-    setPageIndex,
-    setPageSize,
-    refetch,
+    pagination,
+    onPaginationChange: setPagination,
+    totalPages,
+    totalItems,
+
+    search,
+    onSearchChange: setSearch,
+
+    sortBy,
+    sortOrder,
+    onSortChange,
+
+    actionFilters,
+    onActionFiltersChange: setActionFilters,
   }
 }
