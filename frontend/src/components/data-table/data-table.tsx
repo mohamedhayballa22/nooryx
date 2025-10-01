@@ -14,8 +14,10 @@ import {
 
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
-import { DataTableToolbar } from "./data-table-toolbar"
+import { DataToolbar } from "@/components/data-toolbar"
 import { PaginationControls } from "@/components/app-pagination"
+import { Button } from "@/components/ui/button"
+import { PlusIcon } from "lucide-react"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -33,6 +35,20 @@ interface DataTableProps<TData, TValue> {
   statusFilters: string[]
   onStatusFiltersChange: (filters: string[]) => void
 }
+
+const STOCK_STATUSES = [
+  { value: "In Stock", label: "In Stock" },
+  { value: "Low Stock", label: "Low Stock" },
+  { value: "Out of Stock", label: "Out of Stock" },
+]
+
+const SORT_OPTIONS = [
+  { value: "product_name", label: "Product Name" },
+  { value: "sku", label: "SKU" },
+  { value: "available", label: "Available" },
+  { value: "status", label: "Status" },
+  { value: "location", label: "Location" },
+]
 
 export function DataTable<TData, TValue>({
   columns,
@@ -79,15 +95,26 @@ export function DataTable<TData, TValue>({
 
   return (
     <div className="space-y-4">
-      <DataTableToolbar
+      <DataToolbar
         table={table}
         search={search}
         onSearchChange={onSearchChange}
+        searchPlaceholder="Search by SKU or location..."
+        filterLabel="Status"
+        filterOptions={STOCK_STATUSES}
+        activeFilters={statusFilters}
+        onFiltersChange={onStatusFiltersChange}
         sortBy={sortBy}
         sortOrder={sortOrder}
+        sortOptions={SORT_OPTIONS}
         onSortChange={onSortChange}
-        statusFilters={statusFilters}
-        onStatusFiltersChange={onStatusFiltersChange}
+        showViewToggle
+        actions={
+          <Button variant="outline">
+            <PlusIcon className="-ms-1 opacity-60" size={16} />
+            Add Product
+          </Button>
+        }
       />
 
       <div className="overflow-hidden rounded-md border">
