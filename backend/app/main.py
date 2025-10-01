@@ -466,6 +466,10 @@ async def get_transactions(
         None, 
         description="Search across actor, action, SKU, location, and metadata (partial match)"
     ),
+    action: Optional[List[str]] = Query(
+        None,
+        description="Filter by action type(s)",
+    ),
     # Sorting parameters
     sort_by: Optional[str] = Query(
         "created_at", 
@@ -517,6 +521,15 @@ async def get_transactions(
             InventoryTransaction.id == stock_before_subq.c.id
         )
     )
+    
+    # Apply action filter
+    if action:
+        # Collect all DB actions from all frontend action filters
+        db_actions = []
+        for display_action in action:
+            db_actions.extend(_get_db_actions_from_display(display_action))
+        
+        query = query.where(InventoryTransaction.action.in_(db_actions))
     
     # Apply search filter
     if search:
@@ -577,10 +590,26 @@ async def get_transactions(
     )
 
 
+def _get_db_actions_from_display(display_action: str) -> list[str]:
+    """
+    Convert frontend display action to database action(s).
+    Returns a list because some display actions map to multiple DB actions.
+    """
+    action_map = {
+        "added": ["receive"],
+        "shipped": ["ship"],
+        "reserved": ["reserve"],
+        "transferred": ["transfer", "transfer_in", "transfer_out"],
+        "adjusted": ["adjust"],
+        "unreserved": ["unreserve"]
+    }
+    return action_map.get(display_action, [])
+
+
 def _format_action(action: str) -> str:
     """Convert action to past tense for display."""
     action_map = {
-        "receive": "received",
+        "receive": "added",
         "ship": "shipped",
         "adjust": "adjusted",
         "reserve": "reserved",
