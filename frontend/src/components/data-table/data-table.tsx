@@ -11,37 +11,11 @@ import {
   PaginationState,
   OnChangeFn,
 } from "@tanstack/react-table"
-import {
-  ChevronFirstIcon,
-  ChevronLastIcon,
-  ChevronLeftIcon,
-  ChevronRightIcon,
-} from "lucide-react"
 
-import { Button } from "@/components/ui/button"
-import {
-  Pagination,
-  PaginationContent,
-  PaginationItem,
-} from "@/components/ui/pagination"
-import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import {
-  Table,
-  TableBody,
-  TableCell,
-  TableHead,
-  TableHeader,
-  TableRow,
-} from "@/components/ui/table"
+import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
-
 import { DataTableToolbar } from "./data-table-toolbar"
+import { PaginationControls } from "@/components/app-pagination"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -79,7 +53,6 @@ export function DataTable<TData, TValue>({
   const router = useRouter()
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
 
-  // Wrap the onPaginationChange to handle both updater functions and direct values
   const handlePaginationChange: OnChangeFn<PaginationState> = (updaterOrValue) => {
     const newPagination =
       typeof updaterOrValue === "function"
@@ -116,6 +89,7 @@ export function DataTable<TData, TValue>({
         statusFilters={statusFilters}
         onStatusFiltersChange={onStatusFiltersChange}
       />
+
       <div className="overflow-hidden rounded-md border">
         <Table>
           <TableHeader>
@@ -125,10 +99,7 @@ export function DataTable<TData, TValue>({
                   <TableHead key={header.id}>
                     {header.isPlaceholder
                       ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext()
-                        )}
+                      : flexRender(header.column.columnDef.header, header.getContext())}
                   </TableHead>
                 ))}
               </TableRow>
@@ -159,20 +130,14 @@ export function DataTable<TData, TValue>({
                 >
                   {row.getVisibleCells().map((cell) => (
                     <TableCell key={cell.id}>
-                      {flexRender(
-                        cell.column.columnDef.cell,
-                        cell.getContext()
-                      )}
+                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
                     </TableCell>
                   ))}
                 </TableRow>
               ))
             ) : (
               <TableRow>
-                <TableCell
-                  colSpan={columns.length}
-                  className="h-24 text-center"
-                >
+                <TableCell colSpan={columns.length} className="h-24 text-center">
                   No results found.
                 </TableCell>
               </TableRow>
@@ -181,86 +146,20 @@ export function DataTable<TData, TValue>({
         </Table>
       </div>
 
-      {/* Pagination Controls */}
-      <div className="flex items-center justify-between gap-4">
-        <div className="flex items-center gap-2">
-          <p className="text-sm text-muted-foreground">Rows per page</p>
-          <Select
-            value={`${pagination.pageSize}`}
-            onValueChange={(value) => {
-              onPaginationChange({
-                pageIndex: 0,
-                pageSize: Number(value),
-              })
-            }}
-          >
-            <SelectTrigger className="h-8 w-[70px]">
-              <SelectValue placeholder={pagination.pageSize} />
-            </SelectTrigger>
-            <SelectContent>
-              {[10, 25, 50, 100].map((pageSize) => (
-                <SelectItem key={pageSize} value={`${pageSize}`}>
-                  {pageSize}
-                </SelectItem>
-              ))}
-            </SelectContent>
-          </Select>
-        </div>
-
-        <div className="text-muted-foreground text-sm">
-          Page {pagination.pageIndex + 1} of {totalPages || 1} ({totalItems}{" "}
-          total items)
-        </div>
-
-        <Pagination className="mx-0 w-auto">
-          <PaginationContent>
-            <PaginationItem>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => table.firstPage()}
-                disabled={!table.getCanPreviousPage() || loading}
-                aria-label="Go to first page"
-              >
-                <ChevronFirstIcon className="h-4 w-4" />
-              </Button>
-            </PaginationItem>
-            <PaginationItem>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => table.previousPage()}
-                disabled={!table.getCanPreviousPage() || loading}
-                aria-label="Go to previous page"
-              >
-                <ChevronLeftIcon className="h-4 w-4" />
-              </Button>
-            </PaginationItem>
-            <PaginationItem>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => table.nextPage()}
-                disabled={!table.getCanNextPage() || loading}
-                aria-label="Go to next page"
-              >
-                <ChevronRightIcon className="h-4 w-4" />
-              </Button>
-            </PaginationItem>
-            <PaginationItem>
-              <Button
-                variant="outline"
-                size="icon"
-                onClick={() => table.lastPage()}
-                disabled={!table.getCanNextPage() || loading}
-                aria-label="Go to last page"
-              >
-                <ChevronLastIcon className="h-4 w-4" />
-              </Button>
-            </PaginationItem>
-          </PaginationContent>
-        </Pagination>
-      </div>
+      {/* ✅ Reusable pagination */}
+      <PaginationControls
+        pageIndex={pagination.pageIndex}
+        pageSize={pagination.pageSize}
+        totalPages={totalPages}
+        totalItems={totalItems}
+        loading={loading}
+        onPageChange={(newPage) =>
+          onPaginationChange({ ...pagination, pageIndex: newPage })
+        }
+        onPageSizeChange={(newSize) =>
+          onPaginationChange({ pageIndex: 0, pageSize: newSize })
+        }
+      />
     </div>
   )
 }
