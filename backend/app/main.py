@@ -12,7 +12,8 @@ from app.schemas import (
     ReserveTxn,
     UnreserveTxn,
     TransferTxn,
-    InventoryItemResponse
+    InventoryItemResponse,
+    TransactionHistoryResponse
 )
 from app.models import InventoryState, Location, InventoryTransaction
 from enum import Enum
@@ -23,7 +24,7 @@ from app.services.transaction.txn import apply_txn
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, case, or_, and_
+from sqlalchemy import select, func, case, or_, and_, String
 from sqlalchemy.orm import selectinload
 from typing import List
 from starlette.requests import Request
@@ -455,3 +456,137 @@ async def get_inventory(
             for row in rows
         ]
     )
+
+
+@app.get("/transactions", response_model=Page[TransactionHistoryResponse])
+async def get_transactions(
+    db: AsyncSession = Depends(get_session),
+    # Filtering parameters
+    search: Optional[str] = Query(
+        None, 
+        description="Search across actor, action, SKU, location, and metadata (partial match)"
+    ),
+    # Sorting parameters
+    sort_by: Optional[str] = Query(
+        "created_at", 
+        description="Sort by field",
+        regex="^(created_at|action|sku|location|quantity)$"
+    ),
+    order: Optional[str] = Query(
+        "desc", 
+        description="Sort order",
+        regex="^(asc|desc)$"
+    )
+):
+    """
+    Returns paginated transaction history with stock before/after calculations.
+    
+    Supports searching across actor, action, SKU, location, and metadata fields.
+    """
+    
+    # Subquery to calculate cumulative stock before each transaction
+    # This uses a window function to sum all previous transactions
+    stock_before_subq = (
+        select(
+            InventoryTransaction.id,
+            func.coalesce(
+                func.sum(InventoryTransaction.qty).over(
+                    partition_by=[
+                        InventoryTransaction.sku_id,
+                        InventoryTransaction.location_id
+                    ],
+                    order_by=InventoryTransaction.id,
+                    rows=(None, -1)  # All rows before current
+                ),
+                0
+            ).label("stock_before")
+        )
+        .subquery()
+    )
+    
+    # Main query with joins
+    query = (
+        select(
+            InventoryTransaction,
+            Location.name.label("location_name"),
+            stock_before_subq.c.stock_before
+        )
+        .join(Location, InventoryTransaction.location_id == Location.id)
+        .join(
+            stock_before_subq,
+            InventoryTransaction.id == stock_before_subq.c.id
+        )
+    )
+    
+    # Apply search filter
+    if search:
+        search_pattern = f"%{search}%"
+        
+        # Build metadata search conditions
+        # Search for the pattern in any key or value in the JSON metadata
+        metadata_search = func.cast(InventoryTransaction.txn_metadata, String).ilike(search_pattern)
+        
+        query = query.where(
+            or_(
+                InventoryTransaction.created_by.ilike(search_pattern),
+                InventoryTransaction.action.ilike(search_pattern),
+                InventoryTransaction.sku_id.ilike(search_pattern),
+                Location.name.ilike(search_pattern),
+                metadata_search
+            )
+        )
+    
+    # Apply sorting
+    sort_mapping = {
+        "created_at": InventoryTransaction.created_at,
+        "action": InventoryTransaction.action,
+        "sku": InventoryTransaction.sku_id,
+        "location": Location.name,
+        "quantity": InventoryTransaction.qty
+    }
+    
+    sort_column = sort_mapping.get(sort_by, InventoryTransaction.created_at)
+    
+    if order == "desc":
+        query = query.order_by(sort_column.desc())
+    else:
+        query = query.order_by(sort_column.asc())
+    
+    # Add secondary sort by ID to ensure consistent ordering
+    if sort_by != "created_at":
+        query = query.order_by(InventoryTransaction.created_at.desc())
+    
+    return await apaginate(
+        db, 
+        query,
+        transformer=lambda rows: [
+            TransactionHistoryResponse(
+                id=row.InventoryTransaction.id,
+                date=row.InventoryTransaction.created_at.strftime("%b %d, %Y at %I:%M %p"),
+                actor=row.InventoryTransaction.created_by or "Hannah Kandell",  # Hardcoded fallback
+                action=_format_action(row.InventoryTransaction.action),
+                quantity=abs(row.InventoryTransaction.qty),
+                sku=row.InventoryTransaction.sku_id,
+                location=row.location_name,
+                stock_before=row.stock_before,
+                stock_after=row.stock_before + row.InventoryTransaction.qty,
+                metadata=row.InventoryTransaction.txn_metadata
+            )
+            for row in rows
+        ]
+    )
+
+
+def _format_action(action: str) -> str:
+    """Convert action to past tense for display."""
+    action_map = {
+        "receive": "received",
+        "ship": "shipped",
+        "adjust": "adjusted",
+        "reserve": "reserved",
+        "unreserve": "unreserved",
+        "transfer_out": "transferred out",
+        "transfer_in": "transferred in",
+        "transfer": "transferred"
+    }
+    return action_map.get(action, action + "ed")
