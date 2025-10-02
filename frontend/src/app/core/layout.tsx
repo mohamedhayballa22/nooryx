@@ -1,5 +1,6 @@
-import { SidebarProvider, SidebarTrigger } from "@/components/ui/sidebar"
+import { SidebarProvider } from "@/components/ui/sidebar"
 import { AppSidebar } from "@/components/app-sidebar"
+import { CoreNavbar } from "@/components/core-navbar"
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   return (
@@ -9,10 +10,15 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <AppSidebar />
 
         {/* Main content */}
-        <main className="flex-1 overflow-auto">
-          <SidebarTrigger className="cursor-pointer"/>
-          {children}
-        </main>
+        <div className="flex-1 flex flex-col overflow-hidden">
+          {/* Navbar */}
+          <CoreNavbar />
+
+          {/* Page content */}
+          <main className="flex-1 overflow-auto p-4">
+            {children}
+          </main>
+        </div>
       </div>
     </SidebarProvider>
   )

@@ -1,6 +1,6 @@
 import * as React from "react"
 import Link from "next/link"
-import Image from "next/image";
+import Image from "next/image"
 
 import {
   Bell,
@@ -50,7 +50,6 @@ const systemItems = [
 ]
 
 export function AppSidebar() {
-
   const userEmail = "mohamed.hayballa@nooryx.com"
   const userName = "Mohamed Hayballa"
   const initials = "MH"
@@ -58,21 +57,20 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       {/* Header */}
-
-    <SidebarHeader>
-        <div className="flex items-center group-data-[collapsible=icon]:justify-center pb-4 ml-2 group-data-[collapsible=icon]:ml-0">
-            <Image
-                src="/mock-logo.svg"
-                alt="Nooryx logo"
-                width={25}
-                height={25}
-                className="flex-shrink-0 pt-1"
-            />
-            <span className="ml-2 text-xl font-bold group-data-[collapsible=icon]:hidden">
-                Nooryx
-            </span>
-        </div>
-    </SidebarHeader>
+      <SidebarHeader className="h-14 border-b px-4 group-data-[collapsible=icon]:px-0">
+  <div className="flex h-full items-center gap-2 group-data-[collapsible=icon]:justify-center">
+    <Image
+      src="/mock-logo.svg"
+      alt="Nooryx logo"
+      width={24}
+      height={24}
+      className="flex-shrink-0 pt-1"
+    />
+    <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
+      Nooryx
+    </span>
+  </div>
+</SidebarHeader>
 
       {/* Main Menu */}
       <SidebarContent>
@@ -131,11 +129,17 @@ export function AppSidebar() {
                 <SidebarMenuButton className="cursor-pointer h-auto py-2">
                   <div className="flex items-center w-full min-w-0 group-data-[collapsible=icon]:justify-center">
                     <Avatar className="rounded-lg">
-                      <AvatarFallback className="rounded-lg"><strong>{initials}</strong></AvatarFallback>
+                      <AvatarFallback className="rounded-lg">
+                        <strong>{initials}</strong>
+                      </AvatarFallback>
                     </Avatar>
                     <div className="flex flex-col items-start min-w-0 flex-1 ml-2 group-data-[collapsible=icon]:hidden">
-                      <span className="font-medium truncate w-full text-left">{userName}</span>
-                      <span className="text-xs text-muted-foreground truncate w-full text-left">{userEmail}</span>
+                      <span className="font-medium truncate w-full text-left">
+                        {userName}
+                      </span>
+                      <span className="text-xs text-muted-foreground truncate w-full text-left">
+                        {userEmail}
+                      </span>
                     </div>
                     <ChevronUp className="flex-shrink-0 h-4 w-4 group-data-[collapsible=icon]:hidden" />
                   </div>
