@@ -47,7 +47,7 @@ export default function AuditTrailPage() {
   )
 
   return (
-    <div className="space-y-6 p-10">
+    <div className="space-y-6">
       {/* Toolbar */}
       <DataToolbar
         table={{ getAllColumns: () => [] } as any}

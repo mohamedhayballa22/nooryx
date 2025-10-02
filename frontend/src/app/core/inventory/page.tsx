@@ -23,7 +23,7 @@ export default function StockPage() {
   } = useInventory()
 
   return (
-    <div className="container mx-auto p-4">
+    <div className="container mx-auto">
       {error && (
         <div className="mb-4 rounded-md bg-destructive/15 p-4 text-destructive">
           Error: {error}
