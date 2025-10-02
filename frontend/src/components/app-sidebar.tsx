@@ -108,9 +108,11 @@ export function AppSidebar() {
               {systemItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <Link href={item.url}>
-                      <item.icon />
-                      <span>{item.title}</span>
+                    <Link href={item.url} className="relative flex items-center">
+                      <div className="relative">
+                        <item.icon className="w-5 h-5" />
+                      </div>
+                      <span className="ml-2">{item.title}</span>
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
