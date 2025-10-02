@@ -45,7 +45,7 @@ const mainItems = [
 ]
 
 const systemItems = [
-  { title: "Settings", url: "#", icon: Settings },
+  { title: "Settings", url: "settings", icon: Settings },
   { title: "Help & Docs", url: "#", icon: HelpCircle },
 ]
 

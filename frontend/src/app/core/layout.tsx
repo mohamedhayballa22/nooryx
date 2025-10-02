@@ -15,7 +15,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <CoreNavbar />
 
           {/* Page content */}
-          <main className="flex-1 overflow-auto p-6">
+          <main className="flex-1 overflow-auto p-8">
             {children}
           </main>
         </div>
