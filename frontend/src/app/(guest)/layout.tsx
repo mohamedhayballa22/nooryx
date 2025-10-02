@@ -1,5 +1,5 @@
 import type { Metadata } from "next"
-import Navbar from "@/components/navbar"
+import GuestNavbar from "@/components/guest-navbar"
 
 export const metadata: Metadata = {
   title: "Nooryx",
@@ -13,7 +13,7 @@ export default function GuestLayout({
 }) {
   return (
     <div className="min-h-screen flex flex-col">
-      <Navbar />
+      <GuestNavbar />
 
       {/* Main content (pushed down because Navbar is fixed) */}
       <main className="flex-1 pt-20">{children}</main>

@@ -14,7 +14,7 @@ import {
 } from "@/components/ui/navigation-menu"
 import { Button } from "@/components/ui/button"
 
-export default function Navbar() {
+export default function GuestNavbar() {
   const [isScrolled, setIsScrolled] = useState(false)
 
   useEffect(() => {
