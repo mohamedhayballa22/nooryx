@@ -1,10 +1,11 @@
 from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, Union, Literal
+from typing import Optional, Dict, Any, List, Literal
 
 
 class BaseTxn(BaseModel):
     sku_id: str
     location: str
+    product_name: str
     reference: Optional[str] = None
     txn_metadata: Optional[Dict[str, Any]] = None
     created_by: Optional[str] = None
@@ -34,7 +35,7 @@ class ReserveTxn(BaseTxn):
 
 class UnreserveTxn(BaseTxn):
     action: Literal["unreserve"] = "unreserve"
-    qty: int = Field(lt=0)
+    qty: int = Field(gt=0)
 
 
 class TransferTxn(BaseTxn):
@@ -70,3 +71,30 @@ class TransactionHistoryResponse(BaseModel):
     class Config:
         from_attributes = True
         
+class OnHandValue(BaseModel):
+    value: int
+    delta_pct: float
+
+
+class LocationInventory(BaseModel):
+    id: int
+    name: str
+    status: str
+    available: int
+    reserved: int
+    on_hand: OnHandValue
+
+
+class InventorySummary(BaseModel):
+    available: int
+    reserved: int
+    on_hand: OnHandValue
+    locations: int
+
+
+class SkuInventoryResponse(BaseModel):
+    sku: str
+    product_name: str
+    status: str
+    locations: List[LocationInventory]
+    summary: InventorySummary
