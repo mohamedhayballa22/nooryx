@@ -112,7 +112,7 @@ export function DataTable<TData, TValue>({
         actions={
           <Button variant="outline">
             <PlusIcon className="-ms-1 opacity-60" size={16} />
-            Add Product
+            Add
           </Button>
         }
       />
