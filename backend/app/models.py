@@ -38,7 +38,9 @@ class InventoryTransaction(Base):
     qty = Column(
         Integer, nullable=False, doc="Quantity delta (+ve = receipt, -ve = shipment)."
     )
-
+    qty_before = Column(
+        Integer, nullable=False, doc="Quantity before this transaction."
+    )
     action = Column(
         String,
         nullable=False,
@@ -126,6 +128,8 @@ class InventoryState(Base):
         doc="Warehouse/location where the transaction occurred.",
     )
 
+    product_name = Column(String, nullable=False)
+
     on_hand = Column(
         Integer,
         nullable=False,
@@ -145,6 +149,7 @@ class InventoryState(Base):
         default=0,
         doc="Optimistic concurrency control version counter.",
     )
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     location = relationship("Location", backref="inventory_states")
 
