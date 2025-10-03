@@ -5,6 +5,7 @@ from fastapi_pagination import Page
 from fastapi.middleware.cors import CORSMiddleware
 from fastapi.routing import APIRoute
 from typing import Optional
+from datetime import datetime, timedelta
 from app.schemas import (
     ReceiveTxn,
     ShipTxn,
@@ -13,7 +14,11 @@ from app.schemas import (
     UnreserveTxn,
     TransferTxn,
     InventoryItemResponse,
-    TransactionHistoryResponse
+    TransactionHistoryResponse,
+    LocationInventory,
+    InventorySummary,
+    SkuInventoryResponse,
+    OnHandValue
 )
 from app.models import InventoryState, Location, InventoryTransaction
 from enum import Enum
@@ -32,6 +37,9 @@ from starlette.responses import JSONResponse
 from starlette.exceptions import HTTPException as StarletteHTTPException
 from app.core.logger_config import logger
 from fastapi.exceptions import RequestValidationError
+from app.services.transaction.exceptions import TransactionBadRequest
+
+
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -619,3 +627,205 @@ def _format_action(action: str) -> str:
         "transfer": "transferred"
     }
     return action_map.get(action, action + "ed")
+
+
+@app.get("/inventory/{sku_id}", response_model=SkuInventoryResponse)
+async def get_sku_inventory(
+    sku_id: str,
+    db: AsyncSession = Depends(get_session)
+):
+    """Get comprehensive inventory view for a SKU across all locations."""
+    
+    # Fetch current inventory states with eager loading
+    stmt = (
+        select(InventoryState)
+        .options(selectinload(InventoryState.location))
+        .where(InventoryState.sku_id == sku_id)
+        .order_by(InventoryState.location_id)
+    )
+    result = await db.execute(stmt)
+    states = result.scalars().all()
+    
+    if not states:
+        raise TransactionBadRequest(detail=f"SKU {sku_id} not found")
+    
+    # Build locations list and calculate totals
+    locations = []
+    total_available = 0
+    total_reserved = 0
+    total_on_hand = 0
+    product_name = states[0].product_name
+    
+    for state in states:
+        # Calculate delta for this specific location
+        delta_pct = await _calculate_weekly_delta(db, sku_id, state.location_id, state.on_hand)
+        
+        # Determine per-location status
+        if state.available == 0:
+            location_status = "Out of Stock"
+        elif state.available < 10:
+            location_status = "Low Stock"
+        else:
+            location_status = "In Stock"
+        
+        locations.append(
+            LocationInventory(
+                id=state.location_id,
+                name=state.location.name,
+                status=location_status,
+                available=state.available,
+                reserved=state.reserved,
+                on_hand=OnHandValue(value=state.on_hand, delta_pct=delta_pct)
+            )
+        )
+        total_available += state.available
+        total_reserved += state.reserved
+        total_on_hand += state.on_hand
+    
+    # Determine overall status
+    if total_available == 0:
+        status = "Out of Stock"
+    elif total_available < 10:
+        status = "Low Stock"
+    else:
+        status = "In Stock"
+    
+    # Calculate aggregate week-over-week delta
+    total_delta_pct = await _calculate_weekly_delta(db, sku_id, None, total_on_hand)
+    
+    return SkuInventoryResponse(
+        sku=sku_id,
+        product_name=product_name,
+        status=status,
+        locations=locations,
+        summary=InventorySummary(
+            available=total_available,
+            reserved=total_reserved,
+            on_hand=OnHandValue(value=total_on_hand, delta_pct=total_delta_pct),
+            locations=len(locations)
+        )
+    )
+
+
+async def _calculate_weekly_delta(
+    db: AsyncSession,
+    sku_id: str,
+    location_id: int | None,
+    current_on_hand: int
+) -> float:
+    """Calculate percentage change in on-hand inventory from last week.
+    
+    Args:
+        db: Database session
+        sku_id: SKU identifier
+        location_id: Specific location (or None for aggregate across all locations)
+        current_on_hand: Current on-hand quantity
+    """
+    
+    # Special case: current stock is 0
+    if current_on_hand == 0:
+        # Check if there was stock last week
+        one_week_ago = datetime.now() - timedelta(days=7)
+        two_weeks_ago = datetime.now() - timedelta(days=14)
+        
+        filters = [
+            InventoryTransaction.sku_id == sku_id,
+            InventoryTransaction.created_at >= two_weeks_ago,
+            InventoryTransaction.created_at <= one_week_ago
+        ]
+        if location_id is not None:
+            filters.append(InventoryTransaction.location_id == location_id)
+        
+        stmt = (
+            select(InventoryTransaction)
+            .where(and_(*filters))
+            .order_by(InventoryTransaction.created_at.desc())
+            .limit(1)
+        )
+        result = await db.execute(stmt)
+        last_week_txn = result.scalar_one_or_none()
+        
+        if last_week_txn:
+            last_week_on_hand = _calculate_on_hand_from_txn(last_week_txn)
+            if last_week_on_hand > 0:
+                return -100.0
+        
+        return 0.0
+    
+    # Find transaction from 5-11 days ago, closest to 7 days
+    today = datetime.now()
+    min_date = today - timedelta(days=11)
+    max_date = today - timedelta(days=5)
+    
+    filters = [
+        InventoryTransaction.sku_id == sku_id,
+        InventoryTransaction.created_at >= min_date,
+        InventoryTransaction.created_at <= max_date
+    ]
+    if location_id is not None:
+        filters.append(InventoryTransaction.location_id == location_id)
+    
+    # If calculating aggregate (location_id is None), we need to sum across locations
+    if location_id is None:
+        # Get all transactions in the window, group by timestamp to find closest date
+        stmt = (
+            select(
+                InventoryTransaction.created_at,
+                func.sum(
+                    case(
+                        (InventoryTransaction.action.in_(["reserve", "unreserve"]), InventoryTransaction.qty_before),
+                        else_=InventoryTransaction.qty_before + InventoryTransaction.qty
+                    )
+                ).label("total_on_hand")
+            )
+            .where(and_(*filters))
+            .group_by(InventoryTransaction.created_at)
+            .order_by(
+                func.abs(
+                    func.extract('epoch', InventoryTransaction.created_at - (today - timedelta(days=7)))
+                )
+            )
+            .limit(1)
+        )
+        
+        result = await db.execute(stmt)
+        row = result.first()
+        
+        if not row or row.total_on_hand == 0:
+            return 0.0
+        
+        last_week_on_hand = row.total_on_hand
+    else:
+        # Single location calculation
+        stmt = (
+            select(InventoryTransaction)
+            .where(and_(*filters))
+            .order_by(
+                func.abs(
+                    func.extract('epoch', InventoryTransaction.created_at - (today - timedelta(days=7)))
+                )
+            )
+            .limit(1)
+        )
+        
+        result = await db.execute(stmt)
+        last_week_txn = result.scalar_one_or_none()
+        
+        if not last_week_txn:
+            return 0.0
+        
+        last_week_on_hand = _calculate_on_hand_from_txn(last_week_txn)
+        
+        if last_week_on_hand == 0:
+            return 0.0
+    
+    delta_pct = ((current_on_hand - last_week_on_hand) / last_week_on_hand) * 100
+    return round(delta_pct, 1)
+
+
+def _calculate_on_hand_from_txn(txn: InventoryTransaction) -> int:
+    """Calculate on-hand quantity at the time of a transaction."""
+    if txn.action in ["reserve", "unreserve"]:
+        return txn.qty_before
+    else:
+        return txn.qty_before + txn.qty
