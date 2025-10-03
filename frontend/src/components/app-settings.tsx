@@ -52,7 +52,7 @@ export function SettingsSubSection({
   return (
     <section className="space-y-4">
       <h3 className="text-lg font-semibold">{title}</h3>
-      <Card className="rounded-md shadow-sm border bg-muted/30 py-0">
+      <Card className="rounded-md shadow-xs border bg-muted/30 py-0">
         <CardContent className="p-4 divide-y divide-border">
           {rows.map((child, i) =>
             child && typeof child === "object" && "type" in child ? (
