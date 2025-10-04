@@ -138,7 +138,7 @@ async def validation_exception_handler(request: Request, exc: RequestValidationE
     )
 
 
-@app.post("/inventory/receive")
+@app.post("/receive")
 async def receive_stock(
     txn: ReceiveTxn,
     db: AsyncSession = Depends(get_session),
@@ -161,7 +161,7 @@ async def receive_stock(
     return response_data
 
 
-@app.post("/inventory/ship")
+@app.post("/ship")
 async def ship_stock(
     txn: ShipTxn,
     db: AsyncSession = Depends(get_session),
@@ -184,7 +184,7 @@ async def ship_stock(
     return response_data
 
 
-@app.post("/inventory/adjust")
+@app.post("/adjust")
 async def adjust_stock(
     txn: AdjustTxn,
     db: AsyncSession = Depends(get_session),
@@ -207,7 +207,7 @@ async def adjust_stock(
     return response_data
 
 
-@app.post("/inventory/reserve")
+@app.post("/reserve")
 async def reserve_stock(
     txn: ReserveTxn,
     db: AsyncSession = Depends(get_session),
@@ -230,7 +230,7 @@ async def reserve_stock(
     return response_data
 
 
-@app.post("/inventory/unreserve")
+@app.post("/unreserve")
 async def unreserve_stock(
     txn: UnreserveTxn,
     db: AsyncSession = Depends(get_session),
@@ -253,7 +253,7 @@ async def unreserve_stock(
     return response_data
 
 
-@app.post("/inventory/transfer")
+@app.post("/transfer")
 async def transfer_stock(
     txn: TransferTxn,
     db: AsyncSession = Depends(get_session),
