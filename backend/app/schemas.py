@@ -1,5 +1,6 @@
 from pydantic import BaseModel, Field
 from typing import Optional, Dict, Any, List, Literal
+from datetime import date
 
 
 class BaseTxn(BaseModel):
@@ -98,3 +99,12 @@ class SkuInventoryResponse(BaseModel):
     status: str
     locations: List[LocationInventory]
     summary: InventorySummary
+
+class TrendPoint(BaseModel):
+    date: date
+    on_hand: int
+
+class InventoryTrendResponse(BaseModel):
+    sku: str
+    location: Optional[str]
+    points: List[TrendPoint]
