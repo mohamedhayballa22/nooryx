@@ -351,7 +351,7 @@ def _calculate_on_hand_from_txn(txn: InventoryTransaction) -> int:
     else:
         return txn.qty_before + txn.qty
     
-@router.get("/inventory/{sku_id}/trend", response_model=InventoryTrendResponse)
+@router.get("/inventory/trend/{sku_id}", response_model=InventoryTrendResponse)
 async def get_inventory_trend(
     sku_id: str,
     period: str = Query("30d", pattern=r"^\d+d$"),
