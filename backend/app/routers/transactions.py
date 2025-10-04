@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, func, or_, String
+from sqlalchemy import select, or_, String, func
 from typing import Optional, List
 
 from app.schemas import TransactionHistoryResponse
@@ -41,6 +41,13 @@ def _format_action(action: str) -> str:
     return action_map.get(action, action + "ed")
 
 
+def _calculate_stock_after(qty_before: int, qty: int, action: str) -> int:
+    """Calculate stock after based on qty_before, qty, and action type."""
+    if action in ["reserve", "unreserve"]:
+        return qty_before
+    return qty_before + qty
+
+
 @router.get("/transactions", response_model=Page[TransactionHistoryResponse])
 async def get_transactions(
     db: AsyncSession = Depends(get_session),
@@ -69,34 +76,13 @@ async def get_transactions(
     Supports searching across actor, action, SKU, location, and metadata fields.
     """
 
-    # Subquery to calculate cumulative stock before each transaction
-    stock_before_subq = (
-        select(
-            InventoryTransaction.id,
-            func.coalesce(
-                func.sum(InventoryTransaction.qty).over(
-                    partition_by=[
-                        InventoryTransaction.sku_id,
-                        InventoryTransaction.location_id,
-                    ],
-                    order_by=InventoryTransaction.id,
-                    rows=(None, -1),  # All rows before current
-                ),
-                0,
-            ).label("stock_before"),
-        )
-        .subquery()
-    )
-
-    # Main query with joins
+    # Main query with joins - no subquery needed, use qty_before field
     query = (
         select(
             InventoryTransaction,
             Location.name.label("location_name"),
-            stock_before_subq.c.stock_before,
         )
         .join(Location, InventoryTransaction.location_id == Location.id)
-        .join(stock_before_subq, InventoryTransaction.id == stock_before_subq.c.id)
     )
 
     # Apply action filter
@@ -154,8 +140,12 @@ async def get_transactions(
                 quantity=abs(row.InventoryTransaction.qty),
                 sku=row.InventoryTransaction.sku_id,
                 location=row.location_name,
-                stock_before=row.stock_before,
-                stock_after=row.stock_before + row.InventoryTransaction.qty,
+                stock_before=row.InventoryTransaction.qty_before,
+                stock_after=_calculate_stock_after(
+                    row.InventoryTransaction.qty_before,
+                    row.InventoryTransaction.qty,
+                    row.InventoryTransaction.action,
+                ),
                 metadata=row.InventoryTransaction.txn_metadata,
             )
             for row in rows
@@ -176,34 +166,13 @@ async def get_latest_transactions_by_sku(
     Includes stock before/after calculations for each transaction.
     """
     
-    # Subquery to calculate cumulative stock before each transaction
-    stock_before_subq = (
-        select(
-            InventoryTransaction.id,
-            func.coalesce(
-                func.sum(InventoryTransaction.qty).over(
-                    partition_by=[
-                        InventoryTransaction.sku_id,
-                        InventoryTransaction.location_id,
-                    ],
-                    order_by=InventoryTransaction.id,
-                    rows=(None, -1),  # All rows before current
-                ),
-                0,
-            ).label("stock_before"),
-        )
-        .subquery()
-    )
-    
-    # Main query with joins
+    # Main query with joins - no subquery needed, use qty_before field
     query = (
         select(
             InventoryTransaction,
             Location.name.label("location_name"),
-            stock_before_subq.c.stock_before,
         )
         .join(Location, InventoryTransaction.location_id == Location.id)
-        .join(stock_before_subq, InventoryTransaction.id == stock_before_subq.c.id)
         .where(InventoryTransaction.sku_id == sku_id)
     )
     
@@ -227,8 +196,12 @@ async def get_latest_transactions_by_sku(
             quantity=abs(row.InventoryTransaction.qty),
             sku=row.InventoryTransaction.sku_id,
             location=row.location_name,
-            stock_before=row.stock_before,
-            stock_after=row.stock_before + row.InventoryTransaction.qty,
+            stock_before=row.InventoryTransaction.qty_before,
+            stock_after=_calculate_stock_after(
+                row.InventoryTransaction.qty_before,
+                row.InventoryTransaction.qty,
+                row.InventoryTransaction.action,
+            ),
             metadata=row.InventoryTransaction.txn_metadata,
         )
         for row in rows
