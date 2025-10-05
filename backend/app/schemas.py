@@ -89,6 +89,7 @@ class SkuInventoryResponse(BaseModel):
     status: str
     location: Optional[str] = None  # None = aggregated, or location name
     locations: int  # Total count of locations with this SKU
+    inventory_pct: float
     summary: InventorySummary
 
 

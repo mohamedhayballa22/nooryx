@@ -216,6 +216,20 @@ async def get_sku_inventory(
         total_reserved += state.reserved
         total_on_hand += state.on_hand
 
+    # Calculate global on_hand total (across ALL locations) for inventory_pct
+    global_on_hand_stmt = (
+        select(func.sum(InventoryState.on_hand))
+        .where(InventoryState.sku_id == sku_id)
+    )
+    global_on_hand_result = await db.execute(global_on_hand_stmt)
+    global_on_hand = global_on_hand_result.scalar() or 0
+
+    # Calculate inventory_pct
+    if location is None or total_locations == 1 or global_on_hand == 0:
+        inventory_pct = 100.0
+    else:
+        inventory_pct = round((total_on_hand / global_on_hand) * 100, 1)
+
     # Determine overall status
     if total_available == 0:
         status = "Out of Stock"
@@ -231,8 +245,9 @@ async def get_sku_inventory(
         sku=sku_id,
         product_name=product_name,
         status=status,
-        location=location,  # None if aggregated, location name if specific
+        location=location,
         locations=total_locations,
+        inventory_pct=inventory_pct,  # Add this
         summary=InventorySummary(
             available=total_available,
             reserved=total_reserved,
