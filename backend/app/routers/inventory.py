@@ -12,7 +12,6 @@ from datetime import datetime, timedelta
 from app.schemas import (
     InventoryItemResponse,
     SkuInventoryResponse,
-    LocationInventory,
     InventorySummary,
     OnHandValue,
     InventoryTrendResponse,
@@ -161,53 +160,58 @@ async def get_inventory(
 
 
 @router.get("/inventory/{sku_id}", response_model=SkuInventoryResponse)
-async def get_sku_inventory(sku_id: str, db: AsyncSession = Depends(get_session)):
-    """Get comprehensive inventory view for a SKU across all locations."""
+async def get_sku_inventory(
+    sku_id: str, 
+    location: Optional[str] = None,
+    db: AsyncSession = Depends(get_session)
+):
+    """Get comprehensive inventory view for a SKU across all locations or for a specific location."""
 
-    # Fetch current inventory states with eager loading
+    # Build base query
     stmt = (
         select(InventoryState)
         .options(selectinload(InventoryState.location))
         .where(InventoryState.sku_id == sku_id)
         .order_by(InventoryState.location_id)
     )
+    
+    # Apply location filter if specified (by name)
+    location_id = None
+    if location is not None:
+        stmt = stmt.where(InventoryState.location.has(name=location))
+        # Get location_id for delta calculation
+        loc_stmt = select(Location.id).where(Location.name == location)
+        loc_result = await db.execute(loc_stmt)
+        location_id = loc_result.scalar_one_or_none()
+        if location_id is None:
+            raise TransactionBadRequest(detail=f"Location '{location}' not found")
+    
     result = await db.execute(stmt)
     states = result.scalars().all()
 
     if not states:
+        if location is not None:
+            raise TransactionBadRequest(
+                detail=f"SKU {sku_id} not found at location '{location}'"
+            )
         raise TransactionBadRequest(detail=f"SKU {sku_id} not found")
 
-    # Build locations list and calculate totals
-    locations = []
+    product_name = states[0].product_name
+    
+    # Get total location count for this SKU (always across all locations)
+    total_locations_stmt = (
+        select(func.count(InventoryState.location_id))
+        .where(InventoryState.sku_id == sku_id)
+    )
+    total_locations_result = await db.execute(total_locations_stmt)
+    total_locations = total_locations_result.scalar()
+
+    # Calculate totals from the filtered states
     total_available = 0
     total_reserved = 0
     total_on_hand = 0
-    product_name = states[0].product_name
 
     for state in states:
-        # Calculate delta for this specific location
-        delta_pct = await _calculate_weekly_delta(
-            db, sku_id, state.location_id, state.on_hand
-        )
-
-        # Determine per-location status
-        if state.available == 0:
-            location_status = "Out of Stock"
-        elif state.available < 10:
-            location_status = "Low Stock"
-        else:
-            location_status = "In Stock"
-
-        locations.append(
-            LocationInventory(
-                id=state.location_id,
-                name=state.location.name,
-                status=location_status,
-                available=state.available,
-                reserved=state.reserved,
-                on_hand=OnHandValue(value=state.on_hand, delta_pct=delta_pct),
-            )
-        )
         total_available += state.available
         total_reserved += state.reserved
         total_on_hand += state.on_hand
@@ -220,19 +224,19 @@ async def get_sku_inventory(sku_id: str, db: AsyncSession = Depends(get_session)
     else:
         status = "In Stock"
 
-    # Calculate aggregate week-over-week delta
-    total_delta_pct = await _calculate_weekly_delta(db, sku_id, None, total_on_hand)
+    # Calculate delta (aggregated if no location, specific if location provided)
+    total_delta_pct = await _calculate_weekly_delta(db, sku_id, location_id, total_on_hand)
 
     return SkuInventoryResponse(
         sku=sku_id,
         product_name=product_name,
         status=status,
-        locations=locations,
+        location=location,  # None if aggregated, location name if specific
+        locations=total_locations,
         summary=InventorySummary(
             available=total_available,
             reserved=total_reserved,
             on_hand=OnHandValue(value=total_on_hand, delta_pct=total_delta_pct),
-            locations=len(locations),
         ),
     )
 

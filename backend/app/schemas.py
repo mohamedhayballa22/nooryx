@@ -72,33 +72,25 @@ class TransactionHistoryResponse(BaseModel):
     class Config:
         from_attributes = True
         
+
 class OnHandValue(BaseModel):
     value: int
     delta_pct: float
-
-
-class LocationInventory(BaseModel):
-    id: int
-    name: str
-    status: str
-    available: int
-    reserved: int
-    on_hand: OnHandValue
-
+    
 
 class InventorySummary(BaseModel):
     available: int
     reserved: int
     on_hand: OnHandValue
-    locations: int
-
 
 class SkuInventoryResponse(BaseModel):
     sku: str
     product_name: str
     status: str
-    locations: List[LocationInventory]
+    location: Optional[str] = None  # None = aggregated, or location name
+    locations: int  # Total count of locations with this SKU
     summary: InventorySummary
+
 
 class TrendPoint(BaseModel):
     date: date
