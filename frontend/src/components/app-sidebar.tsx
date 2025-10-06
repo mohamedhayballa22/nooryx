@@ -40,7 +40,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 const mainItems = [
   { title: "Dashboard", url: "/core/dashboard", icon: ChartSpline },
   { title: "Inventory", url: "/core/inventory", icon: Box },
-  { title: "Audit Trail", url: "core//audit-trail", icon: ClipboardClock },
+  { title: "Audit Trail", url: "/core/audit-trail", icon: ClipboardClock },
   { title: "Notifications", url: "#", icon: Bell },
 ]
 
