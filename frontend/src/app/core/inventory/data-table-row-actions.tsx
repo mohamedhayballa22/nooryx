@@ -12,7 +12,7 @@ import {
   DropdownMenuTrigger,
 } from "@/components/ui/dropdown-menu"
 
-import { Product } from "./columns" // Assuming Product type is exported from columns.tsx
+import { Product } from "./columns"
 
 interface DataTableRowActionsProps {
   row: Row<Product>
@@ -39,7 +39,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <DropdownMenuItem asChild>
-          <Link href={`/stock/${product.sku}`}>See more</Link>
+          <Link href={`/core/inventory/${product.sku}`}>See more</Link>
         </DropdownMenuItem>
         <DropdownMenuItem>View History</DropdownMenuItem>
       </DropdownMenuContent>

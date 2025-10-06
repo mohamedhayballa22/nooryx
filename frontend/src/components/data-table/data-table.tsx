@@ -151,7 +151,7 @@ export function DataTable<TData, TValue>({
                   onClick={() => {
                     const sku = (row.original as any).sku
                     if (sku) {
-                      router.push(`inventory/${sku}`)
+                      router.push(`/core/inventory/${sku}`)
                     }
                   }}
                 >
