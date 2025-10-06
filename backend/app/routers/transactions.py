@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, String, func
 from typing import Optional, List
 
-from app.schemas import TransactionHistoryResponse
+from app.schemas import LatestTransactionsResponse, Transaction
 from app.models import InventoryTransaction, Location
 from app.core.db import get_session
 
@@ -48,7 +48,7 @@ def _calculate_stock_after(qty_before: int, qty: int, action: str) -> int:
     return qty_before + qty
 
 
-@router.get("/transactions", response_model=Page[TransactionHistoryResponse])
+@router.get("/transactions", response_model=Page[Transaction])
 async def get_transactions(
     db: AsyncSession = Depends(get_session),
     # Filtering parameters
@@ -130,7 +130,7 @@ async def get_transactions(
         db,
         query,
         transformer=lambda rows: [
-            TransactionHistoryResponse(
+            Transaction(
                 id=row.InventoryTransaction.id,
                 date=row.InventoryTransaction.created_at.strftime(
                     "%b %d, %Y at %I:%M %p"
@@ -153,18 +153,37 @@ async def get_transactions(
     )
 
 
-@router.get("/transactions/latest/{sku_id}", response_model=List[TransactionHistoryResponse])
+@router.get("/transactions/latest/{sku_id}", response_model=LatestTransactionsResponse)
 async def get_latest_transactions_by_sku(
     sku_id: str,
     db: AsyncSession = Depends(get_session),
     location: Optional[str] = Query(None, description="Filter by location name"),
 ):
     """
-    Returns the three most recent transactions for a specific SKU.
+    Returns the five most recent transactions for a specific SKU.
     
     Optionally filtered by location. If no location is provided, returns transactions across all locations.
     Includes stock before/after calculations for each transaction.
     """
+    
+    # Count distinct locations where this SKU is present (has stock)
+    location_count_query = (
+        select(func.count(func.distinct(InventoryTransaction.location_id)))
+        .where(InventoryTransaction.sku_id == sku_id)
+    )
+    location_count_result = await db.execute(location_count_query)
+    location_count = location_count_result.scalar() or 0
+
+    # If SKU exists in only one location, auto-assign it
+    if location is None and location_count == 1:
+        single_location_query = (
+            select(Location.name)
+            .join(InventoryTransaction, InventoryTransaction.location_id == Location.id)
+            .where(InventoryTransaction.sku_id == sku_id)
+            .limit(1)
+        )
+        single_location_result = await db.execute(single_location_query)
+        location = single_location_result.scalar()
     
     # Main query with joins - no subquery needed, use qty_before field
     query = (
@@ -180,13 +199,13 @@ async def get_latest_transactions_by_sku(
     if location:
         query = query.where(Location.name == location)
     
-    query = query.order_by(InventoryTransaction.created_at.desc()).limit(3)
+    query = query.order_by(InventoryTransaction.created_at.desc()).limit(5)
     
     result = await db.execute(query)
     rows = result.all()
     
-    return [
-        TransactionHistoryResponse(
+    transactions = [
+        Transaction(
             id=row.InventoryTransaction.id,
             date=row.InventoryTransaction.created_at.strftime(
                 "%b %d, %Y at %I:%M %p"
@@ -206,3 +225,10 @@ async def get_latest_transactions_by_sku(
         )
         for row in rows
     ]
+    
+    return LatestTransactionsResponse(
+        sku=sku_id,
+        location=location,
+        locations=location_count,
+        transactions=transactions
+    )
