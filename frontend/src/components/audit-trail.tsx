@@ -30,11 +30,13 @@ import React from "react"
 
 import { TransactionItem } from "@/hooks/use-transactions"
 
-interface AuditTrailProps {
+export function AuditTrail({
+  items,
+  snippet = false,
+}: {
   items: TransactionItem[]
-}
-
-export function AuditTrail({ items }: AuditTrailProps) {
+  snippet?: boolean
+}) {
   const isMobile = useMobile()
 
   const actionIcons: Record<string, any> = {
@@ -53,17 +55,18 @@ export function AuditTrail({ items }: AuditTrailProps) {
         const itemWord = plural ? "items" : "item"
         const verb = plural ? "were" : "was"
 
-        // Timeline header
         const headerText = (
           <>
             <span className="font-bold">{item.actor}</span> {item.action} {plural ? "items" : "an item"}
           </>
         )
 
-        // Overview text
+        // Overview text base
         let overviewText = ""
-        if (item.action === "transferred") {
-          overviewText = `${item.quantity} ${itemWord} ${verb} transferred from ${item.from_location} to ${item.to_location}`
+        if (item.action === "transferred in") {
+          overviewText = `${item.quantity} ${itemWord} ${verb} transferred into ${item.location}`
+        } else if (item.action === "transferred out") {
+          overviewText = `${item.quantity} ${itemWord} ${verb} transferred out of ${item.location}`
         } else if (item.action === "adjusted") {
           const sign = item.stock_after > item.stock_before ? "+" : "-"
           overviewText = `${sign}${item.quantity} ${itemWord} at ${item.location}`
@@ -73,10 +76,23 @@ export function AuditTrail({ items }: AuditTrailProps) {
 
         const Icon = actionIcons[item.action] || Tag
 
+        const quantityLine = (
+          <div className="flex items-center gap-1 text-sm mt-1">
+            <span>
+              Quantity at {item.location}: {item.stock_before}
+            </span>
+            <ArrowRight size={14} className="text-muted-foreground" />
+            <span>{item.stock_after}</span>
+          </div>
+        )
+
         const mobileContent = (
           <div className="space-y-3 text-sm text-muted-foreground">
             {/* Overview content */}
-            <div>{overviewText}</div>
+            <div className="whitespace-pre-line">
+              {overviewText}
+              {snippet && quantityLine}
+            </div>
 
             {/* Metadata content */}
             {item.metadata && (
@@ -84,35 +100,34 @@ export function AuditTrail({ items }: AuditTrailProps) {
                 <ul className="space-y-1">
                   {Object.entries(item.metadata).map(([key, value]) => (
                     <li key={key}>
-                      <span className="font-semibold capitalize">{key.replace(/_/g, " ")}:</span> {String(value)}
+                      <span className="font-semibold capitalize">{key.replace(/_/g, " ")}:</span>{" "}
+                      {String(value)}
                     </li>
                   ))}
                 </ul>
               </div>
             )}
 
-            {/* Context content */}
-            <div className="flex flex-col gap-2">
-              <a
-                href={`/sku/${item.sku}`}
-                target="_blank"
-                rel="noopener noreferrer"
-                className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"
-              >
-                {item.sku}
-                <ExternalLink size={14} className="opacity-70" />
-              </a>
+            {/* Context content (only if not snippet) */}
+            {!snippet && (
+              <div className="flex flex-col gap-2">
+                <a
+                  href={`/core/inventory/${item.sku}`}
+                  target="_blank"
+                  rel="noopener noreferrer"
+                  className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"
+                >
+                  {item.sku}
+                  <ExternalLink size={14} className="opacity-70" />
+                </a>
 
-              <div className="flex items-center gap-1 text-sm">
-                <span>Quantity: {item.stock_before}</span>
-                <ArrowRight size={14} className="text-muted-foreground" />
-                <span>{item.stock_after}</span>
+                {quantityLine}
               </div>
-            </div>
+            )}
           </div>
         )
 
-        // Mobile version with accordions
+        // Mobile version
         if (isMobile) {
           return (
             <TimelineItem
@@ -143,7 +158,7 @@ export function AuditTrail({ items }: AuditTrailProps) {
           )
         }
 
-        // Desktop version with hover tabs
+        // Desktop version
         return (
           <TimelineItem
             key={item.id}
@@ -157,6 +172,7 @@ export function AuditTrail({ items }: AuditTrailProps) {
                 <Icon size={14} />
               </TimelineIndicator>
             </TimelineHeader>
+
             <TimelineContent>
               <Tabs defaultValue="overview" className="w-[290px] text-sm text-muted-foreground">
                 <div
@@ -167,28 +183,37 @@ export function AuditTrail({ items }: AuditTrailProps) {
                     group-hover:pt-2
                   "
                 >
-                  <TabsList className="grid w-full grid-cols-3">
+                  <TabsList
+                    className={`grid w-full ${snippet ? "grid-cols-2" : "grid-cols-3"}`}
+                  >
                     <TabsTrigger value="overview" className="text-xs">
                       <BookOpen /> Overview
                     </TabsTrigger>
                     <TabsTrigger value="metadata" className="text-xs" disabled={!item.metadata}>
                       <Tag /> Metadata
                     </TabsTrigger>
-                    <TabsTrigger value="context" className="text-xs">
-                      <Crosshair /> Context
-                    </TabsTrigger>
+                    {!snippet && (
+                      <TabsTrigger value="context" className="text-xs">
+                        <Crosshair /> Context
+                      </TabsTrigger>
+                    )}
                   </TabsList>
                 </div>
 
-                <TabsContent value="overview" className="text-sm">
-                  {overviewText}
+                <TabsContent value="overview" className="text-sm whitespace-pre-line">
+                  <div>
+                    {overviewText}
+                    {snippet && quantityLine}
+                  </div>
                 </TabsContent>
+
                 <TabsContent value="metadata" className="text-sm">
                   {item.metadata ? (
                     <ul className="space-y-1">
                       {Object.entries(item.metadata).map(([key, value]) => (
                         <li key={key}>
-                          <span className="font-semibold capitalize">{key.replace(/_/g, " ")}:</span> {String(value)}
+                          <span className="font-semibold capitalize">{key.replace(/_/g, " ")}:</span>{" "}
+                          {String(value)}
                         </li>
                       ))}
                     </ul>
@@ -196,25 +221,24 @@ export function AuditTrail({ items }: AuditTrailProps) {
                     <span className="text-muted-foreground">No metadata available</span>
                   )}
                 </TabsContent>
-                <TabsContent value="context" className="text-sm">
-                  <div className="flex flex-col gap-2">
-                    <a
-                      href={`/core/sku/${item.sku}`}
-                      target="_blank"
-                      rel="noopener noreferrer"
-                      className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"
-                    >
-                      {item.sku}
-                      <ExternalLink size={14} className="opacity-70" />
-                    </a>
 
-                    <div className="flex items-center gap-1 text-sm">
-                      <span>Quantity: {item.stock_before}</span>
-                      <ArrowRight size={14} className="text-muted-foreground" />
-                      <span>{item.stock_after}</span>
+                {!snippet && (
+                  <TabsContent value="context" className="text-sm">
+                    <div className="flex flex-col gap-2">
+                      <a
+                        href={`/core/inventory/${item.sku}`}
+                        target="_blank"
+                        rel="noopener noreferrer"
+                        className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"
+                      >
+                        {item.sku}
+                        <ExternalLink size={14} className="opacity-70" />
+                      </a>
+
+                      {quantityLine}
                     </div>
-                  </div>
-                </TabsContent>
+                  </TabsContent>
+                )}
               </Tabs>
 
               <TimelineDate className="mt-2 mb-0">{item.date}</TimelineDate>
