@@ -1,10 +1,10 @@
 "use client"
 
 import { MetricCard } from "./MetricCard"
-import type { InventoryItem } from "@/lib/api/inventory"
+import type { InventorySnapshot } from "@/lib/api/inventory"
 
 interface SkuSnapshotCardsProps {
-  data: InventoryItem
+  data: InventorySnapshot
 }
 
 export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
