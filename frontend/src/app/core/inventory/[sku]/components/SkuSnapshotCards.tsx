@@ -19,8 +19,8 @@ export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
       ? `Up ${on_hand.delta_pct}% compared to last week`
       : `Down ${Math.abs(on_hand.delta_pct)}% compared to last week`
     : on_hand.value === 0
-    ? `No units available for this SKU`
-    : `No movement compared to last week`
+      ? `No units available for this SKU`
+      : `No movement compared to last week`
 
   const onHandSubtitle = `Total units currently ${
     location ? `in ${location}` : `across all locations`
@@ -33,6 +33,8 @@ export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
       ? `Inventory moving steadily`
       : `Good availability`
 
+  const availableSubtitle = `Sellable stock not yet reserved.`
+
   const reservedDescription =
     reserved === 0
       ? `No active reservations`
@@ -42,20 +44,32 @@ export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
       ? `Orders exceeding supply`
       : `Steady demand`
 
-  const availableSubtitle = `Sellable stock not yet reserved.`
   const reservedSubtitle = `Units committed to orders but not yet shipped.`
 
-  const isAllLocations = location === null
-  const locationCardTitle = isAllLocations ? "Locations" : "Location"
-  const locationCardValue = isAllLocations ? locations : location ?? "-"
-  const locationsDescription = isAllLocations
-    ? locations > 1
+  let locationCardTitle = "Locations"
+  let locationCardValue: string | number = locations
+  let locationsDescription = ""
+  let locationsSubtitle = ""
+
+  if (location === null) {
+    locationCardTitle = "Locations"
+    locationCardValue = locations
+    locationsDescription = locations > 1
       ? `Distributed across multiple locations`
       : `Single location view`
-    : locations > 1
-    ? `1 of ${locations} total locations`
-    : `Viewing single-location inventory`
-  const locationsSubtitle = `This location holds ${inventory_pct}% of this SKU's total inventory.`
+    locationsSubtitle = `Number of storage locations where this SKU is held.`
+  } else {
+    locationCardTitle = "Location"
+    locationCardValue = location
+    
+    if (locations > 1) {
+      locationsDescription = `1 of ${locations} total locations`
+      locationsSubtitle = `This location holds ${inventory_pct}% of this SKU's total inventory.`
+    } else {
+      locationsDescription = `Viewing single-location inventory`
+      locationsSubtitle = `This location holds ${inventory_pct}% of this SKU's total inventory.`
+    }
+  }
 
   return (
     <section
