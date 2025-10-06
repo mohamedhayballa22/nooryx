@@ -57,7 +57,7 @@ class InventoryItemResponse(BaseModel):
         from_attributes = True
         
 
-class TransactionHistoryResponse(BaseModel):
+class Transaction(BaseModel):
     id: int
     date: str
     actor: str
@@ -71,6 +71,12 @@ class TransactionHistoryResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class LatestTransactionsResponse(BaseModel):
+    sku: str
+    locations: int
+    location: Optional[str]
+    transactions: List[Transaction]
         
 
 class OnHandValue(BaseModel):
@@ -99,5 +105,6 @@ class TrendPoint(BaseModel):
 
 class InventoryTrendResponse(BaseModel):
     sku: str
+    locations: int
     location: Optional[str]
     points: List[TrendPoint]
