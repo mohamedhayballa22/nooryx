@@ -10,7 +10,7 @@ export interface InventorySummary {
   };
 }
 
-export interface InventoryItem {
+export interface InventorySnapshot {
   sku: string;
   product_name: string;
   status: string;
@@ -27,21 +27,33 @@ export interface InventoryTrendPoint {
 
 export interface InventoryTrend {
   sku: string;
+  locations: number;
   location: string | null;
   points: InventoryTrendPoint[];
 }
 
-export interface InventoryTransaction {
-  id: number;
-  date: string;
-  actor: string;
-  action: string;
-  quantity: number;
-  sku: string;
-  location: string;
-  stock_before: number;
-  stock_after: number;
-  metadata: any;
+export interface SkuTransactionItem {
+  id: number
+  date: string
+  actor: string
+  action: string
+  quantity: number
+  sku: string
+  location?: string
+  stock_before: number
+  stock_after: number
+  metadata?: {
+    target_location?: string
+    source_location?: string
+    [key: string]: any
+  } | null
+}
+
+export interface SkuAuditTrailData {
+  sku: string
+  locations: number
+  location?: string | null
+  transactions: SkuTransactionItem[]
 }
 
 // --- Helpers ---
@@ -58,8 +70,8 @@ function buildQuery(location?: string): string {
 export async function getInventoryBySku(
   sku: string,
   location?: string
-): Promise<InventoryItem> {
-  return apiClient<InventoryItem>(`/inventory/${sku}${buildQuery(location)}`);
+): Promise<InventorySnapshot> {
+  return apiClient<InventorySnapshot>(`/inventory/${sku}${buildQuery(location)}`);
 }
 
 //Fetch inventory trend data for a given SKU. Optionally filtered by location.
@@ -77,6 +89,6 @@ export async function getInventoryTrend(
 export async function getLatestTransactions(
   sku: string,
   location?: string
-): Promise<InventoryTransaction[]> {
-  return apiClient<InventoryTransaction[]>(`/transactions/latest/${sku}${buildQuery(location)}`);
+): Promise<SkuTransactionItem[]> {
+  return apiClient<SkuTransactionItem[]>(`/transactions/latest/${sku}${buildQuery(location)}`);
 }

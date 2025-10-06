@@ -1,4 +1,3 @@
-// hooks/use-transactions.ts
 "use client"
 
 import { useState, useEffect } from "react"
@@ -13,11 +12,13 @@ export interface TransactionItem {
   quantity: number
   sku: string
   location?: string
-  from_location?: string
-  to_location?: string
   stock_before: number
   stock_after: number
-  metadata?: Record<string, any> | null
+  metadata?: {
+    target_location?: string
+    source_location?: string
+    [key: string]: any
+  } | null
 }
 
 export interface TransactionsResponse {
