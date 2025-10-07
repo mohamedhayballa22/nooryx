@@ -1,6 +1,6 @@
 "use client"
 
-import React from "react"
+import React, { useMemo } from "react"
 import { AreaChart, Area, XAxis, CartesianGrid } from "recharts"
 import {
   Card,
@@ -14,7 +14,6 @@ import {
   ChartTooltip,
   ChartTooltipContent,
 } from "@/components/ui/chart"
-import type { InventoryTrend } from "@/lib/api/inventory"
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -23,13 +22,42 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
+import { Skeleton } from "@/components/ui/skeleton"
+
+import type { InventoryTrend } from "@/lib/api/inventory"
+
+type PeriodKey = "7d" | "31d" | "180d" | "365d"
 
 interface SkuTrendChartProps {
   inventoryTrend: InventoryTrend
+  period: PeriodKey
+  onPeriodChange: (value: PeriodKey) => void
 }
 
-const SkuTrendChart: React.FC<SkuTrendChartProps> = ({ inventoryTrend }) => {
-  const [range, setRange] = React.useState("Last Month")
+const SkuTrendChart: React.FC<SkuTrendChartProps> & { Skeleton: React.FC } = ({
+  inventoryTrend,
+  period,
+  onPeriodChange,
+}) => {
+  const periodLabelMap: Record<PeriodKey, string> = {
+    "7d": "Last Week",
+    "31d": "Last Month",
+    "180d": "Last 6 Months",
+    "365d": "Last Year",
+  }
+
+  const validPeriods = useMemo(() => {
+    const oldest = new Date(inventoryTrend.oldest_data_point)
+    const now = new Date()
+    const daysDiff = Math.floor((now.getTime() - oldest.getTime()) / (1000 * 60 * 60 * 24))
+
+    return {
+      "7d": daysDiff > 0,
+      "31d": daysDiff > 7,
+      "180d": daysDiff > 31,
+      "365d": daysDiff > 180,
+    } as Record<PeriodKey, boolean>
+  }, [inventoryTrend.oldest_data_point])
 
   const chartConfig = {
     on_hand: {
@@ -52,28 +80,24 @@ const SkuTrendChart: React.FC<SkuTrendChartProps> = ({ inventoryTrend }) => {
           </CardDescription>
         </div>
 
-        {/* Dropdown on top-right */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
             <Button variant="outline" size="sm" className="ml-auto cursor-pointer">
-              {range}
+              {periodLabelMap[period]}
               <ChevronDown className="ml-2 h-4 w-4 opacity-60" />
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {["Last Week", "Last Month", "Last 6 Months", "Last Year"].map(
-              (option) => (
-                <DropdownMenuItem
-                  key={option}
-                  onClick={() => setRange(option)}
-                  className={
-                    range === option ? "font-medium text-primary" : undefined
-                  }
-                >
-                  {option}
-                </DropdownMenuItem>
-              )
-            )}
+            {(Object.entries(periodLabelMap) as [PeriodKey, string][]).map(([key, label]) => (
+              <DropdownMenuItem
+                key={key}
+                onClick={() => validPeriods[key] && onPeriodChange(key)}
+                disabled={!validPeriods[key]}
+                className={period === key ? "font-medium text-primary" : undefined}
+              >
+                {label}
+              </DropdownMenuItem>
+            ))}
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
@@ -102,16 +126,8 @@ const SkuTrendChart: React.FC<SkuTrendChartProps> = ({ inventoryTrend }) => {
             <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
             <defs>
               <linearGradient id="fillOnHand" x1="0" y1="0" x2="0" y2="1">
-                <stop
-                  offset="5%"
-                  stopColor="var(--on-hand)"
-                  stopOpacity={0.8}
-                />
-                <stop
-                  offset="95%"
-                  stopColor="var(--on-hand)"
-                  stopOpacity={0.1}
-                />
+                <stop offset="5%" stopColor="var(--on-hand)" stopOpacity={0.8} />
+                <stop offset="95%" stopColor="var(--on-hand)" stopOpacity={0.1} />
               </linearGradient>
             </defs>
             <Area
@@ -132,6 +148,28 @@ const SkuTrendChart: React.FC<SkuTrendChartProps> = ({ inventoryTrend }) => {
             />
           </AreaChart>
         </ChartContainer>
+      </CardContent>
+    </Card>
+  )
+}
+
+SkuTrendChart.Skeleton = function SkuTrendChartSkeleton() {
+  return (
+    <Card className="h-full flex flex-col animate-pulse">
+      <CardHeader className="flex-shrink-0 flex flex-row items-start justify-between">
+        <div>
+          <Skeleton className="h-5 w-48 mb-2" />
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <Skeleton className="h-8 w-28 rounded-md" />
+      </CardHeader>
+      <CardContent className="flex-1 min-h-0">
+        <div className="h-full w-full flex items-center justify-center">
+          <div className="relative w-full h-48">
+            <Skeleton className="absolute bottom-0 left-0 w-full h-2/3 rounded-t-full" />
+            <Skeleton className="absolute bottom-0 left-1/4 w-1/2 h-3/4 opacity-70 rounded-t-full" />
+          </div>
+        </div>
       </CardContent>
     </Card>
   )
