@@ -198,24 +198,22 @@ async def get_sku_inventory(
 
     product_name = states[0].product_name
     
-    # Get total location count for this SKU (always across all locations)
-    total_locations_stmt = (
-        select(func.count(InventoryState.location_id))
+    # Get all location names for this SKU (always across all locations)
+    location_names_stmt = (
+        select(Location.name)
+        .join(InventoryState, InventoryState.location_id == Location.id)
         .where(InventoryState.sku_id == sku_id)
+        .order_by(Location.name)
     )
-    total_locations_result = await db.execute(total_locations_stmt)
-    total_locations = total_locations_result.scalar()
+    location_names_result = await db.execute(location_names_stmt)
+    location_names = list(location_names_result.scalars().all())
+    
+    # Get total location count for this SKU (always across all locations)
+    total_locations = len(location_names)
 
     # If SKU exists in only one location, auto-assign it
     if location is None and total_locations == 1:
-        single_loc_stmt = (
-            select(Location.name)
-            .join(InventoryState, InventoryState.location_id == Location.id)
-            .where(InventoryState.sku_id == sku_id)
-            .limit(1)
-        )
-        single_loc_result = await db.execute(single_loc_stmt)
-        location = single_loc_result.scalar_one_or_none()
+        location = location_names[0]
 
     # Calculate totals from the filtered states
     total_available = 0
@@ -258,7 +256,8 @@ async def get_sku_inventory(
         status=status,
         location=location,
         locations=total_locations,
-        inventory_pct=inventory_pct,  # Add this
+        location_names=location_names,  # Add this new field
+        inventory_pct=inventory_pct,
         summary=InventorySummary(
             available=total_available,
             reserved=total_reserved,
