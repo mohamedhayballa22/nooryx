@@ -94,15 +94,15 @@ class InventoryTransaction(Base):
             'adjust': f"Adjusted by {self.qty:+d} units",
             'reserve': f"Reserved {qty_abs} units",
             'unreserve': f"Released {qty_abs} units from reservation",
-            'transfer': f"Transferred {qty_abs} units"
+            'transfer': f"Transferred {qty_abs} units",
+            'transfer_in': f"Received {abs(qty_abs)} units from transfer",
+            'transfer_out': f"Transferred {abs(qty_abs)} units out",
         }
         
         base_narrative = templates.get(self.action, f"{self.action.title()}: {self.qty:+d} units")
         
         if self.reference:
             base_narrative += f" (ref: {self.reference})"
-            
-        base_narrative += f" at {self.location.name}"
             
         if self.txn_metadata:
             if 'reason' in self.txn_metadata:
