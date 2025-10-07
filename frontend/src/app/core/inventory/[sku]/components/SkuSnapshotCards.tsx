@@ -54,19 +54,20 @@ export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
   if (location === null) {
     locationCardTitle = "Locations"
     locationCardValue = locations
-    locationsDescription = locations > 1
-      ? `Distributed across multiple locations`
-      : `Single location view`
+    locationsDescription =
+      locations > 1
+        ? `Distributed across multiple locations`
+        : `Single location view`
     locationsSubtitle = `Number of storage locations where this SKU is held.`
   } else {
     locationCardTitle = "Location"
     locationCardValue = location
-    
+
     if (locations > 1) {
       locationsDescription = `1 of ${locations} total locations`
       locationsSubtitle = `This location holds ${inventory_pct}% of this SKU's total inventory.`
     } else {
-      locationsDescription = `Viewing single-location inventory`
+      locationsDescription = `Single location view`
       locationsSubtitle = `This location holds ${inventory_pct}% of this SKU's total inventory.`
     }
   }
@@ -102,6 +103,23 @@ export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
         description={locationsDescription}
         subtitle={locationsSubtitle}
       />
+    </section>
+  )
+}
+
+// --- Skeleton Export ---
+
+SkuSnapshotCards.Skeleton = function SkuSnapshotCardsSkeleton() {
+  return (
+    <section
+      className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-5"
+      role="region"
+      aria-label="SKU Snapshot Loading"
+    >
+      <MetricCard.Skeleton/>
+      <MetricCard.Skeleton/>
+      <MetricCard.Skeleton/>
+      <MetricCard.Skeleton/>
     </section>
   )
 }
