@@ -80,7 +80,7 @@ export const columns: ColumnDef<Product>[] = [
       return (
         <Badge
           className={cn(
-            "text-xs font-medium",
+            "px-2 text-xs font-medium",
             status === "In Stock" &&
               "border-transparent bg-green-100 text-green-800 hover:bg-green-100/80 dark:bg-green-900/50 dark:text-green-300",
             status === "Low Stock" &&
