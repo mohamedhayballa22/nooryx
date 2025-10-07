@@ -16,6 +16,7 @@ export interface InventorySnapshot {
   status: string;
   location: string | null;
   locations: number;
+  location_names: string[];
   inventory_pct: number
   summary: InventorySummary;
 }
@@ -29,6 +30,7 @@ export interface InventoryTrend {
   sku: string;
   locations: number;
   location: string | null;
+  oldest_data_point: string;
   points: InventoryTrendPoint[];
 }
 
@@ -89,6 +91,6 @@ export async function getInventoryTrend(
 export async function getLatestTransactions(
   sku: string,
   location?: string
-): Promise<SkuTransactionItem[]> {
-  return apiClient<SkuTransactionItem[]>(`/transactions/latest/${sku}${buildQuery(location)}`);
+): Promise<SkuAuditTrailData> {
+  return apiClient<SkuAuditTrailData>(`/transactions/latest/${sku}${buildQuery(location)}`);
 }
