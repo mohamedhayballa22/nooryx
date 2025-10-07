@@ -7,6 +7,7 @@ import {
   CardFooter,
 } from "@/components/ui/card"
 import { Badge } from "@/components/ui/badge"
+import { Skeleton } from "@/components/ui/skeleton"
 import { TrendingUp, TrendingDown } from "lucide-react"
 import { cn } from "@/lib/utils"
 
@@ -82,6 +83,36 @@ export function MetricCard({
           {subtitle && <div className="text-muted-foreground">{subtitle}</div>}
         </CardFooter>
       )}
+    </Card>
+  )
+}
+
+// Static Skeleton version
+MetricCard.Skeleton = function MetricCardSkeleton() {
+  return (
+    <Card className="@container/card">
+      <CardHeader>
+        <CardDescription>
+          <Skeleton className="h-4 w-24" />
+        </CardDescription>
+
+        <CardTitle className="text-4xl font-bold">
+          <Skeleton className="h-8 w-20" />
+        </CardTitle>
+
+        <CardAction>
+          <Skeleton className="h-6 w-16 rounded-md" />
+        </CardAction>
+      </CardHeader>
+
+      <CardFooter className="flex-col items-start gap-1.5 text-sm">
+        <div className="flex gap-2 font-medium">
+          <Skeleton className="h-4 w-32" />
+        </div>
+        <div className="text-muted-foreground">
+          <Skeleton className="h-3 w-24" />
+        </div>
+      </CardFooter>
     </Card>
   )
 }
