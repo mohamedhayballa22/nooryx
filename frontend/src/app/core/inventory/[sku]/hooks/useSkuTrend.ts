@@ -10,8 +10,8 @@ import { getInventoryTrend } from "@/lib/api/inventory";
  */
 export function useSkuTrend(
   skuId: string,
+  location?: string,
   period: string = "30d",
-  location?: string
 ) {
   const query = useQuery({
     queryKey: ["inventoryTrend", skuId, period, location],
