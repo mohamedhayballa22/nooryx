@@ -108,4 +108,5 @@ class InventoryTrendResponse(BaseModel):
     sku: str
     locations: int
     location: Optional[str]
+    oldest_data_point: Optional[date] = None
     points: List[TrendPoint]
