@@ -9,13 +9,13 @@ import { getInventoryBySku } from "@/lib/api/inventory";
  * - Automatically re-fetches when location changes
  * - Computes isMultiLocation based on the API response
  */
-export function useSku(skuId: string, location?: string) {
+export function useSku(sku: string, location?: string) {
   const query = useQuery({
-    queryKey: ["inventory", skuId, location],
-    queryFn: () => getInventoryBySku(skuId, location),
-    enabled: !!skuId, // don't fetch until we have an SKU
+    queryKey: ["inventory", sku, location],
+    queryFn: () => getInventoryBySku(sku, location),
+    enabled: !!sku, // don't fetch until we have an SKU
     staleTime: 60_000, // cache for 1 minute
-    refetchOnWindowFocus: false, // optional UX tweak
+    refetchOnWindowFocus: false,
   });
 
   const hasData = !!query.data;
