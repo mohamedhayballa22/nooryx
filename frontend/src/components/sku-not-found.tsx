@@ -37,7 +37,7 @@ export default function SkuNotFound({ sku }: SkuNotFoundProps) {
           We checked every aisle and bin. SKU <span className="font-medium">{sku}</span> isn't on the shelves.
         </p>
         <Button asChild size="lg" className="text-lg">
-          <Link href="/inventory">Back to Inventory</Link>
+          <Link href="/core/inventory">Back to Inventory</Link>
         </Button>
       </motion.div>
     </main>
