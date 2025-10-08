@@ -2,29 +2,34 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getInventoryBySku } from "@/lib/api/inventory";
+import { ApiError } from "@/lib/api/client";
 
-/**
- * Custom hook for fetching SKU inventory data (and derived metadata)
- * - Fetches data from /inventory/{sku}
- * - Automatically re-fetches when location changes
- * - Computes isMultiLocation based on the API response
- */
+function getErrorStatus(error: unknown): number | undefined {
+  if (error instanceof ApiError) {
+    return error.status;
+  }
+  return undefined;
+}
+
 export function useSku(sku: string, location?: string) {
   const query = useQuery({
     queryKey: ["inventory", sku, location],
     queryFn: () => getInventoryBySku(sku, location),
-    enabled: !!sku, // don't fetch until we have an SKU
-    staleTime: 60_000, // cache for 1 minute
+    enabled: !!sku,
+    staleTime: 60_000,
     refetchOnWindowFocus: false,
+    retry: false,
   });
 
   const hasData = !!query.data;
   const isMultiLocation = query.data?.location === null;
+  const errorStatus = getErrorStatus(query.error);
 
   return {
     ...query,
     data: query.data,
     hasData,
     isMultiLocation,
+    errorStatus,
   };
 }
