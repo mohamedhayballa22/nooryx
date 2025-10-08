@@ -1,4 +1,3 @@
-// app/audit-trail/page.tsx
 "use client"
 
 import React from "react"
