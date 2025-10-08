@@ -6,8 +6,9 @@ from sqlalchemy import select, or_, String, func
 from typing import Optional, List
 
 from app.schemas import LatestTransactionsResponse, Transaction
-from app.models import InventoryTransaction, Location
+from app.models import InventoryTransaction, Location, InventoryState
 from app.core.db import get_session
+from app.services.transaction.exceptions import NotFound
 
 
 router = APIRouter()
@@ -165,6 +166,12 @@ async def get_latest_transactions_by_sku(
     Optionally filtered by location. If no location is provided, returns transactions across all locations.
     Includes stock before/after calculations for each transaction.
     """
+
+    # Check if SKU exists
+    sku_exists_query = select(InventoryState.sku_id).where(InventoryState.sku_id == sku_id)
+    sku_exists_result = await db.execute(sku_exists_query)
+    if sku_exists_result.scalar() is None:
+        raise NotFound
     
     # Count distinct locations where this SKU is present (has stock)
     location_count_query = (
