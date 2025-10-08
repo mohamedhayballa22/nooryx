@@ -21,19 +21,10 @@ export default function Page() {
   const params = useParams()
   const sku = Array.isArray(params.sku) ? params.sku[0] : (params.sku as string)
 
-  // Selected Location State (persistent across refresh)
-  const [selectedLocation, setSelectedLocation] = useState<string>(() => {
-    if (typeof window !== "undefined") {
-      return localStorage.getItem("sku-active-tab") || "all"
-    }
-    return "all"
-  })
+  // Selected Location State (no longer persistent)
+  const [selectedLocation, setSelectedLocation] = useState<string>("all")
 
-  useEffect(() => {
-    localStorage.setItem("sku-active-tab", selectedLocation)
-  }, [selectedLocation])
-
-  // Period State with preference vs display separation
+  // Period State with preference vs display separation (still persistent)
   const [preferredPeriod, setPreferredPeriod] = useState<PeriodKey | null>(() => {
     if (typeof window !== "undefined") {
       return (localStorage.getItem("sku-trend-period") as PeriodKey) || null
@@ -70,7 +61,6 @@ export default function Page() {
     errorStatus: transactionsStatus,
   } = useSkuTransactions(sku, selectedLocation === "all" ? undefined : selectedLocation)
 
-  
   // Calculate the actual displayable period (falls back if preferred isn't available)
   const displayPeriod = useMemo<PeriodKey>(() => {
     if (!trendData?.oldest_data_point) return "31d" // Fallback while loading
