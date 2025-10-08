@@ -19,7 +19,7 @@ from app.schemas import (
 )
 from app.models import InventoryState, Location, InventoryTransaction
 from app.core.db import get_session
-from app.services.transaction.exceptions import TransactionBadRequest
+from app.services.transaction.exceptions import TransactionBadRequest, NotFound
 
 
 router = APIRouter()
@@ -166,6 +166,12 @@ async def get_sku_inventory(
     db: AsyncSession = Depends(get_session)
 ):
     """Get comprehensive inventory view for a SKU across all locations or for a specific location."""
+
+    # Check if SKU exists
+    sku_exists_query = select(InventoryState.sku_id).where(InventoryState.sku_id == sku_id)
+    sku_exists_result = await db.execute(sku_exists_query)
+    if sku_exists_result.scalar() is None:
+        raise NotFound
 
     # Build base query
     stmt = (
@@ -399,6 +405,13 @@ async def get_inventory_trend(
         Daily on-hand inventory levels with interpolation (no extrapolation),
         and the date of the oldest data point (oldest_data_point).
     """
+
+    # Check if SKU exists
+    sku_exists_query = select(InventoryState.sku_id).where(InventoryState.sku_id == sku_id)
+    sku_exists_result = await session.execute(sku_exists_query)
+    if sku_exists_result.scalar() is None:
+        raise NotFound
+    
     # Parse period (e.g., "30d" -> 30)
     days = int(period.rstrip('d'))
     start_date = datetime.utcnow().date() - timedelta(days=days - 1)
