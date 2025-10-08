@@ -9,6 +9,7 @@ import SkuHeader from "./components/SkuHeader"
 import { useSku } from "./hooks/useSku"
 import { useSkuTransactions } from "./hooks/useSkuTransactions"
 import { useSkuTrend } from "./hooks/useSkuTrend"
+import SkuNotFound from "@/components/sku-not-found";
 
 type PeriodKey = "7d" | "31d" | "180d" | "365d"
 
@@ -50,15 +51,13 @@ export default function Page() {
   const {
     data: skuData,
     isLoading: isSkuLoading,
-    isError: isSkuError,
-    error: skuError,
+    errorStatus: skuSnapshotStatus,
   } = useSku(sku, selectedLocation === "all" ? undefined : selectedLocation)
 
   const {
     data: trendData,
     isLoading: isTrendLoading,
-    isError: isTrendError,
-    error: trendError,
+    errorStatus: trendStatus,
   } = useSkuTrend(
     sku,
     selectedLocation === "all" ? undefined : selectedLocation,
@@ -68,10 +67,10 @@ export default function Page() {
   const {
     data: transactionsData,
     isLoading: isTransactionsLoading,
-    isError: isTransactionsError,
-    error: transactionsError,
+    errorStatus: transactionsStatus,
   } = useSkuTransactions(sku, selectedLocation === "all" ? undefined : selectedLocation)
 
+  
   // Calculate the actual displayable period (falls back if preferred isn't available)
   const displayPeriod = useMemo<PeriodKey>(() => {
     if (!trendData?.oldest_data_point) return "31d" // Fallback while loading
@@ -99,13 +98,20 @@ export default function Page() {
     
     return widest
   }, [trendData, preferredPeriod])
+  
+  const isUnauthorized = 
+    skuSnapshotStatus === 404 || 
+    trendStatus === 404 || 
+    transactionsStatus === 404;
 
+  if (isUnauthorized) {
+    return <SkuNotFound sku={sku} />;
+  }
+  
   return (
     <main className="grid gap-5">
       {/* SKU Header */}
-      {isSkuError ? (
-        <ErrorDisplay message={skuError?.message || "Failed to load SKU header."} />
-      ) : isSkuLoading ? (
+      {isSkuLoading ? (
         <SkuHeader.Skeleton />
       ) : skuData ? (
         <SkuHeader
@@ -116,9 +122,7 @@ export default function Page() {
       ) : null}
 
       {/* Snapshot Cards */}
-      {isSkuError ? (
-        <ErrorDisplay message="Failed to load SKU snapshot." />
-      ) : isSkuLoading ? (
+      {isSkuLoading ? (
         <SkuSnapshotCards.Skeleton />
       ) : skuData ? (
         <SkuSnapshotCards data={skuData} />
@@ -128,9 +132,7 @@ export default function Page() {
       <div className="grid grid-cols-1 lg:grid-cols-6 gap-5 auto-rows-[minmax(300px,480px)]">
         {/* Trend Chart */}
         <div className="lg:col-span-4">
-          {isTrendError ? (
-            <ErrorDisplay message={trendError?.message || "Failed to load trend chart."} />
-          ) : isTrendLoading ? (
+          {isTrendLoading ? (
             <SkuTrendChart.Skeleton />
           ) : trendData ? (
             <SkuTrendChart
@@ -143,11 +145,7 @@ export default function Page() {
 
         {/* Audit Trail */}
         <div className="lg:col-span-2">
-          {isTransactionsError ? (
-            <ErrorDisplay
-              message={transactionsError?.message || "Failed to load audit trail."}
-            />
-          ) : isTransactionsLoading ? (
+          {isTransactionsLoading ? (
             <SkuAuditTrail.Skeleton />
           ) : transactionsData ? (
             <SkuAuditTrail {...transactionsData} />
