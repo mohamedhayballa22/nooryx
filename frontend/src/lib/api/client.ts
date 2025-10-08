@@ -5,6 +5,19 @@ interface FetchOptions extends RequestInit {
   rawResponse?: boolean;
 }
 
+// Custom error class that preserves HTTP status
+export class ApiError extends Error {
+  status: number;
+  body: any;
+
+  constructor(message: string, status: number, body?: any) {
+    super(message);
+    this.name = 'ApiError';
+    this.status = status;
+    this.body = body;
+  }
+}
+
 // Unified API client built on top of fetch().
 // Automatically prefixes BASE_URL, handles errors, and parses JSON.
 export async function apiClient<T = any>(
@@ -24,13 +37,11 @@ export async function apiClient<T = any>(
 
   if (!response.ok) {
     const errorBody = await safeJson(response);
-    const error = new Error(
-      errorBody?.message || `HTTP error ${response.status}`
+    throw new ApiError(
+      errorBody?.message || `HTTP error ${response.status}`,
+      response.status,
+      errorBody
     );
-    // Attach response info for debugging
-    (error as any).status = response.status;
-    (error as any).body = errorBody;
-    throw error;
   }
 
   return rawResponse ? (response as any) : safeJson(response);
