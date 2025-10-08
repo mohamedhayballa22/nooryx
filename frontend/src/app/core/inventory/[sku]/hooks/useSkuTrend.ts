@@ -2,12 +2,15 @@
 
 import { useQuery } from "@tanstack/react-query";
 import { getInventoryTrend } from "@/lib/api/inventory";
+import { ApiError } from "@/lib/api/client";
 
-/**
- * useSkuTrend()
- * Fetches inventory trend data for a given SKU (and optional location).
- * Wraps React Query for caching, revalidation, and loading/error states.
- */
+function getErrorStatus(error: unknown): number | undefined {
+  if (error instanceof ApiError) {
+    return error.status;
+  }
+  return undefined;
+}
+
 export function useSkuTrend(
   skuId: string,
   location?: string,
@@ -16,20 +19,21 @@ export function useSkuTrend(
   const query = useQuery({
     queryKey: ["inventoryTrend", skuId, period, location],
     queryFn: () => getInventoryTrend(skuId, period, location),
-    enabled: !!skuId, // only fetch when skuId is available
-    staleTime: 5 * 60_000, // cache for 5 min
+    enabled: !!skuId,
+    staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
+    retry: false,
   });
 
-  // Derived metadata
   const hasData = Array.isArray(query.data?.points) && query.data.points.length > 0;
-
-const isMultiLocation = query.data?.location === null;
+  const isMultiLocation = query.data?.location === null;
+  const errorStatus = getErrorStatus(query.error);
 
   return {
     ...query,
     data: query.data,
     hasData,
-    isMultiLocation
+    isMultiLocation,
+    errorStatus,
   };
 }
