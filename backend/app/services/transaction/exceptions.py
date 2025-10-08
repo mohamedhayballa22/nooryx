@@ -11,3 +11,15 @@ class TransactionBadRequest(HTTPException):
             status_code=status.HTTP_400_BAD_REQUEST,
             detail=detail,
         )
+
+
+class NotFound(HTTPException):
+    """
+    Raised when a ressource couldn't be returned due to lack of sufficient
+    priviliges or inexcitence.
+    """
+    def __init__(self, detail: str | None = None):
+        super().__init__(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=detail,
+        )
