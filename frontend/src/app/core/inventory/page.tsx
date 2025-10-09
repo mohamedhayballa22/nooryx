@@ -3,6 +3,7 @@
 import { DataTable } from "@/components/data-table/data-table"
 import { columns } from "./columns"
 import { useInventoryList } from "@/hooks/use-inventory"
+import {EmptyInventory} from "@/components/empty-inventory";
 
 export default function StockPage() {
   const {
@@ -23,6 +24,10 @@ export default function StockPage() {
     statusFilters,
     onStatusFiltersChange,
   } = useInventoryList()
+
+  if (errorStatus === 404) {
+    return <EmptyInventory />;
+  }
 
   return (
     <div className="container mx-auto">
