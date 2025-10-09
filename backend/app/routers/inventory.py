@@ -55,6 +55,13 @@ async def get_inventory(
 
     Supports searching across SKU and location, filtering by stock status, and sorting by multiple fields.
     """
+    # Check if any inventory exists at all (only when no filters are applied)
+    if not search and not stock_status:
+        inventory_count = await db.scalar(
+            select(func.count()).select_from(InventoryState)
+        )
+        if inventory_count == 0:
+            raise NotFound
 
     # Subquery to get the most recent transaction for each SKU/location
     latest_txn_subq = (
