@@ -1,14 +1,12 @@
 "use client"
 
 import { ColumnDef, FilterFn } from "@tanstack/react-table"
-import { ChevronDownIcon, ChevronUpIcon } from "lucide-react"
 
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 
 import { DataTableRowActions } from "./data-table-row-actions"
 
-// Define the shape of your product data
 export type Product = {
   sku: string
   product_name: string
@@ -26,55 +24,27 @@ const multiColumnFilterFn: FilterFn<Product> = (row, filterValue) => {
   return rowContent.includes(searchTerm)
 }
 
-// A reusable header component for sortable columns
-const SortableHeader = ({ column, children, className }: { column: any, children: React.ReactNode, className?: string }) => (
-  <div
-    className={cn("flex cursor-pointer select-none items-center gap-2", className)}
-    onClick={column.getToggleSortingHandler()}
-  >
-    {children}
-    {{
-      asc: <ChevronUpIcon size={16} className="opacity-60" />,
-      desc: <ChevronDownIcon size={16} className="opacity-60" />,
-    }[column.getIsSorted() as string] ?? null}
-  </div>
-);
-
-
 export const columns: ColumnDef<Product>[] = [
   {
     accessorKey: "sku",
-    header: ({ column }) => (
-      <SortableHeader column={column}>SKU</SortableHeader>
-    ),
+    header: "SKU",
   },
   {
     accessorKey: "product_name",
-    // This column will be used for global filtering
     filterFn: multiColumnFilterFn,
-    header: ({ column }) => (
-      <SortableHeader column={column}>Product Name</SortableHeader>
-    ),
+    header: "Product Name",
   },
   {
     accessorKey: "location",
-    header: ({ column }) => (
-      <SortableHeader column={column}>Location</SortableHeader>
-    ),
+    header: "Location",
   },
   {
     accessorKey: "available",
-    header: ({ column }) => (
-        <SortableHeader column={column}>
-          Available
-        </SortableHeader>
-    ),
+    header: "Available",
   },
   {
     accessorKey: "status",
-    header: ({ column }) => (
-      <SortableHeader column={column}>Status</SortableHeader>
-    ),
+    header: "Status",
     cell: ({ row }) => {
       const status = row.getValue("status") as string
       return (
@@ -96,9 +66,7 @@ export const columns: ColumnDef<Product>[] = [
   },
   {
     accessorKey: "last_transaction",
-    header: ({ column }) => (
-      <SortableHeader column={column}>Last Transaction</SortableHeader>
-    ),
+    header: "Last Transaction",
   },
   {
     id: "actions",
