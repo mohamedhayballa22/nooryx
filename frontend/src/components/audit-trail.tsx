@@ -28,7 +28,8 @@ import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/
 import { useMobile } from "@/hooks/use-mobile"
 import React from "react"
 
-import { TransactionItem } from "@/hooks/use-transactions"
+import { TransactionItem } from "@/lib/api/inventory"
+import { Skeleton } from "@/components/ui/skeleton"
 
 export function AuditTrail({
   items,
@@ -249,3 +250,25 @@ export function AuditTrail({
     </Timeline>
   )
 }
+
+export function AuditTrailSkeleton() {
+  return (
+    <div className="space-y-6">
+      {Array.from({ length: 10 }).map((_, i) => (
+        <div key={`sk-${i}`} className="flex items-start gap-4">
+          <div className="flex flex-col items-center">
+            <div className="h-7 w-7 rounded-full bg-muted/60 animate-pulse" />
+            {i < 9 && <div className="h-16 w-[1px] bg-muted/30 mt-2" />}
+          </div>
+          <div className="flex-1 space-y-2 pt-1">
+            <Skeleton className="h-4 w-64 rounded" />
+            <Skeleton className="h-3 w-48 rounded" />
+            <Skeleton className="h-3 w-32 rounded" />
+          </div>
+        </div>
+      ))}
+    </div>
+  );
+}
+
+AuditTrail.Skeleton = AuditTrailSkeleton;
