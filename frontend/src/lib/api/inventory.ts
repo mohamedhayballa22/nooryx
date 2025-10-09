@@ -34,28 +34,45 @@ export interface InventoryTrend {
   points: InventoryTrendPoint[];
 }
 
-export interface SkuTransactionItem {
-  id: number
-  date: string
-  actor: string
-  action: string
-  quantity: number
-  sku: string
-  location?: string
-  stock_before: number
-  stock_after: number
+export interface TransactionItem {
+  id: number;
+  date: string;
+  actor: string;
+  action: string;
+  quantity: number;
+  sku: string;
+  location?: string;
+  stock_before: number;
+  stock_after: number;
   metadata?: {
-    target_location?: string
-    source_location?: string
-    [key: string]: any
-  } | null
+    target_location?: string;
+    source_location?: string;
+    [key: string]: any;
+  } | null;
+}
+
+export interface TransactionsResponse {
+  items: TransactionItem[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}
+
+export interface TransactionsParams {
+  page?: number;
+  size?: number;
+  search?: string;
+  sort_by?: string;
+  order?: "asc" | "desc";
+  actions?: string[];
 }
 
 export interface SkuAuditTrailData {
   sku: string
   locations: number
   location?: string | null
-  transactions: SkuTransactionItem[]
+  transactions: TransactionItem[]
 }
 
 export type Product = {
@@ -143,4 +160,23 @@ export async function getInventoryList(
   return apiClient<InventoryListResponse>(
     `/inventory${query ? `?${query}` : ""}`
   );
+}
+
+export async function getTransactions(
+  params: TransactionsParams = {}
+): Promise<TransactionsResponse> {
+  const searchParams = new URLSearchParams();
+  
+  if (params.page) searchParams.append("page", String(params.page));
+  if (params.size) searchParams.append("size", String(params.size));
+  if (params.search) searchParams.append("search", params.search);
+  if (params.sort_by) {
+    searchParams.append("sort_by", params.sort_by);
+    searchParams.append("order", params.order || "asc");
+  }
+  if (params.actions) {
+    params.actions.forEach((action) => searchParams.append("action", action));
+  }
+
+  return apiClient<TransactionsResponse>(`/transactions?${searchParams.toString()}`);
 }
