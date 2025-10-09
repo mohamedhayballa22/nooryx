@@ -2,13 +2,15 @@
 
 import { DataTable } from "@/components/data-table/data-table"
 import { columns } from "./columns"
-import { useInventory } from "@/hooks/use-inventory"
+import { useInventoryList } from "@/hooks/use-inventory"
 
 export default function StockPage() {
   const {
     data,
-    loading,
+    isLoading,
+    isFetching,
     error,
+    errorStatus,
     pagination,
     onPaginationChange,
     totalPages,
@@ -20,19 +22,21 @@ export default function StockPage() {
     onSortChange,
     statusFilters,
     onStatusFiltersChange,
-  } = useInventory()
+  } = useInventoryList()
 
   return (
     <div className="container mx-auto">
       {error && (
         <div className="mb-4 rounded-md bg-destructive/15 p-4 text-destructive">
-          Error: {error}
+          Error: {error instanceof Error ? error.message : "Failed to load inventory"}
+          {errorStatus && ` (Status: ${errorStatus})`}
         </div>
       )}
       <DataTable
         columns={columns}
         data={data}
-        loading={loading}
+        isLoading={isLoading}
+        isFetching={isFetching}
         pagination={pagination}
         onPaginationChange={onPaginationChange}
         totalPages={totalPages}
