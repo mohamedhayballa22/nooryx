@@ -1,9 +1,10 @@
 "use client";
 
-import React, { useState } from "react";
+import React, { useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
 import { PaginationControls } from "@/components/app-pagination";
 import { AuditTrail } from "@/components/audit-trail";
-import { useAuditTrail } from "@/hooks/use-transactions";
+import { useAuditTrail } from "@/hooks/use-transactions"
 import { DataToolbar } from "@/components/data-toolbar";
 import { useDebounce } from "@/hooks/use-debounce";
 
@@ -16,15 +17,75 @@ const INITIAL_ACTION_FILTERS = [
   "unreserved",
 ];
 
+function parseUrlParams(searchParams: URLSearchParams) {
+  const page = parseInt(searchParams.get("page") || "1", 10) - 1; // Convert to 0-indexed
+  const size = parseInt(searchParams.get("size") || "10", 10);
+  const search = searchParams.get("search") || "";
+  const sortBy = searchParams.get("sort_by") || null;
+  const sortOrder = (searchParams.get("order") || "asc") as "asc" | "desc";
+  const actions = searchParams.getAll("action");
+  
+  return {
+    page: Math.max(0, page),
+    size,
+    search,
+    sortBy,
+    sortOrder,
+    actions: actions.length > 0 ? actions : INITIAL_ACTION_FILTERS,
+  };
+}
+
 export default function AuditTrailPage() {
-  const [pageIndex, setPageIndex] = useState(0);
-  const [pageSize, setPageSize] = useState(10);
-  const [search, setSearch] = useState("");
-  const [sortBy, setSortBy] = useState<string | null>(null);
-  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
-  const [actionFilters, setActionFilters] = useState<string[]>(INITIAL_ACTION_FILTERS);
+  const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  // Initialize state from URL
+  const urlParams = parseUrlParams(searchParams);
+  
+  const [pageIndex, setPageIndex] = React.useState(urlParams.page);
+  const [pageSize, setPageSize] = React.useState(urlParams.size);
+  const [search, setSearch] = React.useState(urlParams.search);
+  const [sortBy, setSortBy] = React.useState<string | null>(urlParams.sortBy);
+  const [sortOrder, setSortOrder] = React.useState<"asc" | "desc">(urlParams.sortOrder);
+  const [actionFilters, setActionFilters] = React.useState<string[]>(urlParams.actions);
 
   const debouncedSearch = useDebounce(search, 500);
+
+  // Sync URL with state
+  useEffect(() => {
+    const params = new URLSearchParams();
+    
+    if (pageIndex !== 0) {
+      params.set("page", String(pageIndex + 1));
+    }
+    
+    if (pageSize !== 10) {
+      params.set("size", String(pageSize));
+    }
+    
+    if (debouncedSearch) {
+      params.set("search", debouncedSearch);
+    }
+    
+    if (sortBy) {
+      params.set("sort_by", sortBy);
+      params.set("order", sortOrder);
+    }
+    
+    const isDefaultFilters = 
+      actionFilters.length === INITIAL_ACTION_FILTERS.length &&
+      actionFilters.every((action) => INITIAL_ACTION_FILTERS.includes(action));
+    
+    if (!isDefaultFilters) {
+      actionFilters.forEach((action) => {
+        params.append("action", action);
+      });
+    }
+    
+    // Update URL - if no params, just use the base path
+    const queryString = params.toString();
+    router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
+  }, [pageIndex, pageSize, debouncedSearch, sortBy, sortOrder, actionFilters, router]);
 
   const {
     items,
@@ -43,7 +104,7 @@ export default function AuditTrailPage() {
   });
 
   // Reset to page 0 when filters/search/sort change
-  React.useEffect(() => {
+  useEffect(() => {
     if (pageIndex !== 0) {
       setPageIndex(0);
     }
