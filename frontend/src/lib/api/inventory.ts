@@ -58,6 +58,32 @@ export interface SkuAuditTrailData {
   transactions: SkuTransactionItem[]
 }
 
+export type Product = {
+  sku: string
+  product_name: string
+  location: string
+  available: number
+  last_transaction: string
+  status: "In Stock" | "Low stock" | "Out of Stock"
+}
+
+export interface InventoryListParams {
+  page?: number;
+  size?: number;
+  search?: string;
+  sort_by?: string;
+  order?: "asc" | "desc";
+  stock_status?: string[];
+}
+
+export interface InventoryListResponse {
+  items: Product[];
+  total: number;
+  page: number;
+  size: number;
+  pages: number;
+}
+
 // --- Helpers ---
 
 
@@ -93,4 +119,28 @@ export async function getLatestTransactions(
   location?: string
 ): Promise<SkuAuditTrailData> {
   return apiClient<SkuAuditTrailData>(`/transactions/latest/${sku}${buildQuery(location)}`);
+}
+
+export async function getInventoryList(
+  params: InventoryListParams = {}
+): Promise<InventoryListResponse> {
+  const searchParams = new URLSearchParams();
+  
+  if (params.page) searchParams.append("page", String(params.page));
+  if (params.size) searchParams.append("size", String(params.size));
+  if (params.search) searchParams.append("search", params.search);
+  if (params.sort_by) {
+    searchParams.append("sort_by", params.sort_by);
+    searchParams.append("order", params.order || "asc");
+  }
+  if (params.stock_status) {
+    params.stock_status.forEach((status) => {
+      searchParams.append("stock_status", status);
+    });
+  }
+
+  const query = searchParams.toString();
+  return apiClient<InventoryListResponse>(
+    `/inventory${query ? `?${query}` : ""}`
+  );
 }
