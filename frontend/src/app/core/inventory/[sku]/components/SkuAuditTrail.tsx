@@ -36,7 +36,7 @@ export function SkuAuditTrail({ sku, locations, location, transactions }: SkuAud
         <div className="flex justify-center py-5 mt-4">
           <Button 
             variant="outline" 
-            onClick={() => window.open('/core/audit-trail', '_blank')}
+            onClick={() => window.open('/core/audit-trail?search=' + sku, '_blank')}
             className="cursor-pointer"
           >
             View Full History
