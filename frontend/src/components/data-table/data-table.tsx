@@ -22,7 +22,8 @@ import { PlusIcon } from "lucide-react"
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
   data: TData[]
-  loading?: boolean
+  isLoading?: boolean
+  isFetching?: boolean
   pagination: PaginationState
   onPaginationChange: (pagination: PaginationState) => void
   totalPages: number
@@ -53,7 +54,8 @@ const SORT_OPTIONS = [
 export function DataTable<TData, TValue>({
   columns,
   data,
-  loading = false,
+  isLoading = false,
+  isFetching = false,
   pagination,
   onPaginationChange,
   totalPages,
@@ -92,6 +94,8 @@ export function DataTable<TData, TValue>({
     manualSorting: true,
     manualFiltering: true,
   })
+
+  const showSkeleton = isLoading || (isFetching && data.length === 0)
 
   return (
     <div className="space-y-4">
@@ -133,7 +137,7 @@ export function DataTable<TData, TValue>({
             ))}
           </TableHeader>
           <TableBody>
-            {loading || data.length === 0 ? (
+            {showSkeleton ? (
               Array.from({ length: pagination.pageSize }).map((_, index) => (
                 <TableRow key={index}>
                   {columns.map((_, cellIndex) => (
@@ -178,7 +182,7 @@ export function DataTable<TData, TValue>({
         pageSize={pagination.pageSize}
         totalPages={totalPages}
         totalItems={totalItems}
-        loading={loading}
+        loading={isFetching}
         onPageChange={(newPage) =>
           onPaginationChange({ ...pagination, pageIndex: newPage })
         }
@@ -186,6 +190,71 @@ export function DataTable<TData, TValue>({
           onPaginationChange({ pageIndex: 0, pageSize: newSize })
         }
       />
+    </div>
+  )
+}
+
+DataTable.Skeleton = function DataTableSkeleton() {
+  return (
+    <div className="space-y-4">
+      {/* Table skeleton only */}
+      <div className="overflow-hidden rounded-md border">
+        <Table>
+          <TableHeader>
+            <TableRow>
+              <TableHead>SKU</TableHead>
+              <TableHead>Product Name</TableHead>
+              <TableHead>Location</TableHead>
+              <TableHead>Available</TableHead>
+              <TableHead>Status</TableHead>
+              <TableHead>Last Transaction</TableHead>
+              <TableHead className="w-[50px]"></TableHead>
+            </TableRow>
+          </TableHeader>
+          <TableBody>
+            {Array.from({ length: 10 }).map((_, index) => (
+              <TableRow key={index}>
+                <TableCell>
+                  <Skeleton className="h-5 w-20" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-40" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-24" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-12" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-6 w-20 rounded-full" />
+                </TableCell>
+                <TableCell>
+                  <Skeleton className="h-5 w-32" />
+                </TableCell>
+                <TableCell>
+                  <div className="flex justify-end">
+                    <Button variant="ghost" className="h-8 w-8 p-0" disabled>
+                      <span className="sr-only">Open menu</span>
+                    </Button>
+                  </div>
+                </TableCell>
+              </TableRow>
+            ))}
+          </TableBody>
+        </Table>
+      </div>
+
+      {/* Pagination skeleton */}
+      <div className="flex items-center justify-between">
+        <Skeleton className="h-5 w-32" />
+        <div className="flex items-center gap-2">
+          <Skeleton className="h-10 w-10" />
+          <Skeleton className="h-10 w-10" />
+          <Skeleton className="h-10 w-10" />
+          <Skeleton className="h-10 w-10" />
+        </div>
+      </div>
     </div>
   )
 }
