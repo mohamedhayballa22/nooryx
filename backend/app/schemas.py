@@ -6,7 +6,7 @@ from datetime import date
 class BaseTxn(BaseModel):
     sku_id: str
     location: str
-    product_name: str
+    product_name: Optional[str] = None
     reference: Optional[str] = None
     txn_metadata: Optional[Dict[str, Any]] = None
     created_by: Optional[str] = None
@@ -15,6 +15,7 @@ class BaseTxn(BaseModel):
 class ReceiveTxn(BaseTxn):
     action: Literal["receive"] = "receive"
     qty: int = Field(gt=0)
+    product_name: str
 
 
 class ShipTxn(BaseTxn):
