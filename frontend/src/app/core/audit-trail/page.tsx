@@ -7,6 +7,7 @@ import { AuditTrail } from "@/components/audit-trail";
 import { useAuditTrail } from "@/hooks/use-transactions"
 import { DataToolbar } from "@/components/data-toolbar";
 import { useDebounce } from "@/hooks/use-debounce";
+import { EmptyAuditTrail } from "@/components/empty-audit-trail";
 
 const INITIAL_ACTION_FILTERS = [
   "added",
@@ -114,6 +115,10 @@ export default function AuditTrailPage() {
     setSortBy(newSortBy);
     setSortOrder(newSortOrder);
   };
+
+  if (errorStatus === 404) {
+    return <EmptyAuditTrail/>;
+  }
 
   return (
     <div className="space-y-6">
