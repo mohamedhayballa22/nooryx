@@ -122,7 +122,7 @@ export function DataToolbar<TData>({
             </div>
             {search && (
               <button
-                className="text-muted-foreground/80 hover:text-foreground absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md outline-none transition-colors focus-visible:ring-2"
+                className="text-muted-foreground/80 hover:text-foreground absolute inset-y-0 end-0 flex h-full w-9 items-center justify-center rounded-e-md outline-none transition-colors focus-visible:ring-2 cursor-pointer"
                 aria-label="Clear search"
                 onClick={() => onSearchChange("")}
               >
@@ -136,7 +136,7 @@ export function DataToolbar<TData>({
         {filterOptions && onFiltersChange && (
           <Popover>
             <PopoverTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className="cursor-pointer">
                 <FilterIcon className="-ms-1 opacity-60" size={16} />
                 {filterLabel ?? "Filters"}
                 {activeFilters.length > 0 && (
@@ -179,7 +179,7 @@ export function DataToolbar<TData>({
         {sortOptions && onSortChange && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className="cursor-pointer">
                 <ArrowUpDownIcon className="-ms-1 opacity-60" size={16} />
                 Sort by
                 {sortBy && (
@@ -225,7 +225,7 @@ export function DataToolbar<TData>({
         {showViewToggle && (
           <DropdownMenu>
             <DropdownMenuTrigger asChild>
-              <Button variant="outline">
+              <Button variant="outline" className="cursor-pointer">
                 <Columns3Icon className="-ms-1 opacity-60" size={16} />
                 View
               </Button>

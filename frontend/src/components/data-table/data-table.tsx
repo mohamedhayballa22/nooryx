@@ -114,7 +114,7 @@ export function DataTable<TData, TValue>({
         onSortChange={onSortChange}
         showViewToggle
         actions={
-          <Button variant="outline">
+          <Button variant="outline" className="cursor-pointer">
             <PlusIcon className="-ms-1 opacity-60" size={16} />
             Add
           </Button>
