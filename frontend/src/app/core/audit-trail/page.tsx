@@ -1,49 +1,58 @@
-"use client"
+"use client";
 
-import React from "react"
-import { Skeleton } from "@/components/ui/skeleton"
-import { PaginationControls } from "@/components/app-pagination"
-import { AuditTrail } from "@/components/audit-trail"
-import { useTransactions } from "@/hooks/use-transactions"
-import { DataToolbar } from "@/components/data-toolbar"
+import React, { useState } from "react";
+import { PaginationControls } from "@/components/app-pagination";
+import { AuditTrail } from "@/components/audit-trail";
+import { useAuditTrail } from "@/hooks/use-transactions";
+import { DataToolbar } from "@/components/data-toolbar";
+import { useDebounce } from "@/hooks/use-debounce";
+
+const INITIAL_ACTION_FILTERS = [
+  "added",
+  "shipped",
+  "reserved",
+  "transferred",
+  "adjusted",
+  "unreserved",
+];
 
 export default function AuditTrailPage() {
+  const [pageIndex, setPageIndex] = useState(0);
+  const [pageSize, setPageSize] = useState(10);
+  const [search, setSearch] = useState("");
+  const [sortBy, setSortBy] = useState<string | null>(null);
+  const [sortOrder, setSortOrder] = useState<"asc" | "desc">("asc");
+  const [actionFilters, setActionFilters] = useState<string[]>(INITIAL_ACTION_FILTERS);
+
+  const debouncedSearch = useDebounce(search, 500);
+
   const {
-    data,
+    items,
     totalItems,
     totalPages,
-    pagination,
-    loading,
+    isLoading,
     error,
-    onPaginationChange,
-    search,
-    onSearchChange,
-    sortBy,
-    sortOrder,
-    onSortChange,
-    actionFilters,
-    onActionFiltersChange,
-  } = useTransactions()
+    errorStatus,
+  } = useAuditTrail({
+    page: pageIndex + 1,
+    size: pageSize,
+    search: debouncedSearch || undefined,
+    sort_by: sortBy || undefined,
+    order: sortOrder,
+    actions: actionFilters,
+  });
 
-  const SkeletonTimeline = (
-    <div>
-      <div className="space-y-6">
-        {Array.from({ length: 10 }).map((_, i) => (
-          <div key={`sk-${i}`} className="flex items-start gap-4">
-            <div className="flex flex-col items-center">
-              <div className="h-4 w-4 rounded-full bg-muted/60 animate-pulse" />
-              {i < 5 && <div className="flex-1 w-[1px] bg-muted/30 mt-2" />}
-            </div>
-            <div className="flex-1 space-y-2">
-              <Skeleton className="h-4 w-64 rounded" />
-              <Skeleton className="h-3 w-48 rounded" />
-              <Skeleton className="h-3 w-32 rounded" />
-            </div>
-          </div>
-        ))}
-      </div>
-    </div>
-  )
+  // Reset to page 0 when filters/search/sort change
+  React.useEffect(() => {
+    if (pageIndex !== 0) {
+      setPageIndex(0);
+    }
+  }, [debouncedSearch, actionFilters, sortBy, sortOrder]);
+
+  const handleSortChange = (newSortBy: string | null, newSortOrder: "asc" | "desc") => {
+    setSortBy(newSortBy);
+    setSortOrder(newSortOrder);
+  };
 
   return (
     <div className="space-y-6">
@@ -51,8 +60,8 @@ export default function AuditTrailPage() {
       <DataToolbar
         table={{ getAllColumns: () => [] } as any}
         search={search}
-        onSearchChange={onSearchChange}
-        searchPlaceholder="Search by SKU, action, SKU..."
+        onSearchChange={setSearch}
+        searchPlaceholder="Search by SKU, actor, action..."
         filterLabel="Actions"
         filterOptions={[
           { label: "Added", value: "added" },
@@ -63,7 +72,7 @@ export default function AuditTrailPage() {
           { label: "Unreserved", value: "unreserved" },
         ]}
         activeFilters={actionFilters}
-        onFiltersChange={onActionFiltersChange}
+        onFiltersChange={setActionFilters}
         sortBy={sortBy}
         sortOrder={sortOrder}
         sortOptions={[
@@ -74,31 +83,35 @@ export default function AuditTrailPage() {
           { label: "Location", value: "location" },
           { label: "Quantity", value: "quantity" },
         ]}
-        onSortChange={onSortChange}
+        onSortChange={handleSortChange}
       />
 
       {/* Content */}
       {error ? (
         <div className="p-4 rounded border border-red-200 bg-red-50 text-red-800">
-          <strong>Error:</strong> {error}
+          <strong>Error:</strong> {error instanceof Error ? error.message : "An unknown error occurred"}
+          {errorStatus && <span className="ml-2">(Status: {errorStatus})</span>}
         </div>
-      ) : loading ? (
-        SkeletonTimeline
+      ) : isLoading ? (
+        <AuditTrail.Skeleton />
       ) : (
-        <AuditTrail items={data} />
+        <AuditTrail items={items} />
       )}
 
       <div className="px-6">
         <PaginationControls
-          pageIndex={pagination.pageIndex}
-          pageSize={pagination.pageSize}
+          pageIndex={pageIndex}
+          pageSize={pageSize}
           totalPages={totalPages}
           totalItems={totalItems}
-          loading={loading}
-          onPageChange={(idx) => onPaginationChange({ ...pagination, pageIndex: idx })}
-          onPageSizeChange={(size) => onPaginationChange({ ...pagination, pageSize: size })}
+          loading={isLoading}
+          onPageChange={setPageIndex}
+          onPageSizeChange={(size) => {
+            setPageSize(size);
+            setPageIndex(0);
+          }}
         />
       </div>
     </div>
-  )
+  );
 }
