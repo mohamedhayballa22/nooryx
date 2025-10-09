@@ -49,6 +49,14 @@ export function AuditTrail({
     unreserved: ClipboardMinus,
   }
 
+  if (items.length === 0) {
+    return (
+      <div className="py-5 text-center">
+        No results found.
+      </div>
+    )
+  }
+
   return (
     <Timeline defaultValue={0}>
       {items.map((item) => {
