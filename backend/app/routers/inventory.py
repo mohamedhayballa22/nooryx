@@ -7,7 +7,7 @@ from sqlalchemy import select, func, case, or_, and_
 from sqlalchemy.orm import selectinload
 from typing import Optional, List
 from enum import Enum
-from datetime import datetime, timedelta
+from datetime import datetime, timedelta, timezone
 
 from app.schemas import (
     InventoryItemResponse,
@@ -422,8 +422,8 @@ async def get_inventory_trend(
     
     # Parse period (e.g., "30d" -> 30)
     days = int(period.rstrip('d'))
-    start_date = datetime.utcnow().date() - timedelta(days=days - 1)
-    today = datetime.utcnow().date()
+    start_date = datetime.now(timezone.utc).date() - timedelta(days=days - 1)
+    today = datetime.now(timezone.utc).date()
     
     # Build base query - get ALL transactions, not just within period
     query = (
