@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends, Query
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, or_, String, func
+from sqlalchemy import select, or_, String, func, exists
 from typing import Optional, List
 
 from app.schemas import LatestTransactionsResponse, Transaction
@@ -76,6 +76,18 @@ async def get_transactions(
 
     Supports searching across actor, action, SKU, location, and metadata fields.
     """
+
+    # Check if ANY transactions exist at all (before filters)
+    has_filters = bool(search or action)
+    
+    if not has_filters:
+        # Only check for existence when there are no filters
+        exists_query = select(exists().where(InventoryTransaction.id.isnot(None)))
+        result = await db.execute(exists_query)
+        has_any_transactions = result.scalar()
+        
+        if not has_any_transactions:
+            raise NotFound("No transactions found")
 
     # Main query with joins - no subquery needed, use qty_before field
     query = (
