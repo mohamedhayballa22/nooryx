@@ -162,13 +162,17 @@ async def get_inventory(
 @router.get("/inventory/{sku_id}", response_model=SkuInventoryResponse)
 async def get_sku_inventory(
     sku_id: str, 
-    location: Optional[str] = None,
+    location: Optional[str] = Query(None, description="Location name (None = aggregate across all locations)"),
     db: AsyncSession = Depends(get_session)
 ):
     """Get comprehensive inventory view for a SKU across all locations or for a specific location."""
 
     # Check if SKU exists
     sku_exists_query = select(InventoryState.sku_id).where(InventoryState.sku_id == sku_id)
+
+    if location is not None:
+        sku_exists_query = sku_exists_query.join(InventoryState.location).where(Location.name == location)
+
     sku_exists_result = await db.execute(sku_exists_query)
     if sku_exists_result.scalar() is None:
         raise NotFound
@@ -408,6 +412,10 @@ async def get_inventory_trend(
 
     # Check if SKU exists
     sku_exists_query = select(InventoryState.sku_id).where(InventoryState.sku_id == sku_id)
+
+    if location is not None:
+        sku_exists_query = sku_exists_query.join(InventoryState.location).where(Location.name == location)
+
     sku_exists_result = await session.execute(sku_exists_query)
     if sku_exists_result.scalar() is None:
         raise NotFound

@@ -169,6 +169,10 @@ async def get_latest_transactions_by_sku(
 
     # Check if SKU exists
     sku_exists_query = select(InventoryState.sku_id).where(InventoryState.sku_id == sku_id)
+
+    if location is not None:
+        sku_exists_query = sku_exists_query.join(InventoryState.location).where(Location.name == location)
+
     sku_exists_result = await db.execute(sku_exists_query)
     if sku_exists_result.scalar() is None:
         raise NotFound
