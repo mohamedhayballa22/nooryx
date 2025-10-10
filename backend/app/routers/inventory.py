@@ -331,38 +331,68 @@ async def _calculate_weekly_delta(
         filters.append(InventoryTransaction.location_id == location_id)
 
     if location_id is None:
+        # First, find the best timestamp (closest to 7 days ago)
+        timestamp_stmt = (
+            select(InventoryTransaction.created_at)
+            .where(and_(*filters))
+            .order_by(
+                func.abs(
+                    func.extract(
+                        "epoch",
+                        InventoryTransaction.created_at - (today - timedelta(days=7)),
+                    )
+                )
+            )
+            .limit(1)
+        )
+        timestamp_result = await db.execute(timestamp_stmt)
+        target_timestamp = timestamp_result.scalar_one_or_none()
+        
+        if not target_timestamp:
+            return 0.0
+        
+        # Now get the most recent transaction at or before this timestamp for each location
+        # and sum their on_hand values
+        subquery = (
+            select(
+                InventoryTransaction.location_id,
+                func.max(InventoryTransaction.created_at).label("max_created_at")
+            )
+            .where(
+                InventoryTransaction.sku_id == sku_id,
+                InventoryTransaction.created_at <= target_timestamp
+            )
+            .group_by(InventoryTransaction.location_id)
+        ).subquery()
+        
         stmt = (
             select(
-                InventoryTransaction.created_at,
                 func.sum(
                     case(
                         (
                             InventoryTransaction.action.in_(["reserve", "unreserve"]),
                             InventoryTransaction.qty_before,
                         ),
-                        else_=InventoryTransaction.qty_before
-                        + InventoryTransaction.qty,
-                    )
-                ).label("total_on_hand"),
-            )
-            .where(and_(*filters))
-            .group_by(InventoryTransaction.created_at)
-            .order_by(
-                func.abs(
-                    func.extract(
-                        "epoch",
-                        InventoryTransaction.created_at
-                        - (today - timedelta(days=7)),
+                        else_=InventoryTransaction.qty_before + InventoryTransaction.qty,
                     )
                 )
             )
-            .limit(1)
+            .select_from(InventoryTransaction)
+            .join(
+                subquery,
+                and_(
+                    InventoryTransaction.location_id == subquery.c.location_id,
+                    InventoryTransaction.created_at == subquery.c.max_created_at,
+                    InventoryTransaction.sku_id == sku_id
+                )
+            )
         )
+        
         result = await db.execute(stmt)
-        row = result.first()
-        if not row or row.total_on_hand == 0:
+        last_week_on_hand = result.scalar() or 0
+        
+        if last_week_on_hand == 0:
             return 0.0
-        last_week_on_hand = row.total_on_hand
     else:
         stmt = (
             select(InventoryTransaction)
@@ -388,7 +418,6 @@ async def _calculate_weekly_delta(
 
     delta_pct = ((current_on_hand - last_week_on_hand) / last_week_on_hand) * 100
     return round(delta_pct, 1)
-
 
 def _calculate_on_hand_from_txn(txn: InventoryTransaction) -> int:
     """Calculate on-hand quantity at the time of a transaction."""
