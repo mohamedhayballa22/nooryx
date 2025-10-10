@@ -143,7 +143,6 @@ export default function AuditTrailPage() {
         sortOrder={sortOrder}
         sortOptions={[
           { label: "Date", value: "created_at" },
-          { label: "Actor", value: "actor" },
           { label: "Action", value: "action" },
           { label: "SKU", value: "sku" },
           { label: "Location", value: "location" },
