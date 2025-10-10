@@ -23,6 +23,7 @@ import {
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
 import { Skeleton } from "@/components/ui/skeleton"
+import { EmptyTrend } from "@/components/empty-trend"
 
 import type { InventoryTrend } from "@/lib/api/inventory"
 
@@ -46,7 +47,13 @@ const SkuTrendChart: React.FC<SkuTrendChartProps> & { Skeleton: React.FC } = ({
     "365d": "Last Year",
   }
 
+  const hasInsufficientData = inventoryTrend.points.length < 2
+
   const validPeriods = useMemo(() => {
+    if (hasInsufficientData) {
+      return { "7d": false, "31d": false, "180d": false, "365d": false } as Record<PeriodKey, boolean>
+    }
+
     const oldest = new Date(inventoryTrend.oldest_data_point)
     const now = new Date()
     const daysDiff = Math.floor((now.getTime() - oldest.getTime()) / (1000 * 60 * 60 * 24))
@@ -57,7 +64,9 @@ const SkuTrendChart: React.FC<SkuTrendChartProps> & { Skeleton: React.FC } = ({
       "180d": daysDiff > 31,
       "365d": daysDiff > 180,
     } as Record<PeriodKey, boolean>
-  }, [inventoryTrend.oldest_data_point])
+  }, [inventoryTrend.oldest_data_point, hasInsufficientData])
+
+  const displayPeriod = hasInsufficientData ? "7d" : period
 
   const chartConfig = {
     on_hand: {
@@ -82,8 +91,13 @@ const SkuTrendChart: React.FC<SkuTrendChartProps> & { Skeleton: React.FC } = ({
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="ml-auto cursor-pointer">
-              {periodLabelMap[period]}
+            <Button 
+              variant="outline" 
+              size="sm" 
+              className="ml-auto cursor-pointer"
+              disabled={hasInsufficientData}
+            >
+              {periodLabelMap[displayPeriod]}
               <ChevronDown className="ml-2 h-4 w-4 opacity-60" />
             </Button>
           </DropdownMenuTrigger>
@@ -103,51 +117,55 @@ const SkuTrendChart: React.FC<SkuTrendChartProps> & { Skeleton: React.FC } = ({
       </CardHeader>
 
       <CardContent className="flex-1 min-h-0">
-        <ChartContainer config={chartConfig} className="h-full w-full">
-          <AreaChart
-            accessibilityLayer
-            data={inventoryTrend.points}
-            margin={{ left: 12, right: 12, top: 20 }}
-          >
-            <CartesianGrid vertical={false} />
-            <XAxis
-              dataKey="date"
-              tickLine={false}
-              axisLine={false}
-              tickMargin={8}
-              tickFormatter={(value) => {
-                const date = new Date(value)
-                return date.toLocaleDateString("en-US", {
-                  month: "short",
-                  day: "numeric",
-                })
-              }}
-            />
-            <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
-            <defs>
-              <linearGradient id="fillOnHand" x1="0" y1="0" x2="0" y2="1">
-                <stop offset="5%" stopColor="var(--on-hand)" stopOpacity={0.8} />
-                <stop offset="95%" stopColor="var(--on-hand)" stopOpacity={0.1} />
-              </linearGradient>
-            </defs>
-            <Area
-              dataKey="on_hand"
-              type="natural"
-              fill="url(#fillOnHand)"
-              fillOpacity={0.4}
-              stroke="var(--on-hand)"
-              strokeWidth={2}
-              dot={{
-                fill: "var(--on-hand)",
-                stroke: "var(--on-hand)",
-                strokeWidth: 0,
-                r: 2,
-                fillOpacity: 1,
-              }}
-              activeDot={{ r: 5 }}
-            />
-          </AreaChart>
-        </ChartContainer>
+        {hasInsufficientData ? (
+          <EmptyTrend />
+        ) : (
+          <ChartContainer config={chartConfig} className="h-full w-full">
+            <AreaChart
+              accessibilityLayer
+              data={inventoryTrend.points}
+              margin={{ left: 12, right: 12, top: 20 }}
+            >
+              <CartesianGrid vertical={false} />
+              <XAxis
+                dataKey="date"
+                tickLine={false}
+                axisLine={false}
+                tickMargin={8}
+                tickFormatter={(value) => {
+                  const date = new Date(value)
+                  return date.toLocaleDateString("en-US", {
+                    month: "short",
+                    day: "numeric",
+                  })
+                }}
+              />
+              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <defs>
+                <linearGradient id="fillOnHand" x1="0" y1="0" x2="0" y2="1">
+                  <stop offset="5%" stopColor="var(--on-hand)" stopOpacity={0.8} />
+                  <stop offset="95%" stopColor="var(--on-hand)" stopOpacity={0.1} />
+                </linearGradient>
+              </defs>
+              <Area
+                dataKey="on_hand"
+                type="natural"
+                fill="url(#fillOnHand)"
+                fillOpacity={0.4}
+                stroke="var(--on-hand)"
+                strokeWidth={2}
+                dot={{
+                  fill: "var(--on-hand)",
+                  stroke: "var(--on-hand)",
+                  strokeWidth: 0,
+                  r: 2,
+                  fillOpacity: 1,
+                }}
+                activeDot={{ r: 5 }}
+              />
+            </AreaChart>
+          </ChartContainer>
+        )}
       </CardContent>
     </Card>
   )
