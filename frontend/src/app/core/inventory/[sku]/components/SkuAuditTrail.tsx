@@ -4,6 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AuditTrail } from "@/components/audit-trail"
+import { EmptySkuTxn } from "@/components/empty-sku-txn"
 import type { SkuAuditTrailData } from "@/lib/api/inventory"
 import { ExternalLink } from "lucide-react"
 
@@ -31,18 +32,24 @@ export function SkuAuditTrail({ sku, locations, location, transactions }: SkuAud
           e.currentTarget.style.scrollbarColor = 'transparent transparent'
         }}
       >
-        <AuditTrail items={transactions} snippet={true}/>
-        
-        <div className="flex justify-center py-5 mt-4">
-          <Button 
-            variant="outline" 
-            onClick={() => window.open('/core/audit-trail?search=' + sku, '_blank')}
-            className="cursor-pointer"
-          >
-            View Full History
-            <ExternalLink className="ml-2 h-4 w-4" />
-          </Button>
-        </div>
+        {transactions.length === 0 ? (
+          <EmptySkuTxn />
+        ) : (
+          <>
+            <AuditTrail items={transactions} snippet={true}/>
+            
+            <div className="flex justify-center py-5 mt-4">
+              <Button 
+                variant="outline" 
+                onClick={() => window.open('/core/audit-trail?search=' + sku, '_blank')}
+                className="cursor-pointer"
+              >
+                View Full History
+                <ExternalLink className="ml-2 h-4 w-4" />
+              </Button>
+            </div>
+          </>
+        )}
       </CardContent>
     </Card>
   )
