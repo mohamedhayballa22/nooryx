@@ -47,7 +47,16 @@ const SkuTrendChart: React.FC<SkuTrendChartProps> & { Skeleton: React.FC } = ({
     "365d": "Last Year",
   }
 
-  const hasInsufficientData = inventoryTrend.points.length < 2
+  const hasInsufficientData = useMemo(() => {
+    if (inventoryTrend.points.length < 2) {
+      return true
+    }
+
+    const firstValue = inventoryTrend.points[0].on_hand
+    const allSame = inventoryTrend.points.every(point => point.on_hand === firstValue)
+
+    return allSame
+  }, [inventoryTrend.points])
 
   const validPeriods = useMemo(() => {
     if (hasInsufficientData) {
