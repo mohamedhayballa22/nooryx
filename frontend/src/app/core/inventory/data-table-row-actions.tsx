@@ -41,7 +41,9 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         <DropdownMenuItem asChild>
           <Link href={`/core/inventory/${product.sku}`}>See more</Link>
         </DropdownMenuItem>
-        <DropdownMenuItem>View History</DropdownMenuItem>
+        <DropdownMenuItem>
+          <Link href={`/core/audit-trail?search=${product.sku}`}>View History</Link>
+        </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
   )
