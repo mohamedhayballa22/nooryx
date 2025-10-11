@@ -12,7 +12,7 @@ export default function NotFound() {
         initial={{ opacity: 0 }}
         animate={{ opacity: 0.5 }}
         transition={{ duration: 1 }}
-        className="absolute text-[40vw] font-extrabold leading-none bg-gradient-to-b from-muted-foreground/60 via-muted-foreground/40 to-muted-foreground/10 bg-clip-text text-transparent select-none pointer-events-none"
+        className="absolute text-[40vw] font-extrabold leading-none bg-gradient-to-t from-muted-foreground/80 via-muted-foreground/20 to-muted-foreground/10 bg-clip-text text-transparent select-none pointer-events-none"
         aria-hidden="true"
       >
         404
