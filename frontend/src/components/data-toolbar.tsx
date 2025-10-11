@@ -87,6 +87,12 @@ export function DataToolbar<TData>({
 
   const handleFilterChange = (checked: boolean, value: string) => {
     if (!onFiltersChange) return
+    
+    // Prevent unchecking if it's the last filter
+    if (!checked && activeFilters.length === 1) {
+      return
+    }
+    
     const newFilters = checked
       ? [...activeFilters, value]
       : activeFilters.filter((f) => f !== value)
@@ -157,6 +163,7 @@ export function DataToolbar<TData>({
                       <Checkbox
                         id={`${id}-${opt.value}`}
                         checked={activeFilters.includes(opt.value)}
+                        disabled={activeFilters.length === 1 && activeFilters.includes(opt.value)}
                         onCheckedChange={(checked) =>
                           handleFilterChange(!!checked, opt.value)
                         }
