@@ -91,7 +91,7 @@ const SkuTrendChart: React.FC<SkuTrendChartProps> & { Skeleton: React.FC } = ({
           <CardTitle>Inventory Trend - {inventoryTrend.sku}</CardTitle>
           <CardDescription>
             {inventoryTrend.location
-              ? `Location: ${inventoryTrend.location}`
+              ? `${inventoryTrend.location}`
               : inventoryTrend.locations === 1
               ? `Single Location view`
               : "All Locations"}

@@ -16,7 +16,7 @@ export function SkuAuditTrail({ sku, locations, location, transactions }: SkuAud
         <CardTitle>Latest Movements - {sku}</CardTitle>
         <CardDescription>
           {location
-            ? `Location: ${location}`
+            ? `${location}`
             : locations === 1
             ? `Single Location view`
             : "All Locations"}
