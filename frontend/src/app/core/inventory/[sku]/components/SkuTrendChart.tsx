@@ -55,8 +55,17 @@ const SkuTrendChart: React.FC<SkuTrendChartProps> & { Skeleton: React.FC } = ({
     const firstValue = inventoryTrend.points[0].on_hand
     const allSame = inventoryTrend.points.every(point => point.on_hand === firstValue)
 
-    return allSame
-  }, [inventoryTrend.points])
+    // Only consider flat data as insufficient if oldest data point is within the last 7 days
+    if (allSame) {
+      const oldest = new Date(inventoryTrend.oldest_data_point)
+      const now = new Date()
+      const daysDiff = Math.floor((now.getTime() - oldest.getTime()) / (1000 * 60 * 60 * 24))
+      
+      return daysDiff <= 7
+    }
+
+    return false
+  }, [inventoryTrend.points, inventoryTrend.oldest_data_point])
 
   const validPeriods = useMemo(() => {
     if (hasInsufficientData) {
