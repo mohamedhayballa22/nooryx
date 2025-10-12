@@ -130,7 +130,7 @@ export default function GuestNavbar() {
 
         <div className="flex items-center gap-3 ml-auto">
             <Button asChild variant="outline">
-            <Link href="/login">Log In</Link>
+            <Link href="/core/dashboard">Log In</Link>
             </Button>
             <Button asChild>
             <Link href="/demo">Book a Demo</Link>
