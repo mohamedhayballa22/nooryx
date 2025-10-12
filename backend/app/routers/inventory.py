@@ -456,6 +456,17 @@ async def get_inventory_trend(
     if sku_exists_result.scalar() is None:
         raise NotFound
     
+    # Query current inventory states to count locations
+    inventory_states_query = select(InventoryState).where(InventoryState.sku_id == sku_id)
+    if location is not None:
+        inventory_states_query = inventory_states_query.join(Location).where(Location.name == location)
+    
+    inventory_states_result = await session.execute(inventory_states_query)
+    inventory_states = inventory_states_result.scalars().all()
+    
+    # Count locations
+    locations_count = len(inventory_states)
+    
     # Parse period (e.g., "30d" -> 30)
     days = int(period.rstrip('d'))
     start_date = datetime.now(timezone.utc).date() - timedelta(days=days - 1)
@@ -481,22 +492,9 @@ async def get_inventory_trend(
             sku=sku_id,
             location=location,
             points=[],
-            locations=0,
+            locations=locations_count,
             oldest_data_point=None
         )
-    
-    # Calculate number of unique locations with current inventory > 0
-    location_current_inventory = {}  # {location_id: current_on_hand}
-    
-    for txn in transactions:
-        loc_id = txn.location_id
-        if txn.action in ["reserve", "unreserve"]:
-            on_hand = txn.qty_before
-        else:
-            on_hand = txn.qty_before + txn.qty
-        location_current_inventory[loc_id] = on_hand
-    
-    locations_count = sum(1 for on_hand in location_current_inventory.values() if on_hand > 0)
     
     # Find the earliest transaction date
     earliest_txn_date = transactions[0].created_at.date()
@@ -504,7 +502,7 @@ async def get_inventory_trend(
     # Adjust start_date to not go before earliest transaction (no extrapolation)
     actual_start_date = max(start_date, earliest_txn_date)
     
-    # --- Build daily on-hand data ---
+    # Build daily on-hand data
     if location is not None:
         # Single location
         daily_on_hand = {}
@@ -577,7 +575,7 @@ async def get_inventory_trend(
                 daily_on_hand[current_date] = total
             current_date += timedelta(days=1)
     
-    # --- Build final trend points ---
+    # Build final trend points
     if not daily_on_hand:
         return InventoryTrendResponse(
             sku=sku_id,
@@ -610,9 +608,7 @@ async def get_inventory_trend(
 
     # Resolve final location value
     if location is None and locations_count == 1:
-        single_loc_id = next(loc_id for loc_id, on_hand in location_current_inventory.items() if on_hand > 0)
-        loc_result = await session.execute(select(Location.name).where(Location.id == single_loc_id))
-        single_loc_name = loc_result.scalar_one()
+        single_loc_name = inventory_states[0].location.name
         final_location = single_loc_name
     else:
         final_location = location
