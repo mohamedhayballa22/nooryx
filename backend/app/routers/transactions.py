@@ -222,7 +222,7 @@ async def get_latest_transactions_by_sku(
     if location:
         query = query.where(Location.name == location)
     
-    query = query.order_by(InventoryTransaction.created_at.desc()).limit(5)
+    query = query.order_by(InventoryTransaction.created_at.desc()).limit(2)
     
     result = await db.execute(query)
     rows = result.all()
