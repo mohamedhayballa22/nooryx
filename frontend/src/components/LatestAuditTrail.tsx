@@ -4,7 +4,7 @@ import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/com
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AuditTrail } from "@/components/audit-trail"
-import { EmptySkuTxn } from "@/components/empty-sku-txn"
+import { EmptyLatestAuditTrail } from "@/components/EmptyLatestAuditTrail"
 import type { LatestAuditTrailData } from "@/lib/api/inventory"
 import { ExternalLink } from "lucide-react"
 
@@ -33,7 +33,7 @@ export function LatestAuditTrail({ sku, locations, location, transactions }: Lat
         }}
       >
         {transactions.length === 0 ? (
-          <EmptySkuTxn />
+          <EmptyLatestAuditTrail />
         ) : (
           <>
             <AuditTrail items={transactions} snippet={true}/>

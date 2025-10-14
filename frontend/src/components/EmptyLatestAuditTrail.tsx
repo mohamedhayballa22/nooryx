@@ -9,7 +9,7 @@ import {
   EmptyDescription,
 } from "@/components/ui/empty";
 
-export function EmptySkuTxn() {
+export function EmptyLatestAuditTrail() {
   return (
     <Empty className="h-full flex flex-col items-center justify-center text-center px-6">
       <EmptyHeader className="max-w-2xl mx-auto">
