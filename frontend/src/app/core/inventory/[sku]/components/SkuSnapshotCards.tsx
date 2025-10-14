@@ -107,8 +107,6 @@ export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
   )
 }
 
-// --- Skeleton Export ---
-
 SkuSnapshotCards.Skeleton = function SkuSnapshotCardsSkeleton() {
   return (
     <section
