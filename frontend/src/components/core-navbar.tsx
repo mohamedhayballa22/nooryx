@@ -10,6 +10,7 @@ import {
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
 import { SearchDialog } from "@/components/app-search";
+import { ThemeToggle } from "@/components/nav-theme-toggle";
 import { usePathname } from "next/navigation";
 import Link from "next/link";
 
@@ -61,6 +62,7 @@ export function CoreNavbar() {
       </div>
 
       <div className="flex items-center gap-3">
+        <ThemeToggle />
         <SearchDialog />
       </div>
     </nav>
