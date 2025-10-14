@@ -8,7 +8,7 @@ import { EmptyLatestAuditTrail } from "@/components/EmptyLatestAuditTrail"
 import type { LatestAuditTrailData } from "@/lib/api/inventory"
 import { ExternalLink } from "lucide-react"
 
-export function LatestAuditTrail({ sku, locations, location, transactions }: LatestAuditTrailData) {
+export function LatestAuditTrail({ sku, location, transactions }: LatestAuditTrailData) {
   const hasSku = Boolean(sku)
 
   const handleViewFullHistory = () => {
@@ -25,8 +25,6 @@ export function LatestAuditTrail({ sku, locations, location, transactions }: Lat
         <CardDescription>
           {location
             ? location
-            : locations === 1
-            ? "Single Location view"
             : "All Locations"}
         </CardDescription>
       </CardHeader>
