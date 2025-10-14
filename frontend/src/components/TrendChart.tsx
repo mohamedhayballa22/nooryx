@@ -29,13 +29,17 @@ import type { InventoryTrend } from "@/lib/api/inventory"
 
 type PeriodKey = "7d" | "31d" | "180d" | "365d"
 
-interface SkuTrendChartProps {
+interface TrendChartProps {
   inventoryTrend: InventoryTrend
   period: PeriodKey
   onPeriodChange: (value: PeriodKey) => void
 }
 
-export default function SkuTrendChart({ inventoryTrend, period, onPeriodChange}: SkuTrendChartProps) {
+export default function TrendChart({
+  inventoryTrend,
+  period,
+  onPeriodChange,
+}: TrendChartProps) {
   const periodLabelMap: Record<PeriodKey, string> = {
     "7d": "Last Week",
     "31d": "Last Month",
@@ -44,19 +48,19 @@ export default function SkuTrendChart({ inventoryTrend, period, onPeriodChange}:
   }
 
   const hasInsufficientData = useMemo(() => {
-    if (inventoryTrend.points.length < 2) {
-      return true
-    }
+    if (inventoryTrend.points.length < 2) return true
 
     const firstValue = inventoryTrend.points[0].on_hand
-    const allSame = inventoryTrend.points.every(point => point.on_hand === firstValue)
+    const allSame = inventoryTrend.points.every(
+      (point) => point.on_hand === firstValue
+    )
 
-    // Only consider flat data as insufficient if oldest data point is within the last 7 days
     if (allSame) {
       const oldest = new Date(inventoryTrend.oldest_data_point)
       const now = new Date()
-      const daysDiff = Math.floor((now.getTime() - oldest.getTime()) / (1000 * 60 * 60 * 24))
-      
+      const daysDiff = Math.floor(
+        (now.getTime() - oldest.getTime()) / (1000 * 60 * 60 * 24)
+      )
       return daysDiff <= 7
     }
 
@@ -65,12 +69,19 @@ export default function SkuTrendChart({ inventoryTrend, period, onPeriodChange}:
 
   const validPeriods = useMemo(() => {
     if (hasInsufficientData) {
-      return { "7d": false, "31d": false, "180d": false, "365d": false } as Record<PeriodKey, boolean>
+      return {
+        "7d": false,
+        "31d": false,
+        "180d": false,
+        "365d": false,
+      } as Record<PeriodKey, boolean>
     }
 
     const oldest = new Date(inventoryTrend.oldest_data_point)
     const now = new Date()
-    const daysDiff = Math.floor((now.getTime() - oldest.getTime()) / (1000 * 60 * 60 * 24))
+    const daysDiff = Math.floor(
+      (now.getTime() - oldest.getTime()) / (1000 * 60 * 60 * 24)
+    )
 
     return {
       "7d": daysDiff > 0,
@@ -89,25 +100,27 @@ export default function SkuTrendChart({ inventoryTrend, period, onPeriodChange}:
     },
   }
 
+  const title = inventoryTrend.sku
+    ? `Inventory Trend - ${inventoryTrend.sku}`
+    : "Inventory Trend"
+
+  const description = inventoryTrend.location
+    ? inventoryTrend.location
+    : "All Locations"
+
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex-shrink-0 flex flex-row items-start justify-between">
         <div>
-          <CardTitle>Inventory Trend - {inventoryTrend.sku}</CardTitle>
-          <CardDescription className="mt-1.5">
-            {inventoryTrend.location
-              ? `${inventoryTrend.location}`
-              : inventoryTrend.locations === 1
-              ? `Single Location view`
-              : "All Locations"}
-          </CardDescription>
+          <CardTitle>{title}</CardTitle>
+          <CardDescription className="mt-1.5">{description}</CardDescription>
         </div>
 
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button 
-              variant="outline" 
-              size="sm" 
+            <Button
+              variant="outline"
+              size="sm"
               className="ml-auto cursor-pointer"
               disabled={hasInsufficientData}
             >
@@ -116,16 +129,20 @@ export default function SkuTrendChart({ inventoryTrend, period, onPeriodChange}:
             </Button>
           </DropdownMenuTrigger>
           <DropdownMenuContent align="end">
-            {(Object.entries(periodLabelMap) as [PeriodKey, string][]).map(([key, label]) => (
-              <DropdownMenuItem
-                key={key}
-                onClick={() => validPeriods[key] && onPeriodChange(key)}
-                disabled={!validPeriods[key]}
-                className={period === key ? "font-medium text-primary" : undefined}
-              >
-                {label}
-              </DropdownMenuItem>
-            ))}
+            {(Object.entries(periodLabelMap) as [PeriodKey, string][]).map(
+              ([key, label]) => (
+                <DropdownMenuItem
+                  key={key}
+                  onClick={() => validPeriods[key] && onPeriodChange(key)}
+                  disabled={!validPeriods[key]}
+                  className={
+                    period === key ? "font-medium text-primary" : undefined
+                  }
+                >
+                  {label}
+                </DropdownMenuItem>
+              )
+            )}
           </DropdownMenuContent>
         </DropdownMenu>
       </CardHeader>
@@ -157,8 +174,16 @@ export default function SkuTrendChart({ inventoryTrend, period, onPeriodChange}:
               <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
               <defs>
                 <linearGradient id="fillOnHand" x1="0" y1="0" x2="0" y2="1">
-                  <stop offset="5%" stopColor="var(--on-hand)" stopOpacity={0.8} />
-                  <stop offset="95%" stopColor="var(--on-hand)" stopOpacity={0.1} />
+                  <stop
+                    offset="5%"
+                    stopColor="var(--on-hand)"
+                    stopOpacity={0.8}
+                  />
+                  <stop
+                    offset="95%"
+                    stopColor="var(--on-hand)"
+                    stopOpacity={0.1}
+                  />
                 </linearGradient>
               </defs>
               <Area
@@ -185,7 +210,7 @@ export default function SkuTrendChart({ inventoryTrend, period, onPeriodChange}:
   )
 }
 
-SkuTrendChart.Skeleton = function SkuTrendChartSkeleton() {
+TrendChart.Skeleton = function TrendChartSkeleton() {
   return (
     <Card className="h-full flex flex-col animate-pulse">
       <CardHeader className="flex-shrink-0 flex flex-row items-start justify-between">
