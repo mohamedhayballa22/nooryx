@@ -35,11 +35,7 @@ interface SkuTrendChartProps {
   onPeriodChange: (value: PeriodKey) => void
 }
 
-const SkuTrendChart: React.FC<SkuTrendChartProps> & { Skeleton: React.FC } = ({
-  inventoryTrend,
-  period,
-  onPeriodChange,
-}) => {
+export default function SkuTrendChart({ inventoryTrend, period, onPeriodChange}: SkuTrendChartProps) {
   const periodLabelMap: Record<PeriodKey, string> = {
     "7d": "Last Week",
     "31d": "Last Month",
@@ -210,5 +206,3 @@ SkuTrendChart.Skeleton = function SkuTrendChartSkeleton() {
     </Card>
   )
 }
-
-export default SkuTrendChart
