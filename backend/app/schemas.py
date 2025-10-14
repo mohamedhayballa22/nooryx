@@ -75,7 +75,6 @@ class Transaction(BaseModel):
 
 class LatestTransactionsResponse(BaseModel):
     sku: str
-    locations: int
     location: Optional[str]
     transactions: List[Transaction]
         

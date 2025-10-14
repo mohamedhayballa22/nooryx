@@ -252,6 +252,5 @@ async def get_latest_transactions_by_sku(
     return LatestTransactionsResponse(
         sku=sku_id,
         location=location,
-        locations=location_count,
         transactions=transactions
     )
