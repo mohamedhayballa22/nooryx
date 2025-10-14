@@ -1,7 +1,7 @@
 "use client";
 
 import { useQuery } from "@tanstack/react-query";
-import { getLatestTransactions } from "@/lib/api/inventory";
+import { getLatestTransactionsBySku } from "@/lib/api/inventory";
 import { ApiError } from "@/lib/api/client";
 
 function getErrorStatus(error: unknown): number | undefined {
@@ -14,7 +14,7 @@ function getErrorStatus(error: unknown): number | undefined {
 export function useSkuTransactions(skuId: string, location?: string) {
   const query = useQuery({
     queryKey: ["inventoryTransactions", skuId, location],
-    queryFn: () => getLatestTransactions(skuId, location),
+    queryFn: () => getLatestTransactionsBySku(skuId, location),
     enabled: !!skuId,
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,

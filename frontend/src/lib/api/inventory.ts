@@ -68,7 +68,7 @@ export interface TransactionsParams {
   actions?: string[];
 }
 
-export interface SkuAuditTrailData {
+export interface LatestAuditTrailData {
   sku: string
   locations: number
   location?: string | null
@@ -131,11 +131,11 @@ export async function getInventoryTrend(
 }
 
 // Fetch latest inventory transactions for a given SKU. Optionally filtered by location.
-export async function getLatestTransactions(
+export async function getLatestTransactionsBySku(
   sku: string,
   location?: string
-): Promise<SkuAuditTrailData> {
-  return apiClient<SkuAuditTrailData>(`/transactions/latest/${sku}${buildQuery(location)}`);
+): Promise<LatestAuditTrailData> {
+  return apiClient<LatestAuditTrailData>(`/transactions/latest/${sku}${buildQuery(location)}`);
 }
 
 export async function getInventoryList(
