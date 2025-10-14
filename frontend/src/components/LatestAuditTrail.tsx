@@ -9,41 +9,46 @@ import type { LatestAuditTrailData } from "@/lib/api/inventory"
 import { ExternalLink } from "lucide-react"
 
 export function LatestAuditTrail({ sku, locations, location, transactions }: LatestAuditTrailData) {
+  const hasSku = Boolean(sku)
+
+  const handleViewFullHistory = () => {
+    const url = hasSku ? `/core/audit-trail?search=${sku}` : '/core/audit-trail'
+    window.open(url, '_blank')
+  }
 
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex-shrink-0">
-        <CardTitle>Latest Movements - {sku}</CardTitle>
+        <CardTitle>
+          {hasSku ? `Latest Movements - ${sku}` : "Latest Movements"}
+        </CardTitle>
         <CardDescription>
           {location
-            ? `${location}`
+            ? location
             : locations === 1
-            ? `Single Location view`
+            ? "Single Location view"
             : "All Locations"}
         </CardDescription>
       </CardHeader>
-      <CardContent 
+
+      <CardContent
         className="flex-1 overflow-y-auto [&::-webkit-scrollbar]:w-2 [&::-webkit-scrollbar-track]:bg-transparent [&::-webkit-scrollbar-thumb]:bg-transparent hover:[&::-webkit-scrollbar-thumb]:bg-gray-300 [&::-webkit-scrollbar-thumb]:rounded-full"
-        style={{ scrollbarWidth: 'thin', scrollbarColor: 'transparent transparent' }}
+        style={{ scrollbarWidth: "thin", scrollbarColor: "transparent transparent" }}
         onMouseEnter={(e) => {
-          e.currentTarget.style.scrollbarColor = 'rgb(209 213 219) transparent'
+          e.currentTarget.style.scrollbarColor = "rgb(209 213 219) transparent"
         }}
         onMouseLeave={(e) => {
-          e.currentTarget.style.scrollbarColor = 'transparent transparent'
+          e.currentTarget.style.scrollbarColor = "transparent transparent"
         }}
       >
         {transactions.length === 0 ? (
           <EmptyLatestAuditTrail />
         ) : (
           <>
-            <AuditTrail items={transactions} snippet={true}/>
-            
+            <AuditTrail items={transactions} snippet />
+
             <div className="flex justify-center py-5 mt-4">
-              <Button 
-                variant="outline" 
-                onClick={() => window.open('/core/audit-trail?search=' + sku, '_blank')}
-                className="cursor-pointer"
-              >
+              <Button variant="outline" onClick={handleViewFullHistory} className="cursor-pointer">
                 View Full History
                 <ExternalLink className="ml-2 h-4 w-4" />
               </Button>
@@ -62,9 +67,7 @@ LatestAuditTrail.Skeleton = function LatestAuditTrailSkeleton() {
         <Skeleton className="h-6 w-1/3" /> 
         <Skeleton className="h-4 w-1/4" />
       </CardHeader>
-      <CardContent 
-        className="flex-1 overflow-y-auto space-y-4 [&::-webkit-scrollbar]:hidden"
-      >
+      <CardContent className="flex-1 overflow-y-auto space-y-4 [&::-webkit-scrollbar]:hidden">
         <div className="space-y-3">
           {[...Array(5)].map((_, i) => (
             <div key={i} className="flex items-start gap-3">
