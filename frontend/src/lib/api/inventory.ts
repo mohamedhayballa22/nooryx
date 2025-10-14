@@ -69,7 +69,7 @@ export interface TransactionsParams {
 }
 
 export interface LatestAuditTrailData {
-  sku: string
+  sku?: string
   locations: number
   location?: string | null
   transactions: TransactionItem[]
