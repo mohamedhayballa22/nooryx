@@ -3,7 +3,7 @@
 import { useState, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { SkuSnapshotCards } from "./components/SkuSnapshotCards"
-import SkuTrendChart from "./components/SkuTrendChart"
+import TrendChart from "@/components/TrendChart"
 import { LatestAuditTrail } from "@/components/LatestAuditTrail"
 import SkuHeader from "./components/SkuHeader"
 import { useSku } from "./hooks/useSku"
@@ -119,9 +119,9 @@ export default function Page() {
         {/* Trend Chart */}
         <div className="lg:col-span-4">
           {isTrendLoading ? (
-            <SkuTrendChart.Skeleton />
+            <TrendChart.Skeleton />
           ) : trendData ? (
-            <SkuTrendChart
+            <TrendChart
               inventoryTrend={trendData}
               period={displayPeriod}
               onPeriodChange={handlePeriodChange}
