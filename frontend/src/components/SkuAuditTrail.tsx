@@ -5,10 +5,10 @@ import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AuditTrail } from "@/components/audit-trail"
 import { EmptySkuTxn } from "@/components/empty-sku-txn"
-import type { SkuAuditTrailData } from "@/lib/api/inventory"
+import type { LatestAuditTrailData } from "@/lib/api/inventory"
 import { ExternalLink } from "lucide-react"
 
-export function SkuAuditTrail({ sku, locations, location, transactions }: SkuAuditTrailData) {
+export function LatestAuditTrail({ sku, locations, location, transactions }: LatestAuditTrailData) {
 
   return (
     <Card className="h-full flex flex-col">
@@ -55,7 +55,7 @@ export function SkuAuditTrail({ sku, locations, location, transactions }: SkuAud
   )
 }
 
-SkuAuditTrail.Skeleton = function SkuAuditTrailSkeleton() {
+LatestAuditTrail.Skeleton = function LatestAuditTrailSkeleton() {
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex-shrink-0 space-y-2">
