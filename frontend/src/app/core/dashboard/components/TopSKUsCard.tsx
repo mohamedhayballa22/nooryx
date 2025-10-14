@@ -77,7 +77,7 @@ export function TopSKUsCard({
   ]
 
   return (
-    <Card className="@container/card">
+    <Card className="h-full flex flex-col">
       <CardHeader className="flex flex-row skus-start justify-between">
         <div>
           <CardTitle className="text-lg font-semibold">{title}</CardTitle>
