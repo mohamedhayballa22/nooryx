@@ -78,13 +78,13 @@ export function TopSKUsCard({
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="flex flex-row skus-start justify-between">
-        <div>
-          <CardTitle className="text-lg font-semibold">{title}</CardTitle>
-          {description && (
-            <CardDescription className="text-sm mt-1">{description}</CardDescription>
-          )}
-        </div>
+      <CardHeader className="flex flex-row items-start justify-between">
+      <div>
+        <CardTitle>{title}</CardTitle>
+        {description && (
+          <CardDescription className="mt-1.5">{description}</CardDescription>
+        )}
+      </div>
 
         {/* Period Dropdown */}
         <DropdownMenu>

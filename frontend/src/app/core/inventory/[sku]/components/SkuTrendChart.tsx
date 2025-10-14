@@ -98,7 +98,7 @@ const SkuTrendChart: React.FC<SkuTrendChartProps> & { Skeleton: React.FC } = ({
       <CardHeader className="flex-shrink-0 flex flex-row items-start justify-between">
         <div>
           <CardTitle>Inventory Trend - {inventoryTrend.sku}</CardTitle>
-          <CardDescription>
+          <CardDescription className="mt-1.5">
             {inventoryTrend.location
               ? `${inventoryTrend.location}`
               : inventoryTrend.locations === 1
