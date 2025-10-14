@@ -16,10 +16,10 @@ export function EmptyLatestAuditTrail() {
         <EmptyMedia variant="icon" className="size-16">
           <ClipboardClock className="size-10" strokeWidth={1.5} />
         </EmptyMedia>
-        <EmptyTitle className="text-3xl md:text-4xl font-bold tracking-tight">
+        <EmptyTitle className="text-2xl md:text-3xl font-bold tracking-tight">
           All quiet for now
         </EmptyTitle>
-        <EmptyDescription className="text-base md:text-lg text-muted-foreground max-w-md mx-auto">
+        <EmptyDescription className="text-base md:text-md text-muted-foreground max-w-md mx-auto">
           Latest movement data will display here once available.
         </EmptyDescription>
       </EmptyHeader>

@@ -16,7 +16,7 @@ export function EmptyTrend() {
         <EmptyMedia variant="icon" className="size-16">
           <UnplugIcon className="size-10" strokeWidth={1.5} />
         </EmptyMedia>
-        <EmptyTitle className="text-3xl md:text-4xl font-bold tracking-tight">
+        <EmptyTitle className="text-2xl md:text-3xl font-bold tracking-tight">
           No trend to show (yet)
         </EmptyTitle>
         <EmptyDescription className="text-base md:text-lg text-muted-foreground max-w-md mx-auto">
