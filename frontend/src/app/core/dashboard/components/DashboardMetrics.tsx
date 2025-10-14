@@ -46,10 +46,10 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
         value={total_available}
         description={
           total_available > 0
-            ? "Sellable units currently available."
-            : "No sellable stock available."
+            ? "Sellable units currently available"
+            : "No sellable stock available"
         }
-        subtitle="Includes all non-reserved stock."
+        subtitle="Includes all non-reserved stock"
       />
 
       <MetricCard
@@ -59,7 +59,7 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
         description={
           total_on_hand.value > 0
             ? onHandDescription
-            : "No inventory on hand."
+            : "No inventory on hand"
         }
         subtitle={onHandSubtitle}
       />
@@ -70,9 +70,9 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
         description={
           stockouts > 0
             ? `${stockouts} SKUs currently at zero quantity.`
-            : "No SKUs are fully out of stock."
+            : "No SKUs are fully out of stock"
         }
-        subtitle="Critical items requiring immediate restock."
+        subtitle="Critical items requiring immediate restock"
       />
 
       <MetricCard
@@ -81,9 +81,9 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
         description={
           low_stock > 0
             ? `${low_stock} SKUs are below reorder threshold.`
-            : "All SKUs are above reorder threshold."
+            : "All SKUs are above reorder threshold"
         }
-        subtitle="SKUs below minimum stock levels."
+        subtitle="SKUs below minimum stock levels"
       />
     </section>
   )
