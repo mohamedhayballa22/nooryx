@@ -4,7 +4,7 @@ import { useEffect, useState, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { SkuSnapshotCards } from "./components/SkuSnapshotCards"
 import SkuTrendChart from "./components/SkuTrendChart"
-import { SkuAuditTrail } from "./components/SkuAuditTrail"
+import { LatestAuditTrail } from "@/components/LatestAuditTrail"
 import SkuHeader from "./components/SkuHeader"
 import { useSku } from "./hooks/useSku"
 import { useSkuTransactions } from "./hooks/useSkuTransactions"
@@ -136,9 +136,9 @@ export default function Page() {
         {/* Audit Trail */}
         <div className="lg:col-span-2">
           {isTransactionsLoading ? (
-            <SkuAuditTrail.Skeleton />
+            <LatestAuditTrail.Skeleton />
           ) : transactionsData ? (
-            <SkuAuditTrail {...transactionsData} />
+            <LatestAuditTrail {...transactionsData} />
           ) : null}
         </div>
       </div>
