@@ -1,6 +1,6 @@
 "use client"
 
-import { useEffect, useState, useMemo } from "react"
+import { useState, useMemo } from "react"
 import { useParams } from "next/navigation"
 import { SkuSnapshotCards } from "./components/SkuSnapshotCards"
 import SkuTrendChart from "./components/SkuTrendChart"
@@ -12,10 +12,6 @@ import { useSkuTrend } from "./hooks/useSkuTrend"
 import SkuNotFound from "@/components/sku-not-found";
 
 type PeriodKey = "7d" | "31d" | "180d" | "365d"
-
-const ErrorDisplay = ({ message }: { message: string }) => (
-  <div className="text-red-600 text-center py-10">{message}</div>
-)
 
 export default function Page() {
   const params = useParams()
