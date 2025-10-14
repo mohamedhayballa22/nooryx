@@ -41,7 +41,7 @@ export interface TransactionItem {
   action: string;
   quantity: number;
   sku: string;
-  location?: string;
+  location: string;
   stock_before: number;
   stock_after: number;
   metadata?: {
@@ -70,8 +70,7 @@ export interface TransactionsParams {
 
 export interface LatestAuditTrailData {
   sku?: string
-  locations: number
-  location?: string | null
+  location: string | null
   transactions: TransactionItem[]
 }
 
