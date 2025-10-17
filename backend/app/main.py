@@ -12,6 +12,7 @@ from app.core.logger_config import logger
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.routers import actions, inventory, transactions
+from app.routers import reports
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -49,9 +50,10 @@ app.add_middleware(
 )
 
 # Include Routers
-app.include_router(actions.router, tags=["Stock Actions"])
+app.include_router(actions.router, tags=["Stock Actions"],)
 app.include_router(inventory.router, tags=["Inventory"])
 app.include_router(transactions.router, tags=["Transactions"])
+app.include_router(reports.router, tags=["Reports"])
 
 add_pagination(app)
 
