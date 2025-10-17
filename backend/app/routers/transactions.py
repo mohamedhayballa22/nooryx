@@ -1,11 +1,12 @@
 from fastapi import APIRouter, Depends, Query
+from fastapi.responses import JSONResponse
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, String, func, exists
 from typing import Optional, List
 
-from app.schemas import LatestTransactionsResponse, Transaction
+from app.schemas.base import  LatestTransactionsResponse, Transaction
 from app.models import InventoryTransaction, Location, InventoryState
 from app.core.db import get_session
 from app.services.transaction.exceptions import NotFound
@@ -173,7 +174,7 @@ async def get_latest_transactions_by_sku(
     location: Optional[str] = Query(None, description="Filter by location name"),
 ):
     """
-    Returns the five most recent transactions for a specific SKU.
+    Returns the two most recent transactions for a specific SKU.
     
     Optionally filtered by location. If no location is provided, returns transactions across all locations.
     Includes stock before/after calculations for each transaction.
@@ -254,3 +255,86 @@ async def get_latest_transactions_by_sku(
         location=location,
         transactions=transactions
     )
+
+
+@router.get("/transactions/latest", response_model=LatestTransactionsResponse)
+async def get_latest_transactions(
+    db: AsyncSession = Depends(get_session),
+    location: Optional[str] = Query(None, description="Filter by location name"),
+):
+    """
+    Returns the two most recent transactions across all inventory.
+    
+    Optionally filtered by location. If no location is provided, returns transactions across all locations.
+    Includes stock before/after calculations for each transaction.
+    """
+    
+    # Count distinct locations that have transactions
+    location_count_query = select(func.count(func.distinct(InventoryTransaction.location_id)))
+    
+    location_count_result = await db.execute(location_count_query)
+    location_count = location_count_result.scalar() or 0
+
+    # If transactions exist in only one location, auto-assign it
+    if location is None and location_count == 1:
+        single_location_query = (
+            select(Location.name)
+            .join(InventoryTransaction, InventoryTransaction.location_id == Location.id)
+            .limit(1)
+        )
+        single_location_result = await db.execute(single_location_query)
+        location = single_location_result.scalar()
+    
+    # Main query with joins
+    query = (
+        select(
+            InventoryTransaction,
+            Location.name.label("location_name"),
+        )
+        .join(Location, InventoryTransaction.location_id == Location.id)
+    )
+    
+    # Apply location filter if provided
+    if location:
+        query = query.where(Location.name == location)
+    
+    query = query.order_by(InventoryTransaction.created_at.desc()).limit(2)
+    
+    result = await db.execute(query)
+    rows = result.all()
+    
+    # If no transactions found, return empty list
+    if not rows:
+        return LatestTransactionsResponse(
+            location=location,
+            transactions=[]
+        )
+    
+    transactions = [
+        Transaction(
+            id=row.InventoryTransaction.id,
+            date=row.InventoryTransaction.created_at.strftime(
+                "%b %d, %Y at %I:%M %p"
+            ),
+            actor=row.InventoryTransaction.created_by or "Hannah Kandell",
+            action=_format_action(row.InventoryTransaction.action),
+            quantity=abs(row.InventoryTransaction.qty),
+            sku=row.InventoryTransaction.sku_id,
+            location=row.location_name,
+            stock_before=row.InventoryTransaction.qty_before,
+            stock_after=_calculate_stock_after(
+                row.InventoryTransaction.qty_before,
+                row.InventoryTransaction.qty,
+                row.InventoryTransaction.action,
+            ),
+            metadata=row.InventoryTransaction.txn_metadata,
+        )
+        for row in rows
+    ]
+    
+    resp = LatestTransactionsResponse(
+        location=location,
+        transactions=transactions,
+    )
+
+    return JSONResponse(content=resp.model_dump(exclude={"sku"}))
