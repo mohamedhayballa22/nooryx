@@ -6,7 +6,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, String, func, exists
 from typing import Optional, List
 
-from app.schemas.base import  LatestTransactionsResponse, Transaction
+from app.schemas.transaction import LatestTransactionsResponse, Transaction
 from app.models import InventoryTransaction, Location, InventoryState
 from app.core.db import get_session
 from app.services.transaction.exceptions import NotFound

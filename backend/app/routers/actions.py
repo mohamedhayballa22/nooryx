@@ -2,7 +2,7 @@ from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
-from app.schemas import (
+from app.schemas.transaction import  (
     ReceiveTxn,
     ShipTxn,
     AdjustTxn,

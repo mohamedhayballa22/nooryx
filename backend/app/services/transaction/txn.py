@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 
 from app.models import InventoryTransaction, InventoryState, Location
-from app.schemas import AdjustTxn, ReceiveTxn, ShipTxn, ReserveTxn, TransferTxn, UnreserveTxn
+from app.schemas.transaction import  AdjustTxn, ReceiveTxn, ShipTxn, ReserveTxn, TransferTxn, UnreserveTxn
 from app.services.transaction.exceptions import TransactionBadRequest
 
 
