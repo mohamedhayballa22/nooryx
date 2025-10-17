@@ -7,12 +7,12 @@ from sqlalchemy.orm import selectinload
 from typing import Optional, List
 from enum import Enum
 
-from app.schemas.base import  (
-    InventoryItemResponse,
-    SkuInventoryResponse,
-    InventorySummary,
-    OnHandValue,
-)
+from app.schemas.inventory import (
+    InventoryItemResponse, 
+    SkuInventoryResponse, 
+    InventorySummary, 
+    OnHandValue
+    )
 from app.models import InventoryState, Location, InventoryTransaction
 from app.core.db import get_session
 from app.services.transaction.exceptions import TransactionBadRequest, NotFound
