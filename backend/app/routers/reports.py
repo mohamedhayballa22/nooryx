@@ -7,8 +7,14 @@ from app.core.db import get_session
 from app.services.transaction.exceptions import NotFound
 from app.models import InventoryState, Location, InventoryTransaction
 from app.services.transaction.exceptions import TransactionBadRequest
-from app.schemas.dashboard import DashboardMetricsResponse, DashboardSummaryResponse, TopSKUsItem, TopSKUsResponse
-from app.schemas.base import OnHandValue, TrendResponse
+from app.schemas.report import (
+    DashboardMetricsResponse, 
+    DashboardSummaryResponse, 
+    TopSKUsItem, 
+    TopSKUsResponse,
+    OnHandValue,
+    TrendResponse
+)
 from sqlalchemy.orm import selectinload
 from app.services.metrics import calculate_weekly_delta
 from app.services.trends import get_inventory_trend_points
