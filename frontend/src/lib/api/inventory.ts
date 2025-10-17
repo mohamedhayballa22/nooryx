@@ -1,6 +1,6 @@
 import { apiClient } from "./client";
 
-// --- Types ---
+// Types
 export interface InventorySummary {
   available: number;
   reserved: number;
@@ -27,8 +27,7 @@ export interface InventoryTrendPoint {
 }
 
 export interface InventoryTrend {
-  sku: string;
-  locations: number;
+  sku?: string;
   location: string | null;
   oldest_data_point: string;
   points: InventoryTrendPoint[];
@@ -100,7 +99,7 @@ export interface InventoryListResponse {
   pages: number;
 }
 
-// --- Helpers ---
+// Helpers
 
 
 // Builds a query string based on the optional location filter.
@@ -108,7 +107,7 @@ function buildQuery(location?: string): string {
   return location ? `?location=${encodeURIComponent(location)}` : "";
 }
 
-// --- API Functions ---
+// API Functions
 
 // Fetch inventory summary for a given SKU. Optionally filtered by location.
 export async function getInventoryBySku(
@@ -126,7 +125,7 @@ export async function getInventoryTrend(
 ): Promise<InventoryTrend> {
   const params = new URLSearchParams({ period });
   if (location) params.append("location", location);
-  return apiClient<InventoryTrend>(`/inventory/trend/${sku}?${params.toString()}`);
+  return apiClient<InventoryTrend>(`/reports/trend/inventory/${sku}?${params.toString()}`);
 }
 
 // Fetch latest inventory transactions for a given SKU. Optionally filtered by location.
