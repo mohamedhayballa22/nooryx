@@ -8,11 +8,16 @@ import { ChevronDown, Check } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
 
-interface TopSKU {
+interface TopSKUsItem {
   sku: string
   product_name: string
   available: number
   status: string
+}
+
+interface TopSKUsResponse {
+  location: string | null
+  skus: TopSKUsItem[]
 }
 
 type PeriodKey = "7d" | "31d" | "180d" | "365d"
@@ -20,8 +25,9 @@ type PeriodKey = "7d" | "31d" | "180d" | "365d"
 interface TopSKUsCardProps {
   title: string
   description?: string
-  skus: TopSKU[]
+  data: TopSKUsResponse // ✅ renamed from skus
   onPeriodChange?: (period: PeriodKey) => void
+  variant?: "movers" | "inactives" // NEW PROP
 }
 
 const TOTAL_ROWS = 5
@@ -29,17 +35,29 @@ const TOTAL_ROWS = 5
 export function TopSKUsCard({
   title,
   description,
-  skus,
+  data,
   onPeriodChange,
+  variant = "movers", // default
 }: TopSKUsCardProps) {
   const [period, setPeriod] = useState<PeriodKey>("31d")
 
-  const periodLabelMap: Record<PeriodKey, string> = {
-    "7d": "Last Week",
-    "31d": "Last Month",
-    "180d": "Last 6 Months",
-    "365d": "Last Year",
+  // ✅ Two label maps based on variant
+  const labelMaps = {
+    movers: {
+      "7d": "Last Week",
+      "31d": "Last Month",
+      "180d": "Last 6 Months",
+      "365d": "Last Year",
+    },
+    inactives: {
+      "7d": "Inactive 7+ days",
+      "31d": "Inactive 30+ days",
+      "180d": "Inactive 6+ months",
+      "365d": "Inactive 1+ year",
+    },
   }
+
+  const periodLabelMap = labelMaps[variant]
 
   const handlePeriodChange = (newPeriod: PeriodKey) => {
     setPeriod(newPeriod)
@@ -68,32 +86,30 @@ export function TopSKUsCard({
     }
   }
 
-  const maxAvailable = Math.max(...skus.map(sku => sku.available), 1)
-  
+  const maxAvailable = Math.max(...data.skus.map(sku => sku.available), 1)
+
   // Pad data to always show 5 rows
   const paddedData = [
-    ...skus.slice(0, TOTAL_ROWS),
-    ...Array(Math.max(0, TOTAL_ROWS - skus.length)).fill(null)
+    ...data.skus.slice(0, TOTAL_ROWS),
+    ...Array(Math.max(0, TOTAL_ROWS - data.skus.length)).fill(null),
   ]
 
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex flex-row items-start justify-between">
-      <div>
-        <CardTitle>{title}</CardTitle>
-        {description && (
-          <CardDescription className="mt-1.5">{description}</CardDescription>
-        )}
-      </div>
+        <div>
+          <CardTitle>{title}</CardTitle>
+          {(data.location || description) && (
+            <CardDescription className="mt-1.5">
+              {data.location ?? description}
+            </CardDescription>
+          )}
+        </div>
 
         {/* Period Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button
-              variant="outline"
-              size="sm"
-              className="cursor-pointer"
-            >
+            <Button variant="outline" size="sm" className="cursor-pointer">
               {periodLabelMap[period]}
               <ChevronDown className="ml-2 h-4 w-4 opacity-60" />
             </Button>
@@ -130,14 +146,14 @@ export function TopSKUsCard({
                   >
                     {/* Rank */}
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted/10 flex items-center justify-center">
-                      <span className="text-sm font-bold text-muted-foreground/50">{index + 1}</span>
+                      <span className="text-sm font-bold text-muted-foreground/50">
+                        {index + 1}
+                      </span>
                     </div>
 
                     {/* Empty State Content */}
                     <div className="flex-1 min-w-0">
-                      <p className="font-medium text-muted-foreground/50 truncate">
-                        —
-                      </p>
+                      <p className="font-medium text-muted-foreground/50 truncate">—</p>
                       <p className="text-xs text-muted-foreground/30">—</p>
                     </div>
 
@@ -174,9 +190,7 @@ export function TopSKUsCard({
 
                   {/* Product Info */}
                   <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">
-                      {sku.sku}
-                    </p>
+                    <p className="font-medium text-foreground truncate">{sku.sku}</p>
                     <p className="text-xs text-muted-foreground">{sku.product_name}</p>
                   </div>
 
@@ -195,10 +209,12 @@ export function TopSKUsCard({
 
                   {/* Available Count */}
                   <div className="flex-shrink-0 text-right min-w-[60px]">
-                    <p className={cn(
-                      "text-lg font-bold tabular-nums",
-                      sku.status === "Out of Stock" && "text-red-500"
-                    )}>
+                    <p
+                      className={cn(
+                        "text-lg font-bold tabular-nums",
+                        sku.status === "Out of Stock" && "text-red-500"
+                      )}
+                    >
                       {sku.available}
                     </p>
                     <p
@@ -217,9 +233,7 @@ export function TopSKUsCard({
             })}
           </div>
         ) : (
-          <p className="text-sm text-muted-foreground">
-            No inventory data available.
-          </p>
+          <p className="text-sm text-muted-foreground">No inventory data available.</p>
         )}
       </CardContent>
     </Card>
