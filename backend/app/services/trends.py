@@ -3,7 +3,7 @@ from datetime import date, datetime, timedelta, timezone
 from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.schemas.base import TrendPoint
+from app.schemas.common import TrendPoint
 from app.models import Location, InventoryTransaction
 
 
