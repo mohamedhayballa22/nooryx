@@ -13,6 +13,8 @@ from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
 from app.routers import actions, inventory, transactions
 from app.routers import reports
+from app.core.auth.users import fastapi_users, auth_backend
+from app.core.auth.register import router as register_router
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -54,6 +56,12 @@ app.include_router(actions.router, tags=["Stock Actions"],)
 app.include_router(inventory.router, tags=["Inventory"])
 app.include_router(transactions.router, tags=["Transactions"])
 app.include_router(reports.router, tags=["Reports"])
+app.include_router(register_router, tags=["auth"], prefix="/auth")
+app.include_router(
+    fastapi_users.get_auth_router(auth_backend),
+    prefix="/auth/jwt",
+    tags=["auth"]
+)
 
 add_pagination(app)
 
