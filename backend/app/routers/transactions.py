@@ -7,9 +7,9 @@ from sqlalchemy import select, or_, String, func, exists
 from typing import Optional, List
 
 from app.schemas.transaction import LatestTransactionsResponse, Transaction
-from app.models import InventoryTransaction, Location, InventoryState
+from app.models import Transaction as TransactionModel, Location, State, User
 from app.core.db import get_session
-from app.services.transaction.exceptions import NotFound
+from app.services.exceptions import NotFound
 
 
 router = APIRouter()
@@ -50,6 +50,13 @@ def _calculate_stock_after(qty_before: int, qty: int, action: str) -> int:
     return qty_before + qty
 
 
+def _get_actor_name(user: Optional[User]) -> str:
+    """Get the full name of the actor, or 'System' if no user."""
+    if user is None:
+        return "System"
+    return f"{user.first_name} {user.last_name}"
+
+
 @router.get("/transactions", response_model=Page[Transaction])
 async def get_transactions(
     db: AsyncSession = Depends(get_session),
@@ -66,7 +73,7 @@ async def get_transactions(
     sort_by: Optional[str] = Query(
         "created_at",
         description="Sort by field",
-        regex="^(created_at|action|sku|location|quantity)$",
+        regex="^(created_at|action|sku_code|location|qty)$",
     ),
     order: Optional[str] = Query(
         "desc", description="Sort order", regex="^(asc|desc)$"
@@ -83,20 +90,23 @@ async def get_transactions(
     
     if not has_filters:
         # Only check for existence when there are no filters
-        exists_query = select(exists().where(InventoryTransaction.id.isnot(None)))
+        exists_query = select(exists().where(TransactionModel.id.isnot(None)))
         result = await db.execute(exists_query)
         has_any_transactions = result.scalar()
         
         if not has_any_transactions:
             raise NotFound("No transactions found")
 
-    # Main query with joins - no subquery needed, use qty_before field
+    # Main query with joins - include User for actor name
     query = (
         select(
-            InventoryTransaction,
+            TransactionModel,
             Location.name.label("location_name"),
+            User.first_name,
+            User.last_name,
         )
-        .join(Location, InventoryTransaction.location_id == Location.id)
+        .join(Location, TransactionModel.location_id == Location.id)
+        .outerjoin(User, TransactionModel.created_by == User.id)
     )
 
     # Apply action filter
@@ -104,19 +114,25 @@ async def get_transactions(
         db_actions = []
         for display_action in action:
             db_actions.extend(_get_db_actions_from_display(display_action))
-        query = query.where(InventoryTransaction.action.in_(db_actions))
+        query = query.where(TransactionModel.action.in_(db_actions))
 
     # Apply search filter
     if search:
         search_pattern = f"%{search}%"
         metadata_search = func.cast(
-            InventoryTransaction.txn_metadata, String
+            TransactionModel.txn_metadata, String
         ).ilike(search_pattern)
+        # Search in user's first and last name
+        user_name_search = or_(
+            User.first_name.ilike(search_pattern),
+            User.last_name.ilike(search_pattern),
+            func.concat(User.first_name, ' ', User.last_name).ilike(search_pattern),
+        )
         query = query.where(
             or_(
-                InventoryTransaction.created_by.ilike(search_pattern),
-                InventoryTransaction.action.ilike(search_pattern),
-                InventoryTransaction.sku_id.ilike(search_pattern),
+                user_name_search,
+                TransactionModel.action.ilike(search_pattern),
+                TransactionModel.sku_code.ilike(search_pattern),
                 Location.name.ilike(search_pattern),
                 metadata_search,
             )
@@ -124,13 +140,13 @@ async def get_transactions(
 
     # Apply sorting
     sort_mapping = {
-        "created_at": InventoryTransaction.created_at,
-        "action": InventoryTransaction.action,
-        "sku": InventoryTransaction.sku_id,
+        "created_at": TransactionModel.created_at,
+        "action": TransactionModel.action,
+        "sku_code": TransactionModel.sku_code,
         "location": Location.name,
-        "quantity": InventoryTransaction.qty,
+        "qty": TransactionModel.qty,
     }
-    sort_column = sort_mapping.get(sort_by, InventoryTransaction.created_at)
+    sort_column = sort_mapping.get(sort_by, TransactionModel.created_at)
 
     if order == "desc":
         query = query.order_by(sort_column.desc())
@@ -138,38 +154,38 @@ async def get_transactions(
         query = query.order_by(sort_column.asc())
 
     if sort_by != "created_at":
-        query = query.order_by(InventoryTransaction.created_at.desc())
+        query = query.order_by(TransactionModel.created_at.desc())
 
     return await apaginate(
         db,
         query,
         transformer=lambda rows: [
             Transaction(
-                id=row.InventoryTransaction.id,
-                date=row.InventoryTransaction.created_at.strftime(
+                id=str(row.Transaction.id),
+                date=row.Transaction.created_at.strftime(
                     "%b %d, %Y at %I:%M %p"
                 ),
-                actor=row.InventoryTransaction.created_by or "Hannah Kandell",
-                action=_format_action(row.InventoryTransaction.action),
-                quantity=abs(row.InventoryTransaction.qty),
-                sku=row.InventoryTransaction.sku_id,
+                actor=f"{row.first_name} {row.last_name}" if row.first_name else "System",
+                action=_format_action(row.Transaction.action),
+                quantity=abs(row.Transaction.qty),
+                sku_code=row.Transaction.sku_code,
                 location=row.location_name,
-                stock_before=row.InventoryTransaction.qty_before,
-                stock_after=_calculate_stock_after(
-                    row.InventoryTransaction.qty_before,
-                    row.InventoryTransaction.qty,
-                    row.InventoryTransaction.action,
+                qty_before=row.Transaction.qty_before,
+                qty_after=_calculate_stock_after(
+                    row.Transaction.qty_before,
+                    row.Transaction.qty,
+                    row.Transaction.action,
                 ),
-                metadata=row.InventoryTransaction.txn_metadata,
+                metadata=row.Transaction.txn_metadata,
             )
             for row in rows
         ],
     )
 
 
-@router.get("/transactions/latest/{sku_id}", response_model=LatestTransactionsResponse)
+@router.get("/transactions/latest/{sku_code}", response_model=LatestTransactionsResponse)
 async def get_latest_transactions_by_sku(
-    sku_id: str,
+    sku_code: str,
     db: AsyncSession = Depends(get_session),
     location: Optional[str] = Query(None, description="Filter by location name"),
 ):
@@ -181,19 +197,19 @@ async def get_latest_transactions_by_sku(
     """
 
     # Check if SKU exists
-    sku_exists_query = select(InventoryState.sku_id).where(InventoryState.sku_id == sku_id)
+    sku_exists_query = select(State.sku_code).where(State.sku_code == sku_code)
 
     if location is not None:
-        sku_exists_query = sku_exists_query.join(InventoryState.location).where(Location.name == location)
+        sku_exists_query = sku_exists_query.join(State.location).where(Location.name == location)
 
     sku_exists_result = await db.execute(sku_exists_query)
     if sku_exists_result.scalar() is None:
         raise NotFound
     
-    # Count distinct locations where this SKU is present (has stock)
+    # Count distinct locations where this SKU is present (has transactions)
     location_count_query = (
-        select(func.count(func.distinct(InventoryTransaction.location_id)))
-        .where(InventoryTransaction.sku_id == sku_id)
+        select(func.count(func.distinct(TransactionModel.location_id)))
+        .where(TransactionModel.sku_code == sku_code)
     )
     location_count_result = await db.execute(location_count_query)
     location_count = location_count_result.scalar() or 0
@@ -202,56 +218,59 @@ async def get_latest_transactions_by_sku(
     if location is None and location_count == 1:
         single_location_query = (
             select(Location.name)
-            .join(InventoryTransaction, InventoryTransaction.location_id == Location.id)
-            .where(InventoryTransaction.sku_id == sku_id)
+            .join(TransactionModel, TransactionModel.location_id == Location.id)
+            .where(TransactionModel.sku_code == sku_code)
             .limit(1)
         )
         single_location_result = await db.execute(single_location_query)
         location = single_location_result.scalar()
     
-    # Main query with joins - no subquery needed, use qty_before field
+    # Main query with joins - include User for actor name
     query = (
         select(
-            InventoryTransaction,
+            TransactionModel,
             Location.name.label("location_name"),
+            User.first_name,
+            User.last_name,
         )
-        .join(Location, InventoryTransaction.location_id == Location.id)
-        .where(InventoryTransaction.sku_id == sku_id)
+        .join(Location, TransactionModel.location_id == Location.id)
+        .outerjoin(User, TransactionModel.created_by == User.id)
+        .where(TransactionModel.sku_code == sku_code)
     )
     
     # Apply location filter if provided
     if location:
         query = query.where(Location.name == location)
     
-    query = query.order_by(InventoryTransaction.created_at.desc()).limit(2)
+    query = query.order_by(TransactionModel.created_at.desc()).limit(2)
     
     result = await db.execute(query)
     rows = result.all()
     
     transactions = [
         Transaction(
-            id=row.InventoryTransaction.id,
-            date=row.InventoryTransaction.created_at.strftime(
+            id=str(row.Transaction.id),
+            date=row.Transaction.created_at.strftime(
                 "%b %d, %Y at %I:%M %p"
             ),
-            actor=row.InventoryTransaction.created_by or "Hannah Kandell",
-            action=_format_action(row.InventoryTransaction.action),
-            quantity=abs(row.InventoryTransaction.qty),
-            sku=row.InventoryTransaction.sku_id,
+            actor=f"{row.first_name} {row.last_name}" if row.first_name else "System",
+            action=_format_action(row.Transaction.action),
+            quantity=abs(row.Transaction.qty),
+            sku_code=row.Transaction.sku_code,
             location=row.location_name,
-            stock_before=row.InventoryTransaction.qty_before,
-            stock_after=_calculate_stock_after(
-                row.InventoryTransaction.qty_before,
-                row.InventoryTransaction.qty,
-                row.InventoryTransaction.action,
+            qty_before=row.Transaction.qty_before,
+            qty_after=_calculate_stock_after(
+                row.Transaction.qty_before,
+                row.Transaction.qty,
+                row.Transaction.action,
             ),
-            metadata=row.InventoryTransaction.txn_metadata,
+            metadata=row.Transaction.txn_metadata,
         )
         for row in rows
     ]
     
     return LatestTransactionsResponse(
-        sku=sku_id,
+        sku_code=sku_code,
         location=location,
         transactions=transactions
     )
@@ -270,7 +289,7 @@ async def get_latest_transactions(
     """
     
     # Count distinct locations that have transactions
-    location_count_query = select(func.count(func.distinct(InventoryTransaction.location_id)))
+    location_count_query = select(func.count(func.distinct(TransactionModel.location_id)))
     
     location_count_result = await db.execute(location_count_query)
     location_count = location_count_result.scalar() or 0
@@ -279,26 +298,29 @@ async def get_latest_transactions(
     if location is None and location_count == 1:
         single_location_query = (
             select(Location.name)
-            .join(InventoryTransaction, InventoryTransaction.location_id == Location.id)
+            .join(TransactionModel, TransactionModel.location_id == Location.id)
             .limit(1)
         )
         single_location_result = await db.execute(single_location_query)
         location = single_location_result.scalar()
     
-    # Main query with joins
+    # Main query with joins - include User for actor name
     query = (
         select(
-            InventoryTransaction,
+            TransactionModel,
             Location.name.label("location_name"),
+            User.first_name,
+            User.last_name,
         )
-        .join(Location, InventoryTransaction.location_id == Location.id)
+        .join(Location, TransactionModel.location_id == Location.id)
+        .outerjoin(User, TransactionModel.created_by == User.id)
     )
     
     # Apply location filter if provided
     if location:
         query = query.where(Location.name == location)
     
-    query = query.order_by(InventoryTransaction.created_at.desc()).limit(2)
+    query = query.order_by(TransactionModel.created_at.desc()).limit(2)
     
     result = await db.execute(query)
     rows = result.all()
@@ -312,22 +334,22 @@ async def get_latest_transactions(
     
     transactions = [
         Transaction(
-            id=row.InventoryTransaction.id,
-            date=row.InventoryTransaction.created_at.strftime(
+            id=str(row.Transaction.id),
+            date=row.Transaction.created_at.strftime(
                 "%b %d, %Y at %I:%M %p"
             ),
-            actor=row.InventoryTransaction.created_by or "Hannah Kandell",
-            action=_format_action(row.InventoryTransaction.action),
-            quantity=abs(row.InventoryTransaction.qty),
-            sku=row.InventoryTransaction.sku_id,
+            actor=f"{row.first_name} {row.last_name}" if row.first_name else "System",
+            action=_format_action(row.Transaction.action),
+            quantity=abs(row.Transaction.qty),
+            sku_code=row.Transaction.sku_code,
             location=row.location_name,
-            stock_before=row.InventoryTransaction.qty_before,
-            stock_after=_calculate_stock_after(
-                row.InventoryTransaction.qty_before,
-                row.InventoryTransaction.qty,
-                row.InventoryTransaction.action,
+            qty_before=row.Transaction.qty_before,
+            qty_after=_calculate_stock_after(
+                row.Transaction.qty_before,
+                row.Transaction.qty,
+                row.Transaction.action,
             ),
-            metadata=row.InventoryTransaction.txn_metadata,
+            metadata=row.Transaction.txn_metadata,
         )
         for row in rows
     ]
@@ -337,4 +359,4 @@ async def get_latest_transactions(
         transactions=transactions,
     )
 
-    return JSONResponse(content=resp.model_dump(exclude={"sku"}))
+    return JSONResponse(content=resp.model_dump(exclude={"sku_code"}))

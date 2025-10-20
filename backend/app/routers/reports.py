@@ -4,11 +4,9 @@ from fastapi import APIRouter, Depends, Query
 from typing import Optional
 
 from app.core.db import get_session
-from app.services.transaction.exceptions import NotFound
-from app.models import InventoryState, Location, InventoryTransaction
-from app.services.transaction.exceptions import TransactionBadRequest
+from app.models import Location, State, Transaction, User
 from app.schemas.report import (
-    DashboardMetricsResponse, 
+    DashboardMetricsResponse,
     DashboardSummaryResponse, 
     TopSKUsItem, 
     TopSKUsResponse,
@@ -16,15 +14,18 @@ from app.schemas.report import (
     TrendResponse
 )
 from sqlalchemy.orm import selectinload
+from app.services.exceptions import TransactionBadRequest, NotFound
 from app.services.metrics import calculate_weekly_delta
-from app.services.trends import get_inventory_trend_points
 from app.services.stock_counts import get_stock_status_counts
+from app.services.trends import get_inventory_trend_points
 from app.services.movers import (
     get_top_skus_by_criteria, 
     determine_stock_status,
     get_fast_movers_with_stock_condition,
     get_inactive_skus_with_stock
 )
+from app.core.auth.dependencies import get_current_user
+
 
 router = APIRouter(prefix="/reports")
 
@@ -44,7 +45,7 @@ async def get_dashboard_metrics(
         if location_id is None:
             raise TransactionBadRequest(detail=f"Location '{location}' not found")
 
-    # Auto-assign location if only one exists globally
+    # Auto-assign location if only one exists
     if location is None:
         loc_count_stmt = select(func.count(Location.id))
         loc_count_result = await db.execute(loc_count_stmt)
@@ -59,19 +60,19 @@ async def get_dashboard_metrics(
     if location_id is not None:
         # For specific location, sum directly
         totals_stmt = select(
-            func.sum(InventoryState.available).label("total_available"),
-            func.sum(InventoryState.on_hand).label("total_on_hand"),
-        ).where(InventoryState.location_id == location_id)
+            func.sum(State.available).label("total_available"),
+            func.sum(State.on_hand).label("total_on_hand"),
+        ).where(State.location_id == location_id)
         
         totals_result = await db.execute(totals_stmt)
         totals_row = totals_result.one()
         total_available = totals_row.total_available or 0
         total_on_hand = totals_row.total_on_hand or 0
     else:
-        # For all locations, aggregate by SKU first to avoid double-counting
+        # For all locations, aggregate
         totals_stmt = select(
-            func.sum(InventoryState.available).label("total_available"),
-            func.sum(InventoryState.on_hand).label("total_on_hand"),
+            func.sum(State.available).label("total_available"),
+            func.sum(State.on_hand).label("total_on_hand"),
         )
         
         totals_result = await db.execute(totals_stmt)
@@ -83,7 +84,7 @@ async def get_dashboard_metrics(
     stockouts, low_stock = await get_stock_status_counts(db, location_id)
 
     # Calculate weekly delta (same logic as SKU endpoint, but aggregated)
-    delta_pct = await calculate_weekly_delta(db, total_on_hand, sku_id=None, location_id=location_id)
+    delta_pct = await calculate_weekly_delta(db, total_on_hand, sku_code=None, location_id=location_id)
 
     return DashboardMetricsResponse(
         total_available=total_available,
@@ -96,7 +97,8 @@ async def get_dashboard_metrics(
 
 @router.get("/summary", response_model=DashboardSummaryResponse)
 async def get_dashboard_summary(
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user)
 ):
     """Get comprehensive dashboard summary including SKU movement analysis."""
     
@@ -104,8 +106,8 @@ async def get_dashboard_summary(
     out_of_stock, low_stock = await get_stock_status_counts(db)
 
     # Check if inventory is empty (no transactions with qty != 0)
-    empty_inventory_stmt = select(func.count(InventoryTransaction.id)).where(
-        InventoryTransaction.qty != 0
+    empty_inventory_stmt = select(func.count(Transaction.id)).where(
+        Transaction.qty != 0
     )
     empty_inventory_result = await db.execute(empty_inventory_stmt)
     has_movements = (empty_inventory_result.scalar() or 0) > 0
@@ -130,7 +132,7 @@ async def get_dashboard_summary(
     inactive_sku_in_stock = await get_inactive_skus_with_stock(db)
 
     return DashboardSummaryResponse(
-        first_name="User",  # Hard-coded for now, replace with auth user's first name
+        first_name=user.first_name,
         low_stock=low_stock,
         out_of_stock=out_of_stock,
         fast_mover_low_stock_sku=fast_mover_low_stock_sku,
@@ -162,8 +164,8 @@ async def get_top_movers(
         location=result['location'],
         skus=[
             TopSKUsItem(
-                sku=data['sku_id'],
-                product_name=data['product_name'],
+                sku=data['sku_code'],
+                sku_name=data['sku_name'],
                 available=data['available'],
                 status=determine_stock_status(data['available'])
             )
@@ -193,8 +195,8 @@ async def get_top_inactives(
         location=result['location'],
         skus=[
             TopSKUsItem(
-                sku=data['sku_id'],
-                product_name=data['product_name'],
+                sku=data['sku_code'],
+                sku_name=data['sku_name'],
                 available=data['available'],
                 status=determine_stock_status(data['available'])
             )
@@ -209,27 +211,29 @@ async def get_overall_inventory_trend(
     location: Optional[str] = Query(None),
     session: AsyncSession = Depends(get_session),
 ):
-    # Query inventory states to check existence and location count
-    inventory_states_query = select(InventoryState).options(selectinload(InventoryState.location))
+    """Get overall inventory trend across all SKUs."""
+    # Query states to check existence and location count
+    states_query = select(State).options(selectinload(State.location))
+    
     if location is not None:
-        inventory_states_query = inventory_states_query.join(Location).where(Location.name == location)
+        states_query = states_query.join(Location).where(Location.name == location)
     
-    inventory_states_result = await session.execute(inventory_states_query)
-    inventory_states = inventory_states_result.scalars().all()
+    states_result = await session.execute(states_query)
+    states = states_result.scalars().all()
     
-    if not inventory_states:
+    if not states:
         raise NotFound
     
     # Get trend data
     days = int(period.rstrip('d'))
     points, oldest_data_point = await get_inventory_trend_points(
-        session, days, sku_id=None, location_name=location
+        session, days, sku_code=None, location_name=location
     )
     
     # Auto-assign location name if only one location exists
     final_location = location
-    if location is None and len(set(state.location_id for state in inventory_states)) == 1:
-        final_location = inventory_states[0].location.name
+    if location is None and len(set(state.location_id for state in states)) == 1:
+        final_location = states[0].location.name
     
     return TrendResponse(
         location=final_location,
@@ -238,47 +242,50 @@ async def get_overall_inventory_trend(
     )
 
 
-@router.get("/trend/inventory/{sku_id}", response_model=TrendResponse)
+@router.get("/trend/inventory/{sku_code}", response_model=TrendResponse)
 async def get_inventory_trend(
-    sku_id: str,
+    sku_code: str,
     period: str = Query("30d", pattern=r"^\d+d$"),
     location: Optional[str] = Query(None),
     session: AsyncSession = Depends(get_session),
 ):
+    """Get inventory trend for a specific SKU."""
     # Check if SKU exists
-    sku_exists_query = select(InventoryState.sku_id).where(InventoryState.sku_id == sku_id)
+    sku_exists_query = select(State.sku_code).where(State.sku_code == sku_code)
+    
     if location is not None:
-        sku_exists_query = sku_exists_query.join(InventoryState.location).where(Location.name == location)
+        sku_exists_query = sku_exists_query.join(Location).where(Location.name == location)
     
     sku_exists_result = await session.execute(sku_exists_query)
     if sku_exists_result.scalar() is None:
         raise NotFound
     
-    # Get inventory states for location name resolution
-    inventory_states_query = (
-        select(InventoryState)
-        .options(selectinload(InventoryState.location))
-        .where(InventoryState.sku_id == sku_id)
+    # Get states for location name resolution
+    states_query = (
+        select(State)
+        .options(selectinload(State.location))
+        .where(State.sku_code == sku_code)
     )
-    if location is not None:
-        inventory_states_query = inventory_states_query.join(Location).where(Location.name == location)
     
-    inventory_states_result = await session.execute(inventory_states_query)
-    inventory_states = inventory_states_result.scalars().all()
+    if location is not None:
+        states_query = states_query.join(Location).where(Location.name == location)
+    
+    states_result = await session.execute(states_query)
+    states = states_result.scalars().all()
     
     # Get trend data
     days = int(period.rstrip('d'))
     points, oldest_data_point = await get_inventory_trend_points(
-        session, days, sku_id=sku_id, location_name=location
+        session, days, sku_code=sku_code, location_name=location
     )
     
     # Auto-assign location name if only one location exists
     final_location = location
-    if location is None and len(inventory_states) == 1:
-        final_location = inventory_states[0].location.name
+    if location is None and len(states) == 1:
+        final_location = states[0].location.name
     
     return TrendResponse(
-        sku=sku_id,
+        sku=sku_code,
         location=final_location,
         points=points,
         oldest_data_point=oldest_data_point

@@ -1,202 +1,182 @@
 from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 
-from app.schemas.transaction import  (
-    ReceiveTxn,
-    ShipTxn,
-    AdjustTxn,
-    ReserveTxn,
-    UnreserveTxn,
-    TransferTxn,
-)
-from app.models import InventoryState, Location
 from app.core.db import get_session
-from app.services.transaction.txn import apply_txn
-
+from app.core.auth.dependencies import get_current_user
+from app.models import User
+from app.services.txn import TransactionService
+from app.schemas.actions import (
+    ReceiveTxn, ShipTxn, AdjustTxn, 
+    ReserveTxn, UnreserveTxn, TransferTxn
+)
 
 router = APIRouter()
+
+def _build_transaction_response(txn, state) -> dict:
+    """Helper to build standardized transaction response."""
+    return {
+        "id": txn.id,
+        "narrative": txn.narrative,
+        "inventory_state": {
+            "sku_code": state.sku_code,
+            "location_id": state.location_id,
+            "on_hand": state.on_hand,
+            "reserved": state.reserved,
+            "available": state.available,
+        },
+    }
 
 
 @router.post("/receive")
 async def receive_stock(
     txn: ReceiveTxn,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
-    applied_txn, updated_state = await apply_txn(db, txn)
-
-    response_data = {
-        "narrative": applied_txn.narrative,
-        "inventory_state": {
-            "sku_id": updated_state.sku_id,
-            "location_id": updated_state.location_id,
-            "on_hand": updated_state.on_hand,
-            "available": updated_state.available,
-            "reserved": updated_state.reserved,
-        },
-    }
-
+    """Receive inventory into a location."""
+    service = TransactionService(
+        session=db,
+        org_id=current_user.org_id,
+        user_id=current_user.id
+    )
+    
+    applied_txn, updated_state = await service.apply_transaction(txn)
     await db.commit()
-    return response_data
+    
+    return _build_transaction_response(applied_txn, updated_state)
 
 
 @router.post("/ship")
 async def ship_stock(
     txn: ShipTxn,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
-    applied_txn, updated_state = await apply_txn(db, txn)
-
-    response_data = {
-        "narrative": applied_txn.narrative,
-        "inventory_state": {
-            "sku_id": updated_state.sku_id,
-            "location_id": updated_state.location_id,
-            "on_hand": updated_state.on_hand,
-            "available": updated_state.available,
-            "reserved": updated_state.reserved,
-        },
-    }
-
+    """
+    Ship inventory from a location.
+    
+    Optional metadata.ship_from values:
+    - "reserved": Ship only from reserved stock
+    - "available": Ship only from available (unreserved) stock  
+    - "auto" or null: Ship from reserved first, then available
+    """
+    service = TransactionService(
+        session=db,
+        org_id=current_user.org_id,
+        user_id=current_user.id
+    )
+    
+    applied_txn, updated_state = await service.apply_transaction(txn)
     await db.commit()
-    return response_data
+    
+    return _build_transaction_response(applied_txn, updated_state)
 
 
 @router.post("/adjust")
 async def adjust_stock(
     txn: AdjustTxn,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
-    applied_txn, updated_state = await apply_txn(db, txn)
-
-    response_data = {
-        "narrative": applied_txn.narrative,
-        "inventory_state": {
-            "sku_id": updated_state.sku_id,
-            "location_id": updated_state.location_id,
-            "on_hand": updated_state.on_hand,
-            "available": updated_state.available,
-            "reserved": updated_state.reserved,
-        },
-    }
-
+    """
+    Adjust inventory (correction, damage, etc).
+    
+    Requires metadata.reason field explaining the adjustment.
+    """
+    service = TransactionService(
+        session=db,
+        org_id=current_user.org_id,
+        user_id=current_user.id
+    )
+    
+    applied_txn, updated_state = await service.apply_transaction(txn)
     await db.commit()
-    return response_data
+
+    return _build_transaction_response(applied_txn, updated_state)
 
 
 @router.post("/reserve")
 async def reserve_stock(
     txn: ReserveTxn,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
-    applied_txn, updated_state = await apply_txn(db, txn)
-
-    response_data = {
-        "narrative": applied_txn.narrative,
-        "inventory_state": {
-            "sku_id": updated_state.sku_id,
-            "location_id": updated_state.location_id,
-            "on_hand": updated_state.on_hand,
-            "available": updated_state.available,
-            "reserved": updated_state.reserved,
-        },
-    }
-
+    """
+    Reserve inventory for an order.
+    
+    Reserves stock from available inventory (on_hand - reserved).
+    Optional metadata: order_id, customer, etc.
+    """
+    service = TransactionService(
+        session=db,
+        org_id=current_user.org_id,
+        user_id=current_user.id
+    )
+    
+    applied_txn, updated_state = await service.apply_transaction(txn)
     await db.commit()
-    return response_data
+    
+    return _build_transaction_response(applied_txn, updated_state)
 
 
 @router.post("/unreserve")
 async def unreserve_stock(
     txn: UnreserveTxn,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
-    applied_txn, updated_state = await apply_txn(db, txn)
-
-    response_data = {
-        "narrative": applied_txn.narrative,
-        "inventory_state": {
-            "sku_id": updated_state.sku_id,
-            "location_id": updated_state.location_id,
-            "on_hand": updated_state.on_hand,
-            "available": updated_state.available,
-            "reserved": updated_state.reserved,
-        },
-    }
-
+    """
+    Release a reservation.
+    
+    Returns reserved stock back to available inventory.
+    Optional metadata: order_id, reason, etc.
+    """
+    service = TransactionService(
+        session=db,
+        org_id=current_user.org_id,
+        user_id=current_user.id
+    )
+    
+    applied_txn, updated_state = await service.apply_transaction(txn)
     await db.commit()
-    return response_data
+    
+    return _build_transaction_response(applied_txn, updated_state)
 
 
 @router.post("/transfer")
 async def transfer_stock(
     txn: TransferTxn,
+    current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
-    txn_data = txn.model_dump()
-    source_location = txn_data["location"]
-    target_location = txn_data.get("txn_metadata", {}).get("target_location")
-    if not target_location:
-        raise ValueError("Missing target_location in txn_metadata")
-    qty = abs(txn_data["qty"])
-    sku_id = txn_data["sku_id"]
-
-    # Validate source and target are different
-    if source_location == target_location:
-        raise ValueError("Source and target locations must be different")
-
-    # Resolve source location ID
-    result = await db.execute(select(Location).filter_by(name=source_location))
-    source_loc = result.scalar_one_or_none()
-    if not source_loc:
-        raise ValueError(f"Source location {source_location} does not exist")
-
-    # Get source inventory state
-    source_state = await db.get(InventoryState, (sku_id, source_loc.id))
-    if not source_state:
-        raise ValueError("Source doesn't exist")
-
-    # Check if source has enough inventory
-    if source_state.available < qty:
-        raise ValueError(
-            f"Not enough inventory available at {source_location}. Available: {source_state.available}, Requested: {qty}"
-        )
-
-    # Outbound txn (transfer_out)
-    outbound_txn_data = txn_data.copy()
-    outbound_txn_data["qty"] = -qty
-    outbound_txn_data["action"] = "transfer_out"
-    outbound_txn = TransferTxn(**outbound_txn_data)
-
-    # Inbound txn (transfer_in)
-    inbound_txn_data = txn_data.copy()
-    inbound_txn_data["qty"] = qty
-    inbound_txn_data["action"] = "transfer_in"
-    inbound_txn_data["location"] = target_location
-    inbound_txn_data["txn_metadata"] = {"source_location": source_location}
-    inbound_txn = TransferTxn(**inbound_txn_data)
-
-    # Apply them
-    _, source_updated_state = await apply_txn(db, outbound_txn)
-    _, target_updated_state = await apply_txn(db, inbound_txn)
-
-    response_data = {
-        "narrative": f"Transferred {qty} units from {source_location} to {target_location}",
-        "source_inventory_state": {
-            "sku_id": source_updated_state.sku_id,
-            "location_id": source_updated_state.location_id,
-            "on_hand": source_updated_state.on_hand,
-            "available": source_updated_state.available,
-            "reserved": source_updated_state.reserved,
-        },
-        "target_inventory_state": {
-            "sku_id": target_updated_state.sku_id,
-            "location_id": target_updated_state.location_id,
-            "on_hand": target_updated_state.on_hand,
-            "available": target_updated_state.available,
-            "reserved": target_updated_state.reserved,
-        },
-    }
-
+    """
+    Atomically transfer inventory between locations.
+    Cost is automatically calculated based on organization's valuation method.
+    """
+    service = TransactionService(
+        session=db,
+        org_id=current_user.org_id,
+        user_id=current_user.id
+    )
+    
+    out_txn, in_txn, source_state, target_state = await service.apply_transfer(txn)
     await db.commit()
-    return response_data
+    
+    # Extract cost from metadata for response
+    cost_per_unit = out_txn.txn_metadata.get('transfer_cost_per_unit')
+    
+    return {
+        "transfer_out": _build_transaction_response(out_txn, source_state),
+        "transfer_in": _build_transaction_response(in_txn, target_state),
+        "transfer_id": out_txn.txn_metadata.get('transfer_id'),
+        "summary": {
+            "sku_code": txn.sku_code,
+            "qty_transferred": abs(txn.qty),
+            "cost_per_unit": cost_per_unit,
+            "from_location": txn.location,
+            "to_location": txn.target_location,
+            "source_remaining": source_state.on_hand,
+            "target_new_total": target_state.on_hand,
+            "valuation_method": await service.cost_tracker.get_valuation_method()
+        }
+    }

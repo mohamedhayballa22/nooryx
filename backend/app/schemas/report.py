@@ -25,7 +25,7 @@ class DashboardSummaryResponse(BaseModel):
 class TopSKUsItem(BaseModel):
     """Represents a single SKU in a 'top movers' or 'top inactives' report."""
     sku: str
-    product_name: str
+    sku_name: str
     available: int
     status: str
 

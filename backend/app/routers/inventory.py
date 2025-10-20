@@ -12,10 +12,10 @@ from app.schemas.inventory import (
     SkuInventoryResponse, 
     InventorySummary, 
     OnHandValue
-    )
-from app.models import InventoryState, Location, InventoryTransaction
+)
+from app.models import State, Location, Transaction, SKU
 from app.core.db import get_session
-from app.services.transaction.exceptions import TransactionBadRequest, NotFound
+from app.services.exceptions import TransactionBadRequest, NotFound
 from app.services.metrics import calculate_weekly_delta
 
 
@@ -40,22 +40,22 @@ async def get_inventory(
     ),
     # Sorting parameters
     sort_by: Optional[str] = Query(
-        "sku",
+        "sku_code",
         description="Sort by field",
-        regex="^(sku|product_name|location|available|status)$",
+        regex="^(sku_code|name|location|available|status)$",
     ),
     order: Optional[str] = Query("asc", description="Sort order", regex="^(asc|desc)$"),
 ):
     """
     Returns current inventory status across all SKUs and locations.
-    Efficiently joins inventory state with latest transaction per SKU/location.
+    Efficiently joins state with latest transaction per SKU/location.
 
     Supports searching across SKU and location, filtering by stock status, and sorting by multiple fields.
     """
     # Check if any inventory exists at all (only when no filters are applied)
     if not search and not stock_status:
         inventory_count = await db.scalar(
-            select(func.count()).select_from(InventoryState)
+            select(func.count()).select_from(State)
         )
         if inventory_count == 0:
             raise NotFound
@@ -63,78 +63,82 @@ async def get_inventory(
     # Subquery to get the most recent transaction for each SKU/location
     latest_txn_subq = (
         select(
-            InventoryTransaction.sku_id,
-            InventoryTransaction.location_id,
-            func.max(InventoryTransaction.id).label("max_txn_id"),
+            Transaction.sku_code,
+            Transaction.location_id,
+            func.max(Transaction.created_at).label("max_created_at"),
         )
-        .group_by(InventoryTransaction.sku_id, InventoryTransaction.location_id)
+        .group_by(Transaction.sku_code, Transaction.location_id)
         .subquery()
     )
 
-    # Define the status case expression for reuse
+    # Define the status case expression for reuse (based on available property)
     status_expr = case(
-        (InventoryState.available == 0, "Out of Stock"),
-        (InventoryState.available < 10, "Low Stock"),
+        (State.available == 0, "Out of Stock"),
+        (State.available < 10, "Low Stock"),
         else_="In Stock",
     ).label("status")
 
-    # Main query joining inventory state with latest transaction
+    # Main query joining state with latest transaction
     query = (
         select(
-            InventoryState.sku_id.label("sku"),
-            InventoryState.product_name.label("product_name"),
+            State.sku_code,
+            SKU.name,
             Location.name.label("location"),
-            InventoryState.available.label("available"),
-            InventoryTransaction,
+            State.available,
+            Transaction,
             status_expr,
         )
-        .join(Location, InventoryState.location_id == Location.id)
+        .join(SKU, State.sku_code == SKU.code)
+        .join(Location, State.location_id == Location.id)
         .outerjoin(
             latest_txn_subq,
-            (InventoryState.sku_id == latest_txn_subq.c.sku_id)
-            & (InventoryState.location_id == latest_txn_subq.c.location_id),
+            (State.sku_code == latest_txn_subq.c.sku_code)
+            & (State.location_id == latest_txn_subq.c.location_id),
         )
         .outerjoin(
-            InventoryTransaction, InventoryTransaction.id == latest_txn_subq.c.max_txn_id
+            Transaction,
+            (Transaction.sku_code == latest_txn_subq.c.sku_code)
+            & (Transaction.location_id == latest_txn_subq.c.location_id)
+            & (Transaction.created_at == latest_txn_subq.c.max_created_at)
         )
-        .options(selectinload(InventoryTransaction.location))
+        .options(selectinload(Transaction.location))
     )
 
     # Apply search filter across SKU and location
     if search:
         query = query.where(
             or_(
-                InventoryState.sku_id.ilike(f"%{search}%"),
+                State.sku_code.ilike(f"%{search}%"),
                 Location.name.ilike(f"%{search}%"),
             )
         )
 
-    # Apply stock_status filter at the database level if possible
+    # Apply stock_status filter at the database level
     if stock_status:
         status_conditions = []
         for status in stock_status:
             if status == StockStatus.OUT_OF_STOCK:
-                status_conditions.append(InventoryState.available == 0)
+                status_conditions.append(State.available == 0)
             elif status == StockStatus.LOW_STOCK:
                 status_conditions.append(
-                    and_(InventoryState.available > 0, InventoryState.available < 10)
+                    and_(State.available > 0, State.available < 10)
                 )
             elif status == StockStatus.IN_STOCK:
-                status_conditions.append(InventoryState.available >= 10)
+                status_conditions.append(State.available >= 10)
 
         if status_conditions:
             query = query.where(or_(*status_conditions))
 
     # Apply sorting
     sort_mapping = {
-        "sku": InventoryState.sku_id,
-        "product_name": InventoryState.product_name,
+        "sku_code": State.sku_code,
+        "name": SKU.name,
         "location": Location.name,
-        "available": InventoryState.available,
+        "available": State.available,
         "status": status_expr,
     }
 
-    sort_column = sort_mapping.get(sort_by, InventoryState.sku_id)
+    sort_column = sort_mapping.get(sort_by, State.sku_code)
 
     if order == "desc":
         query = query.order_by(sort_column.desc())
@@ -149,12 +153,12 @@ async def get_inventory(
         query,
         transformer=lambda rows: [
             InventoryItemResponse(
-                sku=row.sku,
-                product_name=row.product_name,
+                sku_code=row.sku_code,
+                name=row.name,
                 location=row.location,
                 available=row.available,
-                last_transaction=row.InventoryTransaction.narrative
-                if row.InventoryTransaction
+                last_transaction=row.Transaction.narrative
+                if row.Transaction
                 else "No transactions yet",
                 status=row.status,
             )
@@ -163,19 +167,19 @@ async def get_inventory(
     )
 
 
-@router.get("/inventory/{sku_id}", response_model=SkuInventoryResponse)
+@router.get("/inventory/{sku_code}", response_model=SkuInventoryResponse)
 async def get_sku_inventory(
-    sku_id: str, 
+    sku_code: str, 
     location: Optional[str] = Query(None, description="Location name (None = aggregate across all locations)"),
     db: AsyncSession = Depends(get_session)
 ):
     """Get comprehensive inventory view for a SKU across all locations or for a specific location."""
 
     # Check if SKU exists
-    sku_exists_query = select(InventoryState.sku_id).where(InventoryState.sku_id == sku_id)
+    sku_exists_query = select(State.sku_code).where(State.sku_code == sku_code)
 
     if location is not None:
-        sku_exists_query = sku_exists_query.join(InventoryState.location).where(Location.name == location)
+        sku_exists_query = sku_exists_query.join(State.location).where(Location.name == location)
 
     sku_exists_result = await db.execute(sku_exists_query)
     if sku_exists_result.scalar() is None:
@@ -183,16 +187,19 @@ async def get_sku_inventory(
 
     # Build base query
     stmt = (
-        select(InventoryState)
-        .options(selectinload(InventoryState.location))
-        .where(InventoryState.sku_id == sku_id)
-        .order_by(InventoryState.location_id)
+        select(State)
+        .options(
+            selectinload(State.location),
+            selectinload(State.sku)
+        )
+        .where(State.sku_code == sku_code)
+        .order_by(State.location_id)
     )
     
     # Apply location filter if specified (by name)
     location_id = None
     if location is not None:
-        stmt = stmt.where(InventoryState.location.has(name=location))
+        stmt = stmt.where(State.location.has(name=location))
         # Get location_id for delta calculation
         loc_stmt = select(Location.id).where(Location.name == location)
         loc_result = await db.execute(loc_stmt)
@@ -206,17 +213,17 @@ async def get_sku_inventory(
     if not states:
         if location is not None:
             raise TransactionBadRequest(
-                detail=f"SKU {sku_id} not found at location '{location}'"
+                detail=f"SKU {sku_code} not found at location '{location}'"
             )
-        raise TransactionBadRequest(detail=f"SKU {sku_id} not found")
+        raise TransactionBadRequest(detail=f"SKU {sku_code} not found")
 
-    product_name = states[0].product_name
+    sku_name = states[0].sku.name
     
     # Get all location names for this SKU (always across all locations)
     location_names_stmt = (
         select(Location.name)
-        .join(InventoryState, InventoryState.location_id == Location.id)
-        .where(InventoryState.sku_id == sku_id)
+        .join(State, State.location_id == Location.id)
+        .where(State.sku_code == sku_code)
         .order_by(Location.name)
     )
     location_names_result = await db.execute(location_names_stmt)
@@ -241,8 +248,8 @@ async def get_sku_inventory(
 
     # Calculate global on_hand total (across ALL locations) for inventory_pct
     global_on_hand_stmt = (
-        select(func.sum(InventoryState.on_hand))
-        .where(InventoryState.sku_id == sku_id)
+        select(func.sum(State.on_hand))
+        .where(State.sku_code == sku_code)
     )
     global_on_hand_result = await db.execute(global_on_hand_stmt)
     global_on_hand = global_on_hand_result.scalar() or 0
@@ -262,11 +269,16 @@ async def get_sku_inventory(
         status = "In Stock"
 
     # Calculate delta (aggregated if no location, specific if location provided)
-    total_delta_pct = await calculate_weekly_delta(db, total_on_hand, sku_id=sku_id, location_id=location_id)
+    total_delta_pct = await calculate_weekly_delta(
+        db, 
+        total_on_hand, 
+        sku_code=sku_code, 
+        location_id=location_id
+    )
 
     return SkuInventoryResponse(
-        sku=sku_id,
-        product_name=product_name,
+        sku_code=sku_code,
+        name=sku_name,
         status=status,
         location=location,
         locations=total_locations,

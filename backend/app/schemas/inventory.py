@@ -4,8 +4,8 @@ from app.schemas.common import OnHandValue
 
 class InventoryItemResponse(BaseModel):
     """Represents a single row in the main inventory list view."""
-    sku: str
-    product_name: str
+    sku_code: str
+    name: str  # SKU name from SKU table
     location: str
     available: int
     last_transaction: str
@@ -22,11 +22,12 @@ class InventorySummary(BaseModel):
 
 class SkuInventoryResponse(BaseModel):
     """A comprehensive view of a single SKU's current inventory state."""
-    sku: str
-    product_name: str
+    sku_code: str
+    name: str  # SKU name
     status: str
     location: Optional[str] = None
     locations: int
     location_names: list[str]
     inventory_pct: float
     summary: InventorySummary
+    
