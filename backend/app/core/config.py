@@ -51,6 +51,8 @@ class Settings(BaseSettings):
     BACKEND_CORS_ORIGINS: str = ""
     FIRST_USER_EMAIL: str = ""
     FIRST_USER_PASSWORD: str = ""
+    INVITATION_TOKEN_EXPIRE_HOURS: int = 72
+    ALGORITHM: str = "HS256"
 
 
     @model_validator(mode="after")
