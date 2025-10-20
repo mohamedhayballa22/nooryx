@@ -1,50 +1,84 @@
 from sqlalchemy import (
+    BigInteger,
+    CheckConstraint,
     Column,
     Integer,
     String,
     ForeignKey,
+    ForeignKeyConstraint,
     DateTime,
-    JSON,
     func,
     UniqueConstraint,
+    Index,
 )
-from sqlalchemy.dialects.postgresql import UUID
+from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
 import uuid
 from app.core.db import Base
-from app.services.transaction.exceptions import TransactionBadRequest
+from fastapi_users.db import SQLAlchemyBaseUserTableUUID
 
 
-class InventoryTransaction(Base):
+class SKU(Base):
+    """Stock Keeping Unit representing a distinct product or item."""
+
+    __tablename__ = "skus"
+
+    code = Column(String, nullable=False, primary_key=True, doc="Unique SKU code identifier.")
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False, primary_key=True)
+    name = Column(String, nullable=False, doc="Human-readable product name.")
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    transactions = relationship("Transaction", back_populates="sku")
+    states = relationship("State", back_populates="sku")
+    cost_records = relationship("CostRecord", back_populates="sku")
+    organization = relationship("Organization", back_populates="skus")
+
+
+class Location(Base):
+    """Physical or logical location where inventory is stored."""
+    
+    __tablename__ = "locations"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False, index=True)
+    name = Column(String(100), nullable=False)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    transactions = relationship("Transaction", back_populates="location")
+    states = relationship("State", back_populates="location")
+    cost_records = relationship("CostRecord", back_populates="location")
+    organization = relationship("Organization", back_populates="locations")
+
+    __table_args__ = (
+        UniqueConstraint("name", "org_id", name="uix_locations_org_id_name"),
+    )
+
+
+class Transaction(Base):
     """Immutable ledger of all inventory movements (receipts, shipments, adjustments, reservations)."""
 
-    __tablename__ = "inventory_txn"
+    __tablename__ = "transactions"
 
-    id = Column(Integer, primary_key=True, autoincrement=True)
-    sku_id = Column(
-        String,
-        nullable=False,
-        index=True,
-        doc="SKU identifier this transaction applies to.",
-    )
-    location_id = Column(
-        Integer,
-        ForeignKey("locations.id"),
-        nullable=False,
-        index=True,
-        doc="Warehouse/location where the transaction occurred.",
-    )
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), index=True, nullable=False)
+    sku_code = Column(String, nullable=False)
+    location_id = Column(UUID(as_uuid=True), nullable=False)
+
     qty = Column(
-        Integer, nullable=False, doc="Quantity delta (+ve = receipt, -ve = shipment)."
+        Integer, nullable=False, doc="Quantity delta (+= receipt, -= shipment)."
     )
     qty_before = Column(
         Integer, nullable=False, doc="Quantity before this transaction."
     )
+    cost_price = Column(BigInteger, nullable=True, doc="Cost price per unit in minor units at time of txn.")
+
     action = Column(
         String,
         nullable=False,
-        doc="Nature of transaction: receive, ship, adjust, reserve, unreserve, transfer.",
+        doc="Nature of transaction: receive, ship, adjust, reserve, unreserve, transfer_in, transfer_out.",
     )
     reference = Column(
         String,
@@ -52,19 +86,44 @@ class InventoryTransaction(Base):
         doc="External reference (order id, supplier invoice, etc.).",
     )
     txn_metadata = Column(
-        JSON,
+        JSONB,
         nullable=True,
         doc="Free-form JSON for contextual details (reason codes, batch numbers).",
     )
 
-    created_by = Column(
-        String, nullable=True, doc="Actor who created the transaction (user/service)."
-    )
+    created_by = Column(UUID(as_uuid=True), nullable=True)
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    location = relationship("Location", backref="transactions")
+    sku = relationship("SKU", back_populates="transactions")
+    location = relationship("Location", back_populates="transactions")
+    cost_records = relationship("CostRecord", back_populates="transaction", cascade="all, delete-orphan", overlaps="cost_records,sku,organization")
+    organization = relationship("Organization", back_populates="transactions", overlaps="sku,transactions")
+    created_by_user = relationship("User", foreign_keys="[Transaction.created_by]")
 
-    # Transaction intent helpers
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['sku_code', 'org_id'],
+            ['skus.code', 'skus.org_id'],
+            ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ['location_id'],
+            ['locations.id'],
+            ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ['created_by'],
+            ['users.id'],
+            ondelete="SET NULL"
+        ),
+        UniqueConstraint('id', 'org_id', name='uq_transactions_id_org_id'),
+        Index('ix_transactions_org_id', 'org_id'),
+        Index('ix_transactions_org_sku_loc', 'org_id', 'sku_code', 'location_id'),
+        Index('ix_transactions_org_created', 'org_id', 'created_at'),
+        Index('ix_transactions_sku_code', 'sku_code'),
+        Index('ix_transactions_location_id', 'location_id'),
+    )
+
     @hybrid_property
     def is_inbound(self):
         """True if this transaction increases inventory (positive quantity delta)."""
@@ -113,22 +172,14 @@ class InventoryTransaction(Base):
         return base_narrative
 
 
-class InventoryState(Base):
-    """Current stock snapshot per SKU/location, derived from transactions but optimized for fast queries."""
+class State(Base):
+    """Current stock snapshot per SKU-location optimized for fast queries."""
 
-    __tablename__ = "inventory_state"
+    __tablename__ = "states"
 
-    sku_id = Column(String, primary_key=True)
-    location_id = Column(
-        Integer,
-        ForeignKey("locations.id"),
-        primary_key=True,
-        nullable=False,
-        index=True,
-        doc="Warehouse/location where the transaction occurred.",
-    )
-
-    product_name = Column(String, nullable=False)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False, primary_key=True)
+    sku_code = Column(String, primary_key=True)
+    location_id = Column(UUID(as_uuid=True), primary_key=True)
 
     on_hand = Column(
         Integer,
@@ -149,9 +200,26 @@ class InventoryState(Base):
         default=0,
         doc="Optimistic concurrency control version counter.",
     )
+
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
-    location = relationship("Location", backref="inventory_states")
+    sku = relationship("SKU", back_populates="states")
+    location = relationship("Location", back_populates="states")
+    organization = relationship("Organization", back_populates="states", overlaps="sku,states")
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['sku_code', 'org_id'],
+            ['skus.code', 'skus.org_id'],
+            ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ['location_id'],
+            ['locations.id'],
+            ondelete="CASCADE"
+        ),
+        CheckConstraint('reserved >= 0', name='ck_state_reserved_nonnegative'),
+    )
 
     __mapper_args__ = {"version_id_col": version}
 
@@ -165,197 +233,106 @@ class InventoryState(Base):
         """SQL-level expression for the 'available' property."""
         return cls.on_hand - cls.reserved
 
-    def update_state(self, txn: "InventoryTransaction"):
-        """
-        Apply an inventory transaction to this state.
-        
-        Args:
-            txn (InventoryTransaction): The transaction instance.
-        
-        Raises:
-            TransactionBadRequest: If the transaction cannot be applied due to stock levels or the action is not supported.
-        """
-        action = txn.action
-        qty = txn.qty
 
-        if action == "receive":
-            self.on_hand += qty
+class CostRecord(Base):
+    """
+    Tracks the cost basis and remaining quantity for valuation purposes.
+    Used to support FIFO, LIFO, and WAC methods.
+    """
 
-        elif action == "reserve":
-            units = abs(qty)
-            if self.available < units:
-                raise TransactionBadRequest(detail="Not enough available stock to reserve")
-            self.reserved += units
-
-        elif action == "unreserve":
-            units = abs(qty)
-            if self.reserved < units:
-                raise TransactionBadRequest(detail="Not enough reserved stock to unreserve")
-            self.reserved -= units
-
-        elif action == "ship":
-            ship_from = txn.txn_metadata.get("ship_from") if txn.txn_metadata else None
-            units = abs(qty)
-
-            if ship_from == "reserved":
-                if self.reserved < units:
-                    raise TransactionBadRequest(detail="Not enough reserved stock to ship")
-                self.reserved -= units
-                self.on_hand -= units
-
-            elif ship_from == "available":
-                if self.available < units:
-                    raise TransactionBadRequest(detail="Not enough available stock to ship")
-                self.on_hand -= units
-
-            else:  # ship from reserved first, then available (available being on_hand - reserved)
-                if self.reserved >= units:
-                    self.reserved -= units
-                    self.on_hand -= units
-                else:
-                    if self.on_hand < units:
-                        raise TransactionBadRequest(detail="Not enough total on-hand stock to ship")
-                    self.reserved = 0
-                    self.on_hand -= units 
-
-        elif action == "adjust":
-            self.on_hand += qty
-            if self.on_hand < 0:
-                raise TransactionBadRequest(detail="Adjustment results in negative on-hand quantity")
-            
-        elif action in ("transfer_out", "transfer_in"):
-            units = abs(qty)
-            
-            if action == "transfer_out":
-                if self.on_hand < units:
-                    raise TransactionBadRequest(detail="Not enough on-hand stock to transfer out")
-                self.on_hand -= units
-            else:  # transfer_in
-                self.on_hand += units
-
-        else:
-            raise TransactionBadRequest(f"Unsupported transaction action: {action}")
-
-
-class Serial(Base):
-    """Tracks individual serialized units (e.g. devices) with lifecycle state and transaction linkage."""
-
-    __tablename__ = "serials"
-
-    serial = Column(String, primary_key=True)
-    sku_id = Column(
-        String,
-        nullable=False,
-        index=True,
-        doc="SKU identifier this serial belongs to.",
-    )
-    location_id = Column(
-        Integer,
-        ForeignKey("locations.id"),
-        nullable=False,
-        index=True,
-        doc="Warehouse/location where the transaction occurred.",
-    )
-
-    status = Column(
-        String,
-        nullable=False,
-        default="in_stock",
-        doc="Lifecycle state of this unit: in_stock, reserved, shipped, in_repair.",
-    )
-    current_tx_id = Column(
-        Integer,
-        ForeignKey("inventory_txn.id", ondelete="SET NULL"),
-        nullable=True,
-        doc="Pointer to the last inventory transaction affecting this serial.",
-    )
-    created_at = Column(DateTime(timezone=True), server_default=func.now())
-
-    transaction = relationship("InventoryTransaction", backref="serials")
-    location = relationship("Location", backref="serials")
-
-    # Helper for lifecycle flags
-    @hybrid_property
-    def is_reserved(self):
-        return self.status == "reserved"
-
-    @is_reserved.expression
-    def is_reserved(cls):
-        return cls.status == "reserved"
-
-    @hybrid_property
-    def is_shipped(self):
-        return self.status == "shipped"
-
-    @is_shipped.expression
-    def is_shipped(cls):
-        return cls.status == "shipped"
-
-
-class Reservation(Base):
-    """Holds stock reservations tied to orders, ensuring availability and preventing oversells."""
-
-    __tablename__ = "reservations"
+    __tablename__ = "cost_records"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    order_id = Column(
-        String,
-        nullable=False,
-        index=True,
-        doc="Business order identifier this reservation belongs to.",
-    )
-    sku_id = Column(String, nullable=False, index=True, doc="SKU being reserved.")
-    location_id = Column(
-        Integer,
-        ForeignKey("locations.id"),
-        nullable=False,
-        index=True,
-        doc="Warehouse/location where the transaction occurred.",
-    )
-    qty = Column(Integer, nullable=False, doc="Number of units reserved.")
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False, index=True)
+    sku_code = Column(String, nullable=False)
+    location_id = Column(UUID(as_uuid=True), nullable=False)
+    transaction_id = Column(UUID(as_uuid=True), nullable=True)
 
-    expires_at = Column(
-        DateTime(timezone=True),
-        nullable=True,
-        doc="Optional expiry timestamp after which reservation auto-releases.",
-    )
-    status = Column(
-        String,
-        nullable=False,
-        default="active",
-        doc="Lifecycle: active, fulfilled, cancelled, expired.",
-    )
-
+    qty_in = Column(Integer, nullable=False, doc="Quantity received in this cost record.")
+    qty_remaining = Column(Integer, nullable=False, doc="Quantity still available from this cost record.")
+    cost_price = Column(BigInteger, nullable=False, doc="Cost price per unit in minor units.")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
-    updated_at = Column(
-        DateTime(timezone=True), server_default=func.now(), onupdate=func.now()
-    )
 
-    location = relationship("Location", backref="reservations")
+    transaction = relationship("Transaction", back_populates="cost_records", overlaps="cost_records,sku,organization")
+    sku = relationship("SKU", back_populates="cost_records", overlaps="transaction,organization")
+    location = relationship("Location", back_populates="cost_records")
+    organization = relationship("Organization", back_populates="cost_records", overlaps="sku,transaction,cost_records")
 
     __table_args__ = (
-        UniqueConstraint("order_id", "sku_id", "location_id", name="uq_order_sku_loc"),
+        ForeignKeyConstraint(
+            ['sku_code', 'org_id'],
+            ['skus.code', 'skus.org_id'],
+            ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ['location_id'],
+            ['locations.id'],
+            ondelete="CASCADE"
+        ),
+        ForeignKeyConstraint(
+            ['transaction_id', 'org_id'],
+            ['transactions.id', 'transactions.org_id'],
+            ondelete="CASCADE"
+        ),
+        UniqueConstraint("sku_code", "transaction_id", "org_id", name="uix_cost_records_org_sku_txn"),
+        Index('ix_cost_records_org_sku_loc', 'org_id', 'sku_code', 'location_id'),
+        Index('ix_cost_records_org_created', 'org_id', 'created_at'),
+        Index('ix_cost_records_fifo_query', 'org_id', 'sku_code', 'location_id', 'qty_remaining', 'created_at'),
     )
 
-    # Encapsulate "is this reservation actually valid right now?"
-    @hybrid_property
-    def is_active(self):
-        if self.status != "active":
-            return False
-        if self.expires_at is None:
-            return True
-        return self.expires_at >= func.now()
 
-    @is_active.expression
-    def is_active(cls):
-        return (cls.status == "active") & (
-            (cls.expires_at == None) | (cls.expires_at >= func.now())
-        )
+class Organization(Base):
+    """Represents a tenant organization in the multi-tenant design."""
     
+    __tablename__ = "orgs"
 
-class Location(Base):
-    __tablename__ = "locations"
+    org_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    name = Column(String, nullable=False, unique=True)
+    valuation_method = Column(String, nullable=False, default="WAC", doc="FIFO, LIFO, WAC")
+    currency = Column(String(3), nullable=False)
 
-    id = Column(Integer, primary_key=True)
-    name = Column(String(100), index=True, unique=True, nullable=False, doc="Warehouse/location where the transaction occurred.")
-    code = Column(String(20), nullable=True)
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    users = relationship("User", back_populates="organization", cascade="all, delete-orphan")
+    skus = relationship("SKU", back_populates="organization", cascade="all, delete-orphan")
+    locations = relationship("Location", back_populates="organization", cascade="all, delete-orphan")
+    transactions = relationship("Transaction", back_populates="organization", cascade="all, delete-orphan", overlaps="sku,transactions")
+    states = relationship("State", back_populates="organization", cascade="all, delete-orphan", overlaps="sku,states")
+    cost_records = relationship("CostRecord", back_populates="organization", cascade="all, delete-orphan", overlaps="cost_records,sku,transaction")
+
+    subscription = relationship("Subscription", uselist=False, back_populates="organization")
+
+
+class User(SQLAlchemyBaseUserTableUUID, Base):
+    """User account with multi-tenant organization association."""
+    
+    __tablename__ = "users"
+
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False, index=True)
+    first_name = Column(String, nullable=False)
+    last_name = Column(String, nullable=False)
+
+    organization = relationship("Organization", back_populates="users")
+
+    __table_args__ = (
+        UniqueConstraint("id", "org_id", name="uq_user_id_org_id"),
+    )
+
+
+class Subscription(Base):
+    """Subscription and billing information for organizations."""
+    
+    __tablename__ = "subscriptions"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False, unique=True)
+    plan_name = Column(String, nullable=True)
+    status = Column(String, nullable=False, default="inactive")
+    current_period_start = Column(DateTime(timezone=True))
+    current_period_end = Column(DateTime(timezone=True))
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), server_default=func.now(), onupdate=func.now())
+
+    organization = relationship("Organization", back_populates="subscription")
+    
