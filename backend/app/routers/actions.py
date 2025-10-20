@@ -177,6 +177,5 @@ async def transfer_stock(
             "to_location": txn.target_location,
             "source_remaining": source_state.on_hand,
             "target_new_total": target_state.on_hand,
-            "valuation_method": await service.cost_tracker.get_valuation_method()
         }
     }
