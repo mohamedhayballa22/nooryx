@@ -50,13 +50,6 @@ def _calculate_stock_after(qty_before: int, qty: int, action: str) -> int:
     return qty_before + qty
 
 
-def _get_actor_name(user: Optional[User]) -> str:
-    """Get the full name of the actor, or 'System' if no user."""
-    if user is None:
-        return "System"
-    return f"{user.first_name} {user.last_name}"
-
-
 @router.get("/transactions", response_model=Page[Transaction])
 async def get_transactions(
     db: AsyncSession = Depends(get_session),
@@ -165,7 +158,7 @@ async def get_transactions(
                 date=row.Transaction.created_at.strftime(
                     "%b %d, %Y at %I:%M %p"
                 ),
-                actor=f"{row.first_name} {row.last_name}" if row.first_name else "System",
+                actor=f"{row.first_name} {row.last_name}" if row.first_name and row.last_name else "System",
                 action=_format_action(row.Transaction.action),
                 quantity=abs(row.Transaction.qty),
                 sku_code=row.Transaction.sku_code,
@@ -253,7 +246,7 @@ async def get_latest_transactions_by_sku(
             date=row.Transaction.created_at.strftime(
                 "%b %d, %Y at %I:%M %p"
             ),
-            actor=f"{row.first_name} {row.last_name}" if row.first_name else "System",
+            actor=f"{row.first_name} {row.last_name}" if row.first_name and row.last_name else "System",
             action=_format_action(row.Transaction.action),
             quantity=abs(row.Transaction.qty),
             sku_code=row.Transaction.sku_code,
@@ -338,7 +331,7 @@ async def get_latest_transactions(
             date=row.Transaction.created_at.strftime(
                 "%b %d, %Y at %I:%M %p"
             ),
-            actor=f"{row.first_name} {row.last_name}" if row.first_name else "System",
+            actor=f"{row.first_name} {row.last_name}" if row.first_name and row.last_name else "System",
             action=_format_action(row.Transaction.action),
             quantity=abs(row.Transaction.qty),
             sku_code=row.Transaction.sku_code,
