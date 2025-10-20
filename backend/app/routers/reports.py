@@ -281,7 +281,7 @@ async def get_inventory_trend(
     
     # Auto-assign location name if only one location exists
     final_location = location
-    if location is None and len(states) == 1:
+    if location is None and len(set(state.location_id for state in states)) == 1:
         final_location = states[0].location.name
     
     return TrendResponse(
