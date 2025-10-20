@@ -1,16 +1,15 @@
-from typing import Optional
 from datetime import datetime, timedelta
 from sqlalchemy import select, func, and_, case
 from sqlalchemy.ext.asyncio import AsyncSession
 
-from app.models import InventoryTransaction
+from app.models import Transaction
 
 
 async def calculate_weekly_delta(
     db: AsyncSession,
     current_on_hand: int,
-    sku_id: str | None = None,
-    location_id: int | None = None,
+    sku_code: str | None = None,
+    location_id: str | None = None,
 ) -> float:
     """
     Calculate percentage change in on-hand inventory from last week.
@@ -18,8 +17,8 @@ async def calculate_weekly_delta(
     Args:
         db: Database session
         current_on_hand: Current inventory on hand
-        sku_id: SKU identifier (None for global calculation across all SKUs)
-        location_id: Location identifier (None for calculation across all locations)
+        sku_code: SKU code identifier (None for global calculation across all SKUs)
+        location_id: Location UUID identifier (None for calculation across all locations)
 
     Returns:
         Percentage change from last week, rounded to 1 decimal place
@@ -31,18 +30,18 @@ async def calculate_weekly_delta(
         two_weeks_ago = datetime.now() - timedelta(days=14)
 
         filters = [
-            InventoryTransaction.created_at >= two_weeks_ago,
-            InventoryTransaction.created_at <= one_week_ago,
+            Transaction.created_at >= two_weeks_ago,
+            Transaction.created_at <= one_week_ago,
         ]
-        if sku_id is not None:
-            filters.append(InventoryTransaction.sku_id == sku_id)
+        if sku_code is not None:
+            filters.append(Transaction.sku_code == sku_code)
         if location_id is not None:
-            filters.append(InventoryTransaction.location_id == location_id)
+            filters.append(Transaction.location_id == location_id)
 
         stmt = (
-            select(InventoryTransaction)
+            select(Transaction)
             .where(and_(*filters))
-            .order_by(InventoryTransaction.created_at.desc())
+            .order_by(Transaction.created_at.desc())
             .limit(1)
         )
         result = await db.execute(stmt)
@@ -61,25 +60,25 @@ async def calculate_weekly_delta(
     max_date = today - timedelta(days=5)
 
     filters = [
-        InventoryTransaction.created_at >= min_date,
-        InventoryTransaction.created_at <= max_date,
+        Transaction.created_at >= min_date,
+        Transaction.created_at <= max_date,
     ]
-    if sku_id is not None:
-        filters.append(InventoryTransaction.sku_id == sku_id)
+    if sku_code is not None:
+        filters.append(Transaction.sku_code == sku_code)
     if location_id is not None:
-        filters.append(InventoryTransaction.location_id == location_id)
+        filters.append(Transaction.location_id == location_id)
 
     # Handle aggregation across all locations
     if location_id is None:
         # First, find the best timestamp (closest to 7 days ago)
         timestamp_stmt = (
-            select(InventoryTransaction.created_at)
+            select(Transaction.created_at)
             .where(and_(*filters))
             .order_by(
                 func.abs(
                     func.extract(
                         "epoch",
-                        InventoryTransaction.created_at - (today - timedelta(days=7)),
+                        Transaction.created_at - (today - timedelta(days=7)),
                     )
                 )
             )
@@ -92,42 +91,42 @@ async def calculate_weekly_delta(
             return 0.0
 
         # Build subquery filters
-        subquery_filters = [InventoryTransaction.created_at <= target_timestamp]
-        if sku_id is not None:
-            subquery_filters.append(InventoryTransaction.sku_id == sku_id)
+        subquery_filters = [Transaction.created_at <= target_timestamp]
+        if sku_code is not None:
+            subquery_filters.append(Transaction.sku_code == sku_code)
 
         # Get most recent transaction at or before this timestamp for each location
         # and sum their on_hand values
         subquery = (
             select(
-                InventoryTransaction.location_id,
-                func.max(InventoryTransaction.created_at).label("max_created_at"),
+                Transaction.location_id,
+                func.max(Transaction.created_at).label("max_created_at"),
             )
             .where(and_(*subquery_filters))
-            .group_by(InventoryTransaction.location_id)
+            .group_by(Transaction.location_id)
         ).subquery()
 
         # Build join conditions
         join_conditions = [
-            InventoryTransaction.location_id == subquery.c.location_id,
-            InventoryTransaction.created_at == subquery.c.max_created_at,
+            Transaction.location_id == subquery.c.location_id,
+            Transaction.created_at == subquery.c.max_created_at,
         ]
-        if sku_id is not None:
-            join_conditions.append(InventoryTransaction.sku_id == sku_id)
+        if sku_code is not None:
+            join_conditions.append(Transaction.sku_code == sku_code)
 
         stmt = (
             select(
                 func.sum(
                     case(
                         (
-                            InventoryTransaction.action.in_(["reserve", "unreserve"]),
-                            InventoryTransaction.qty_before,
+                            Transaction.action.in_(["reserve", "unreserve"]),
+                            Transaction.qty_before,
                         ),
-                        else_=InventoryTransaction.qty_before + InventoryTransaction.qty,
+                        else_=Transaction.qty_before + Transaction.qty,
                     )
                 )
             )
-            .select_from(InventoryTransaction)
+            .select_from(Transaction)
             .join(subquery, and_(*join_conditions))
         )
 
@@ -139,13 +138,13 @@ async def calculate_weekly_delta(
     else:
         # Single location query
         stmt = (
-            select(InventoryTransaction)
+            select(Transaction)
             .where(and_(*filters))
             .order_by(
                 func.abs(
                     func.extract(
                         "epoch",
-                        InventoryTransaction.created_at - (today - timedelta(days=7)),
+                        Transaction.created_at - (today - timedelta(days=7)),
                     )
                 )
             )
@@ -160,13 +159,13 @@ async def calculate_weekly_delta(
             return 0.0
 
     if last_week_on_hand == 0:
-        return 0.0 # Avoid division by zero if last week was 0 and this week isn't
+        return 0.0  # Avoid division by zero if last week was 0 and this week isn't
         
     delta_pct = ((current_on_hand - last_week_on_hand) / last_week_on_hand) * 100
     return round(delta_pct, 1)
 
 
-def _calculate_on_hand_from_txn(txn: InventoryTransaction) -> int:
+def _calculate_on_hand_from_txn(txn: Transaction) -> int:
     """Calculate on-hand quantity at the time of a transaction."""
     if txn.action in ["reserve", "unreserve"]:
         return txn.qty_before

@@ -22,7 +22,7 @@ from sqlalchemy import select, func, and_, distinct
 from sqlalchemy.ext.asyncio import AsyncSession
 import re
 
-from app.models import Location, InventoryTransaction, InventoryState
+from app.models import Location, Transaction, State, SKU
 
 
 async def get_top_skus_by_criteria(
@@ -43,7 +43,7 @@ async def get_top_skus_by_criteria(
         limit: Maximum number of SKUs to return
     
     Returns:
-        Dict containing 'location' (str or None) and 'skus' (list of dicts with keys: sku_id, product_name, available)
+        Dict containing 'location' (str or None) and 'skus' (list of dicts with keys: sku_code, sku_name, available)
     """
     # Parse period to cutoff date
     cutoff_date = _parse_period_to_cutoff(period)
@@ -82,7 +82,7 @@ def _parse_period_to_cutoff(period: str) -> datetime:
 async def _resolve_location(
     db: AsyncSession,
     location: Optional[str]
-) -> tuple[Optional[int], Optional[str]]:
+) -> tuple[Optional[str], Optional[str]]:
     """
     Resolve location name to ID and determine if auto-assignment should occur.
     
@@ -98,7 +98,7 @@ async def _resolve_location(
         location_result = await db.execute(location_stmt)
         location_row = location_result.first()
         if location_row:
-            location_id = location_row[0]
+            location_id = str(location_row[0])  # Convert UUID to string
     
     # Check if only one location exists for auto-assignment
     total_locations_stmt = select(func.count(Location.id))
@@ -117,87 +117,87 @@ async def _resolve_location(
 
 async def _get_top_movers(
     db: AsyncSession,
-    location_id: Optional[int],
+    location_id: Optional[str],
     cutoff_date: datetime,
     limit: int
 ) -> List[Dict[str, Any]]:
     """Get top SKUs by outbound movement volume."""
     # Build movement query
     movement_conditions = [
-        InventoryTransaction.is_outbound,
-        InventoryTransaction.created_at >= cutoff_date
+        Transaction.is_outbound,
+        Transaction.created_at >= cutoff_date
     ]
     if location_id:
-        movement_conditions.append(InventoryTransaction.location_id == location_id)
+        movement_conditions.append(Transaction.location_id == location_id)
     
     movement_stmt = (
         select(
-            InventoryTransaction.sku_id,
-            func.sum(func.abs(InventoryTransaction.qty)).label("total_outbound")
+            Transaction.sku_code,
+            func.sum(func.abs(Transaction.qty)).label("total_outbound")
         )
         .where(and_(*movement_conditions))
-        .group_by(InventoryTransaction.sku_id)
-        .order_by(func.sum(func.abs(InventoryTransaction.qty)).desc())
+        .group_by(Transaction.sku_code)
+        .order_by(func.sum(func.abs(Transaction.qty)).desc())
         .limit(limit)
     )
     
     movement_result = await db.execute(movement_stmt)
-    top_sku_ids = [row.sku_id for row in movement_result.all()]
+    top_sku_codes = [row.sku_code for row in movement_result.all()]
     
-    if not top_sku_ids:
+    if not top_sku_codes:
         return []
     
     # Get inventory state for these SKUs
-    state_map = await _get_inventory_state(db, location_id, top_sku_ids)
+    state_map = await _get_inventory_state(db, location_id, top_sku_codes)
     
     # Build response maintaining order from movement query
     return [
         {
-            'sku_id': sku_id,
-            'product_name': state_map[sku_id]['product_name'],
-            'available': state_map[sku_id]['available']
+            'sku_code': sku_code,
+            'sku_name': state_map[sku_code]['sku_name'],
+            'available': state_map[sku_code]['available']
         }
-        for sku_id in top_sku_ids if sku_id in state_map
+        for sku_code in top_sku_codes if sku_code in state_map
     ]
 
 
 async def _get_inactive_skus(
     db: AsyncSession,
-    location_id: Optional[int],
+    location_id: Optional[str],
     cutoff_date: datetime,
     limit: int
 ) -> List[Dict[str, Any]]:
     """Get top SKUs with no recent outbound movement."""
     # Get last outbound transaction date for each SKU
-    last_activity_conditions = [InventoryTransaction.is_outbound]
+    last_activity_conditions = [Transaction.is_outbound]
     if location_id:
-        last_activity_conditions.append(InventoryTransaction.location_id == location_id)
+        last_activity_conditions.append(Transaction.location_id == location_id)
     
     last_activity_stmt = (
         select(
-            InventoryTransaction.sku_id,
-            func.max(InventoryTransaction.created_at).label("last_outbound")
+            Transaction.sku_code,
+            func.max(Transaction.created_at).label("last_outbound")
         )
         .where(and_(*last_activity_conditions))
-        .group_by(InventoryTransaction.sku_id)
+        .group_by(Transaction.sku_code)
     )
     
     last_activity_result = await db.execute(last_activity_stmt)
-    sku_last_activity = {row.sku_id: row.last_outbound for row in last_activity_result.all()}
+    sku_last_activity = {row.sku_code: row.last_outbound for row in last_activity_result.all()}
     
     # Get inventory state for all SKUs
     state_map = await _get_inventory_state(db, location_id)
     
     # Filter and sort by inactivity period
     inactive_skus = []
-    for sku_id, state in state_map.items():
-        last_activity = sku_last_activity.get(sku_id)
+    for sku_code, state in state_map.items():
+        last_activity = sku_last_activity.get(sku_code)
         
         # SKUs with no activity or haven't been active in the period
         if last_activity is None or last_activity < cutoff_date:
             inactive_skus.append({
-                'sku_id': sku_id,
-                'product_name': state['product_name'],
+                'sku_code': sku_code,
+                'sku_name': state['sku_name'],
                 'available': state['available'],
                 'last_activity': last_activity
             })
@@ -214,53 +214,44 @@ async def _get_inactive_skus(
 
 async def _get_inventory_state(
     db: AsyncSession,
-    location_id: Optional[int],
-    sku_ids: Optional[List[str]] = None
+    location_id: Optional[str],
+    sku_codes: Optional[List[str]] = None
 ) -> Dict[str, Dict[str, Any]]:
-    """
-    Get inventory state for SKUs.
-    
-    Returns:
-        Dict mapping sku_id to {'product_name': str, 'available': int}
-    """
     if location_id:
-        state_conditions = [InventoryState.location_id == location_id]
-        if sku_ids:
-            state_conditions.append(InventoryState.sku_id.in_(sku_ids))
+        state_conditions = [State.location_id == location_id]
+        if sku_codes:
+            state_conditions.append(State.sku_code.in_(sku_codes))
         
-        state_stmt = select(
-            InventoryState.sku_id,
-            InventoryState.product_name,
-            InventoryState.available
-        ).where(and_(*state_conditions))
-        
-        state_result = await db.execute(state_stmt)
-        return {
-            row.sku_id: {
-                'product_name': row.product_name,
-                'available': row.available
-            }
-            for row in state_result.all()
-        }
+        state_stmt = (
+            select(
+                State.sku_code,
+                SKU.name.label("sku_name"),
+                State.available
+            )
+            .join(SKU, State.sku_code == SKU.code)
+            .where(and_(*state_conditions))
+        )
     else:
-        # Aggregate across all locations
-        state_stmt = select(
-            InventoryState.sku_id,
-            func.max(InventoryState.product_name).label("product_name"),
-            func.sum(InventoryState.available).label("available")
-        ).group_by(InventoryState.sku_id)
-        
-        if sku_ids:
-            state_stmt = state_stmt.where(InventoryState.sku_id.in_(sku_ids))
-        
-        state_result = await db.execute(state_stmt)
-        return {
-            row.sku_id: {
-                'product_name': row.product_name,
-                'available': row.available
-            }
-            for row in state_result.all()
+        state_stmt = (
+            select(
+                State.sku_code,
+                SKU.name.label("sku_name"),
+                func.sum(State.available).label("available")
+            )
+            .join(SKU, State.sku_code == SKU.code)
+            .group_by(State.sku_code, SKU.name)
+        )
+        if sku_codes:
+            state_stmt = state_stmt.where(State.sku_code.in_(sku_codes))
+    
+    state_result = await db.execute(state_stmt)
+    return {
+        row.sku_code: {
+            'sku_name': row.sku_name,
+            'available': row.available
         }
+        for row in state_result.all()
+    }
 
 
 def determine_stock_status(available: int) -> str:
@@ -290,16 +281,16 @@ async def get_fast_movers_with_stock_condition(
         limit: Number of SKUs to return
 
     Returns:
-        List of SKU IDs or None if no results
+        List of SKU codes or None if no results
     """
     # Subquery: Get SKUs matching stock criteria (aggregated across all locations)
     stock_condition_subquery = (
-        select(InventoryState.sku_id)
-        .group_by(InventoryState.sku_id)
+        select(State.sku_code)
+        .group_by(State.sku_code)
         .having(
             and_(
-                func.sum(InventoryState.available) >= available_min,
-                func.sum(InventoryState.available) <= available_max,
+                func.sum(State.available) >= available_min,
+                func.sum(State.available) <= available_max,
             )
         )
     ).subquery()
@@ -307,24 +298,24 @@ async def get_fast_movers_with_stock_condition(
     # Main query: Get top SKUs by total outbound movement
     stmt = (
         select(
-            InventoryTransaction.sku_id,
-            func.sum(func.abs(InventoryTransaction.qty)).label("total_outbound"),
+            Transaction.sku_code,
+            func.sum(func.abs(Transaction.qty)).label("total_outbound"),
         )
         .where(
             and_(
-                InventoryTransaction.is_outbound,
-                InventoryTransaction.sku_id.in_(
-                    select(stock_condition_subquery.c.sku_id)
+                Transaction.is_outbound,
+                Transaction.sku_code.in_(
+                    select(stock_condition_subquery.c.sku_code)
                 ),
             )
         )
-        .group_by(InventoryTransaction.sku_id)
-        .order_by(func.sum(func.abs(InventoryTransaction.qty)).desc())
+        .group_by(Transaction.sku_code)
+        .order_by(func.sum(func.abs(Transaction.qty)).desc())
         .limit(limit)
     )
 
     result = await db.execute(stmt)
-    skus = [row.sku_id for row in result.all()]
+    skus = [row.sku_code for row in result.all()]
 
     return skus if skus else None
 
@@ -344,27 +335,27 @@ async def get_inactive_skus_with_stock(
         limit: Number of SKUs to return
 
     Returns:
-        List of SKU IDs or None if no results
+        List of SKU codes or None if no results
     """
     cutoff_date = datetime.now(timezone.utc) - timedelta(days=days)
 
     # Subquery: Get SKUs with any activity in the last N days
     active_skus_subquery = (
-        select(distinct(InventoryTransaction.sku_id))
-        .where(InventoryTransaction.created_at >= cutoff_date)
+        select(distinct(Transaction.sku_code))
+        .where(Transaction.created_at >= cutoff_date)
     ).scalar_subquery()
 
     # Main query: Get SKUs with stock but not in active list (aggregated across locations)
     stmt = (
-        select(InventoryState.sku_id, func.sum(InventoryState.on_hand).label("total_on_hand"))
-        .where(~InventoryState.sku_id.in_(active_skus_subquery))
-        .group_by(InventoryState.sku_id)
-        .having(func.sum(InventoryState.on_hand) > 0)
-        .order_by(func.sum(InventoryState.on_hand).desc())
+        select(State.sku_code, func.sum(State.on_hand).label("total_on_hand"))
+        .where(~State.sku_code.in_(active_skus_subquery))
+        .group_by(State.sku_code)
+        .having(func.sum(State.on_hand) > 0)
+        .order_by(func.sum(State.on_hand).desc())
         .limit(limit)
     )
 
     result = await db.execute(stmt)
-    skus = [row.sku_id for row in result.all()]
+    skus = [row.sku_code for row in result.all()]
 
     return skus if skus else None

@@ -1,13 +1,14 @@
 from sqlalchemy import select, func, and_
 from sqlalchemy.ext.asyncio import AsyncSession
 from typing import Optional, Tuple
+from uuid import UUID
 
-from app.models import InventoryState
+from app.models import State
 
 
 async def count_stockouts(
     db: AsyncSession,
-    location_id: Optional[int] = None
+    location_id: Optional[UUID] = None
 ) -> int:
     """
     Count SKUs with zero available inventory.
@@ -21,10 +22,10 @@ async def count_stockouts(
     """
     if location_id is not None:
         # For specific location, count rows where available = 0
-        stmt = select(func.count(InventoryState.sku_id)).where(
+        stmt = select(func.count(State.sku_code)).where(
             and_(
-                InventoryState.available == 0,
-                InventoryState.location_id == location_id
+                State.location_id == location_id,
+                State.available == 0
             )
         )
         result = await db.execute(stmt)
@@ -32,9 +33,9 @@ async def count_stockouts(
     else:
         # For all locations, count distinct SKUs where sum(available) = 0
         stmt = (
-            select(InventoryState.sku_id)
-            .group_by(InventoryState.sku_id)
-            .having(func.sum(InventoryState.available) == 0)
+            select(State.sku_code)
+            .group_by(State.sku_code)
+            .having(func.sum(State.available) == 0)
         )
         result = await db.execute(stmt)
         return len(result.all())
@@ -42,7 +43,7 @@ async def count_stockouts(
 
 async def count_low_stock(
     db: AsyncSession,
-    location_id: Optional[int] = None,
+    location_id: Optional[UUID] = None,
     threshold: int = 10
 ) -> int:
     """
@@ -58,11 +59,11 @@ async def count_low_stock(
     """
     if location_id is not None:
         # For specific location, count rows where 0 < available < threshold
-        stmt = select(func.count(InventoryState.sku_id)).where(
+        stmt = select(func.count(State.sku_code)).where(
             and_(
-                InventoryState.available < threshold,
-                InventoryState.available > 0,
-                InventoryState.location_id == location_id
+                State.location_id == location_id,
+                State.available < threshold,
+                State.available > 0
             )
         )
         result = await db.execute(stmt)
@@ -70,12 +71,12 @@ async def count_low_stock(
     else:
         # For all locations, count distinct SKUs where 0 < sum(available) < threshold
         stmt = (
-            select(InventoryState.sku_id)
-            .group_by(InventoryState.sku_id)
+            select(State.sku_code)
+            .group_by(State.sku_code)
             .having(
                 and_(
-                    func.sum(InventoryState.available) < threshold,
-                    func.sum(InventoryState.available) > 0
+                    func.sum(State.available) < threshold,
+                    func.sum(State.available) > 0
                 )
             )
         )
@@ -85,7 +86,7 @@ async def count_low_stock(
 
 async def get_stock_status_counts(
     db: AsyncSession,
-    location_id: Optional[int] = None,
+    location_id: Optional[UUID] = None,
     low_stock_threshold: int = 10
 ) -> Tuple[int, int]:
     """

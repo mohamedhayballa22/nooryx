@@ -4,13 +4,13 @@ from sqlalchemy import select
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.common import TrendPoint
-from app.models import Location, InventoryTransaction
+from app.models import Location, Transaction
 
 
 async def get_inventory_trend_points(
     db: AsyncSession,
     period_days: int,
-    sku_id: Optional[str] = None,
+    sku_code: Optional[str] = None,
     location_name: Optional[str] = None
 ) -> Tuple[List[TrendPoint], Optional[date]]:
     """
@@ -19,7 +19,7 @@ async def get_inventory_trend_points(
     Args:
         db: Database session
         period_days: Number of days to retrieve
-        sku_id: Optional SKU identifier. If None, aggregates across all SKUs.
+        sku_code: Optional SKU code. If None, aggregates across all SKUs.
         location_name: Optional location name. If None, aggregates across all locations.
 
     Returns:
@@ -30,14 +30,14 @@ async def get_inventory_trend_points(
 
     # Build base query
     query = (
-        select(InventoryTransaction)
-        .join(Location, InventoryTransaction.location_id == Location.id)
-        .order_by(InventoryTransaction.created_at)
+        select(Transaction)
+        .join(Location, Transaction.location_id == Location.id)
+        .order_by(Transaction.created_at)
     )
 
     # Apply filters
-    if sku_id is not None:
-        query = query.where(InventoryTransaction.sku_id == sku_id)
+    if sku_code is not None:
+        query = query.where(Transaction.sku_code == sku_code)
 
     if location_name is not None:
         query = query.where(Location.name == location_name)
@@ -70,7 +70,7 @@ async def get_inventory_trend_points(
 
 
 def _build_daily_on_hand(
-    transactions: List[InventoryTransaction],
+    transactions: List[Transaction],
     today: date,
     location_name: Optional[str]
 ) -> Dict[date, int]:
@@ -87,7 +87,7 @@ def _build_daily_on_hand(
 
 
 def _build_single_location_daily_on_hand(
-    transactions: List[InventoryTransaction],
+    transactions: List[Transaction],
     today: date
 ) -> Dict[date, int]:
     """Build daily on-hand for a single location, aggregating across SKUs."""
@@ -96,17 +96,17 @@ def _build_single_location_daily_on_hand(
     # Group transactions by SKU
     for txn in transactions:
         txn_date = txn.created_at.date()
-        sku_id = txn.sku_id
+        sku_code = txn.sku_code
 
-        if sku_id not in sku_daily_on_hand:
-            sku_daily_on_hand[sku_id] = {}
+        if sku_code not in sku_daily_on_hand:
+            sku_daily_on_hand[sku_code] = {}
 
         if txn.action in ["reserve", "unreserve"]:
             on_hand = txn.qty_before
         else:
             on_hand = txn.qty_before + txn.qty
 
-        sku_daily_on_hand[sku_id][txn_date] = on_hand
+        sku_daily_on_hand[sku_code][txn_date] = on_hand
 
     # Get all transaction dates
     all_dates = set()
@@ -126,16 +126,16 @@ def _build_single_location_daily_on_hand(
 
 
 def _build_multi_location_daily_on_hand(
-    transactions: List[InventoryTransaction],
+    transactions: List[Transaction],
     today: date
 ) -> Dict[date, int]:
     """Build daily on-hand for multiple locations and SKUs."""
     location_sku_daily_on_hand = {}
 
-    # Group transactions by (location_id, sku_id)
+    # Group transactions by (location_id, sku_code)
     for txn in transactions:
         txn_date = txn.created_at.date()
-        key = (txn.location_id, txn.sku_id)
+        key = (txn.location_id, txn.sku_code)
 
         if key not in location_sku_daily_on_hand:
             location_sku_daily_on_hand[key] = {}
