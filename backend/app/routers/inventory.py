@@ -17,6 +17,9 @@ from app.models import State, Location, Transaction, SKU
 from app.core.db import get_session
 from app.services.exceptions import TransactionBadRequest, NotFound
 from app.services.metrics import calculate_weekly_delta
+from app.core.auth.tenant_dependencies import get_tenant_session
+from app.core.auth.dependencies import get_current_user
+from app.models import User
 
 
 router = APIRouter()
@@ -30,7 +33,9 @@ class StockStatus(str, Enum):
 
 @router.get("/inventory", response_model=Page[InventoryItemResponse])
 async def get_inventory(
+    # db: AsyncSession = Depends(get_session),
     db: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
     # Filtering parameters
     search: Optional[str] = Query(
         None, description="Search across SKU and location (partial match)"
@@ -102,6 +107,7 @@ async def get_inventory(
             & (Transaction.created_at == latest_txn_subq.c.max_created_at)
         )
         .options(selectinload(Transaction.location))
+        .where(State.org_id == user.org_id)
     )
 
     # Apply search filter across SKU and location
@@ -171,7 +177,7 @@ async def get_inventory(
 async def get_sku_inventory(
     sku_code: str, 
     location: Optional[str] = Query(None, description="Location name (None = aggregate across all locations)"),
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_tenant_session),
 ):
     """Get comprehensive inventory view for a SKU across all locations or for a specific location."""
 

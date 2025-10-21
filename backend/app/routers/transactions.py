@@ -6,11 +6,12 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, or_, String, func, exists
 from typing import Optional, List
 
-from app.schemas.transaction import LatestTransactionsResponse, Transaction
-from app.models import Transaction as TransactionModel, Location, State, User
+from app.schemas.transaction import LatestTransactionsResponse, TransactionItem
+from app.models import Transaction, Location, State, User
 from app.core.db import get_session
 from app.services.exceptions import NotFound
-
+from app.core.auth.tenant_dependencies import get_tenant_session
+from app.core.auth.dependencies import get_current_user
 
 router = APIRouter()
 
@@ -50,9 +51,10 @@ def _calculate_stock_after(qty_before: int, qty: int, action: str) -> int:
     return qty_before + qty
 
 
-@router.get("/transactions", response_model=Page[Transaction])
+@router.get("/transactions", response_model=Page[TransactionItem])
 async def get_transactions(
     db: AsyncSession = Depends(get_session),
+    user: User = Depends(get_current_user),
     # Filtering parameters
     search: Optional[str] = Query(
         None,
@@ -83,7 +85,7 @@ async def get_transactions(
     
     if not has_filters:
         # Only check for existence when there are no filters
-        exists_query = select(exists().where(TransactionModel.id.isnot(None)))
+        exists_query = select(exists().where(Transaction.id.isnot(None)))
         result = await db.execute(exists_query)
         has_any_transactions = result.scalar()
         
@@ -93,13 +95,14 @@ async def get_transactions(
     # Main query with joins - include User for actor name
     query = (
         select(
-            TransactionModel,
+            Transaction,
             Location.name.label("location_name"),
             User.first_name,
             User.last_name,
         )
-        .join(Location, TransactionModel.location_id == Location.id)
-        .outerjoin(User, TransactionModel.created_by == User.id)
+        .join(Location, Transaction.location_id == Location.id)
+        .outerjoin(User, Transaction.created_by == User.id)
+        .where(Transaction.org_id == user.org_id)
     )
 
     # Apply action filter
@@ -107,13 +110,13 @@ async def get_transactions(
         db_actions = []
         for display_action in action:
             db_actions.extend(_get_db_actions_from_display(display_action))
-        query = query.where(TransactionModel.action.in_(db_actions))
+        query = query.where(Transaction.action.in_(db_actions))
 
     # Apply search filter
     if search:
         search_pattern = f"%{search}%"
         metadata_search = func.cast(
-            TransactionModel.txn_metadata, String
+            Transaction.txn_metadata, String
         ).ilike(search_pattern)
         # Search in user's first and last name
         user_name_search = or_(
@@ -124,8 +127,8 @@ async def get_transactions(
         query = query.where(
             or_(
                 user_name_search,
-                TransactionModel.action.ilike(search_pattern),
-                TransactionModel.sku_code.ilike(search_pattern),
+                Transaction.action.ilike(search_pattern),
+                Transaction.sku_code.ilike(search_pattern),
                 Location.name.ilike(search_pattern),
                 metadata_search,
             )
@@ -133,13 +136,13 @@ async def get_transactions(
 
     # Apply sorting
     sort_mapping = {
-        "created_at": TransactionModel.created_at,
-        "action": TransactionModel.action,
-        "sku_code": TransactionModel.sku_code,
+        "created_at": Transaction.created_at,
+        "action": Transaction.action,
+        "sku_code": Transaction.sku_code,
         "location": Location.name,
-        "qty": TransactionModel.qty,
+        "qty": func.abs(Transaction.qty),
     }
-    sort_column = sort_mapping.get(sort_by, TransactionModel.created_at)
+    sort_column = sort_mapping.get(sort_by, Transaction.created_at)
 
     if order == "desc":
         query = query.order_by(sort_column.desc())
@@ -147,13 +150,13 @@ async def get_transactions(
         query = query.order_by(sort_column.asc())
 
     if sort_by != "created_at":
-        query = query.order_by(TransactionModel.created_at.desc())
+        query = query.order_by(Transaction.created_at.desc())
 
     return await apaginate(
         db,
         query,
         transformer=lambda rows: [
-            Transaction(
+            TransactionItem(
                 id=str(row.Transaction.id),
                 date=row.Transaction.created_at.strftime(
                     "%b %d, %Y at %I:%M %p"
@@ -179,7 +182,7 @@ async def get_transactions(
 @router.get("/transactions/latest/{sku_code}", response_model=LatestTransactionsResponse)
 async def get_latest_transactions_by_sku(
     sku_code: str,
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_tenant_session),
     location: Optional[str] = Query(None, description="Filter by location name"),
 ):
     """
@@ -201,8 +204,8 @@ async def get_latest_transactions_by_sku(
     
     # Count distinct locations where this SKU is present (has transactions)
     location_count_query = (
-        select(func.count(func.distinct(TransactionModel.location_id)))
-        .where(TransactionModel.sku_code == sku_code)
+        select(func.count(func.distinct(Transaction.location_id)))
+        .where(Transaction.sku_code == sku_code)
     )
     location_count_result = await db.execute(location_count_query)
     location_count = location_count_result.scalar() or 0
@@ -211,8 +214,8 @@ async def get_latest_transactions_by_sku(
     if location is None and location_count == 1:
         single_location_query = (
             select(Location.name)
-            .join(TransactionModel, TransactionModel.location_id == Location.id)
-            .where(TransactionModel.sku_code == sku_code)
+            .join(Transaction, Transaction.location_id == Location.id)
+            .where(Transaction.sku_code == sku_code)
             .limit(1)
         )
         single_location_result = await db.execute(single_location_query)
@@ -221,27 +224,27 @@ async def get_latest_transactions_by_sku(
     # Main query with joins - include User for actor name
     query = (
         select(
-            TransactionModel,
+            Transaction,
             Location.name.label("location_name"),
             User.first_name,
             User.last_name,
         )
-        .join(Location, TransactionModel.location_id == Location.id)
-        .outerjoin(User, TransactionModel.created_by == User.id)
-        .where(TransactionModel.sku_code == sku_code)
+        .join(Location, Transaction.location_id == Location.id)
+        .outerjoin(User, Transaction.created_by == User.id)
+        .where(Transaction.sku_code == sku_code)
     )
     
     # Apply location filter if provided
     if location:
         query = query.where(Location.name == location)
     
-    query = query.order_by(TransactionModel.created_at.desc()).limit(2)
+    query = query.order_by(Transaction.created_at.desc()).limit(2)
     
     result = await db.execute(query)
     rows = result.all()
     
     transactions = [
-        Transaction(
+        TransactionItem(
             id=str(row.Transaction.id),
             date=row.Transaction.created_at.strftime(
                 "%b %d, %Y at %I:%M %p"
@@ -271,7 +274,7 @@ async def get_latest_transactions_by_sku(
 
 @router.get("/transactions/latest", response_model=LatestTransactionsResponse)
 async def get_latest_transactions(
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_tenant_session),
     location: Optional[str] = Query(None, description="Filter by location name"),
 ):
     """
@@ -282,7 +285,7 @@ async def get_latest_transactions(
     """
     
     # Count distinct locations that have transactions
-    location_count_query = select(func.count(func.distinct(TransactionModel.location_id)))
+    location_count_query = select(func.count(func.distinct(Transaction.location_id)))
     
     location_count_result = await db.execute(location_count_query)
     location_count = location_count_result.scalar() or 0
@@ -291,7 +294,7 @@ async def get_latest_transactions(
     if location is None and location_count == 1:
         single_location_query = (
             select(Location.name)
-            .join(TransactionModel, TransactionModel.location_id == Location.id)
+            .join(Transaction, Transaction.location_id == Location.id)
             .limit(1)
         )
         single_location_result = await db.execute(single_location_query)
@@ -300,20 +303,20 @@ async def get_latest_transactions(
     # Main query with joins - include User for actor name
     query = (
         select(
-            TransactionModel,
+            Transaction,
             Location.name.label("location_name"),
             User.first_name,
             User.last_name,
         )
-        .join(Location, TransactionModel.location_id == Location.id)
-        .outerjoin(User, TransactionModel.created_by == User.id)
+        .join(Location, Transaction.location_id == Location.id)
+        .outerjoin(User, Transaction.created_by == User.id)
     )
     
     # Apply location filter if provided
     if location:
         query = query.where(Location.name == location)
     
-    query = query.order_by(TransactionModel.created_at.desc()).limit(2)
+    query = query.order_by(Transaction.created_at.desc()).limit(2)
     
     result = await db.execute(query)
     rows = result.all()
@@ -326,7 +329,7 @@ async def get_latest_transactions(
         )
     
     transactions = [
-        Transaction(
+        TransactionItem(
             id=str(row.Transaction.id),
             date=row.Transaction.created_at.strftime(
                 "%b %d, %Y at %I:%M %p"

@@ -3,7 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, Query
 from typing import Optional
 
-from app.core.db import get_session
 from app.models import Location, State, Transaction, User
 from app.schemas.report import (
     DashboardMetricsResponse,
@@ -25,6 +24,7 @@ from app.services.movers import (
     get_inactive_skus_with_stock
 )
 from app.core.auth.dependencies import get_current_user
+from app.core.auth.tenant_dependencies import get_tenant_session
 
 
 router = APIRouter(prefix="/reports")
@@ -32,7 +32,7 @@ router = APIRouter(prefix="/reports")
 @router.get("/metrics", response_model=DashboardMetricsResponse)
 async def get_dashboard_metrics(
     location: Optional[str] = Query(None, description="Location name (None = aggregate across all locations)"),
-    db: AsyncSession = Depends(get_session)
+    db: AsyncSession = Depends(get_tenant_session)
 ):
     """Get aggregated inventory metrics across all SKUs for dashboard display."""
 
@@ -97,7 +97,7 @@ async def get_dashboard_metrics(
 
 @router.get("/summary", response_model=DashboardSummaryResponse)
 async def get_dashboard_summary(
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_tenant_session),
     user: User = Depends(get_current_user)
 ):
     """Get comprehensive dashboard summary including SKU movement analysis."""
@@ -147,7 +147,7 @@ async def get_dashboard_summary(
 async def get_top_movers(
     location: Optional[str] = Query(None, description="Filter by location name"),
     period: str = Query("7d", description="Time period to analyze (e.g., '7d', '30d', '365 days')"),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_tenant_session),
 ):
     """
     Get top SKUs by outbound movement volume.
@@ -178,7 +178,7 @@ async def get_top_movers(
 async def get_top_inactives(
     location: Optional[str] = Query(None, description="Filter by location name"),
     period: str = Query("7d", description="Time period to analyze (e.g., '7d', '30d', '365 days')"),
-    db: AsyncSession = Depends(get_session),
+    db: AsyncSession = Depends(get_tenant_session),
 ):
     """
     Get top 5 SKUs with no outbound movement (inactive SKUs).
@@ -209,7 +209,7 @@ async def get_top_inactives(
 async def get_overall_inventory_trend(
     period: str = Query("30d", pattern=r"^\d+d$"),
     location: Optional[str] = Query(None),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_tenant_session),
 ):
     """Get overall inventory trend across all SKUs."""
     # Query states to check existence and location count
@@ -247,7 +247,7 @@ async def get_inventory_trend(
     sku_code: str,
     period: str = Query("30d", pattern=r"^\d+d$"),
     location: Optional[str] = Query(None),
-    session: AsyncSession = Depends(get_session),
+    session: AsyncSession = Depends(get_tenant_session),
 ):
     """Get inventory trend for a specific SKU."""
     # Check if SKU exists

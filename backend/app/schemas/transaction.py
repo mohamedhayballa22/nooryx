@@ -1,8 +1,8 @@
-from pydantic import BaseModel, Field
-from typing import Optional, Dict, Any, List, Literal
+from pydantic import BaseModel
+from typing import Optional, Dict, Any, List
 
 
-class Transaction(BaseModel):
+class TransactionItem(BaseModel):
     """Represents a single, historical transaction record from the ledger."""
     id: str  # UUID as string
     date: str
@@ -22,4 +22,4 @@ class LatestTransactionsResponse(BaseModel):
     """Response model for fetching the most recent transactions."""
     sku_code: Optional[str] = None
     location: Optional[str]
-    transactions: List[Transaction]
+    transactions: List[TransactionItem]
