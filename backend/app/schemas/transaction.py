@@ -20,6 +20,6 @@ class TransactionItem(BaseModel):
 
 class LatestTransactionsResponse(BaseModel):
     """Response model for fetching the most recent transactions."""
-    sku_code: Optional[str] = None
     location: Optional[str]
+    sku_code: Optional[str] = None
     transactions: List[TransactionItem]
