@@ -85,7 +85,7 @@ async def get_transactions(
     
     if not has_filters:
         # Only check for existence when there are no filters
-        exists_query = select(exists().where(Transaction.id.isnot(None)))
+        exists_query = select(exists().where(Transaction.id.isnot(None)).where(Transaction.org_id == user.org_id))
         result = await db.execute(exists_query)
         has_any_transactions = result.scalar()
         

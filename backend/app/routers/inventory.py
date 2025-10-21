@@ -33,7 +33,6 @@ class StockStatus(str, Enum):
 
 @router.get("/inventory", response_model=Page[InventoryItemResponse])
 async def get_inventory(
-    # db: AsyncSession = Depends(get_session),
     db: AsyncSession = Depends(get_session),
     user: User = Depends(get_current_user),
     # Filtering parameters
