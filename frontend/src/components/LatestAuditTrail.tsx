@@ -8,11 +8,11 @@ import { EmptyLatestAuditTrail } from "@/components/EmptyLatestAuditTrail"
 import type { LatestAuditTrailData } from "@/lib/api/inventory"
 import { ExternalLink } from "lucide-react"
 
-export function LatestAuditTrail({ sku, location, transactions }: LatestAuditTrailData) {
-  const hasSku = Boolean(sku)
+export function LatestAuditTrail({ sku_code, location, transactions }: LatestAuditTrailData) {
+  const hasSku = Boolean(sku_code)
 
   const handleViewFullHistory = () => {
-    const url = hasSku ? `/core/audit-trail?search=${sku}` : '/core/audit-trail'
+    const url = hasSku ? `/core/audit-trail?search=${sku_code}` : '/core/audit-trail'
     window.open(url, '_blank')
   }
 
@@ -20,7 +20,7 @@ export function LatestAuditTrail({ sku, location, transactions }: LatestAuditTra
     <Card className="h-full flex flex-col">
       <CardHeader className="flex-shrink-0">
         <CardTitle>
-          {hasSku ? `Latest Movements - ${sku}` : "Latest Movements"}
+          {hasSku ? `Latest Movements - ${sku_code}` : "Latest Movements"}
         </CardTitle>
         <CardDescription>
           {location
