@@ -48,7 +48,7 @@ export function AuthProvider({ children }: { children: ReactNode }) {
     } finally {
       setUser(null);
       if (typeof window !== "undefined") {
-        window.location.replace("/login");
+        window.location.replace("/");
       }
     }
   };
