@@ -39,10 +39,10 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <DropdownMenuItem asChild>
-          <Link href={`/core/inventory/${product.sku}`}>See more</Link>
+          <Link href={`/core/inventory/${product.sku_code}`}>See more</Link>
         </DropdownMenuItem>
-        <DropdownMenuItem>
-          <Link href={`/core/audit-trail?search=${product.sku}`}>View History</Link>
+        <DropdownMenuItem asChild>
+          <Link href={`/core/audit-trail?search=${product.sku_code}`}>View History</Link>
         </DropdownMenuItem>
       </DropdownMenuContent>
     </DropdownMenu>
