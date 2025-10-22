@@ -1,6 +1,9 @@
+"use client"
+
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
+import { useAuth } from "@/lib/auth";
 
 import {
   Bell,
@@ -36,6 +39,7 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { authApi } from "@/lib/api/auth";
 
 const mainItems = [
   { title: "Dashboard", url: "/core/dashboard", icon: ChartSpline },
@@ -53,6 +57,11 @@ export function AppSidebar() {
   const userEmail = "mohamed.hayballa@nooryx.com"
   const userName = "Mohamed Hayballa"
   const initials = "MH"
+  const { logout } = useAuth();
+
+  const handleLogout = async () => {
+    await logout();
+  };
 
   return (
     <Sidebar collapsible="icon">
@@ -151,12 +160,10 @@ export function AppSidebar() {
                   Account
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <Link href={"/"}>
-                  <DropdownMenuItem className="cursor-pointer">
-                    <LogOut className="mr-2 h-4 w-4" />
-                    Sign out
-                  </DropdownMenuItem>
-                </Link>
+                <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
+                  <LogOut className="mr-2 h-4 w-4" />
+                  Sign out
+                </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
           </SidebarMenuItem>
