@@ -8,29 +8,29 @@ import { Badge } from "@/components/ui/badge"
 import { DataTableRowActions } from "./data-table-row-actions"
 
 export type Product = {
-  sku: string
-  product_name: string
+  sku_code: string
+  name: string
   location: string
   available: number
   last_transaction: string
-  status: "In Stock" | "Low stock" | "Out of Stock"
+  status: "In Stock" | "Low Stock" | "Out of Stock"
 }
 
-// Custom filter function for multi-column searching (SKU + Product Name)
+// Custom filter function for multi-column searching (SKU Code + Name)
 const multiColumnFilterFn: FilterFn<Product> = (row, filterValue) => {
   const searchTerm = (filterValue as string)?.toLowerCase()
   const rowContent =
-    `${row.original.product_name} ${row.original.sku}`.toLowerCase()
+    `${row.original.name} ${row.original.sku_code}`.toLowerCase()
   return rowContent.includes(searchTerm)
 }
 
 export const columns: ColumnDef<Product>[] = [
   {
-    accessorKey: "sku",
-    header: "SKU",
+    accessorKey: "sku_code",
+    header: "SKU Code",
   },
   {
-    accessorKey: "product_name",
+    accessorKey: "name",
     filterFn: multiColumnFilterFn,
     header: "Product Name",
   },
