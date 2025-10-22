@@ -77,7 +77,7 @@ export function AuditTrail({
         } else if (item.action === "transferred out") {
           overviewText = `${item.quantity} ${itemWord} ${verb} transferred out of ${item.location}`
         } else if (item.action === "adjusted") {
-          const sign = item.stock_after > item.stock_before ? "+" : "-"
+          const sign = item.qty_after > item.qty_before ? "+" : "-"
           overviewText = `${sign}${item.quantity} ${itemWord} at ${item.location}`
         } else {
           overviewText = `${item.quantity} ${itemWord} ${verb} ${item.action} at ${item.location}`
@@ -88,10 +88,10 @@ export function AuditTrail({
         const quantityLine = (
           <div className="flex items-center gap-1 text-sm mt-1">
             <span>
-              Quantity at {item.location}: {item.stock_before}
+              Quantity at {item.location}: {item.qty_before}
             </span>
             <ArrowRight size={14} className="text-muted-foreground" />
-            <span>{item.stock_after}</span>
+            <span>{item.qty_after}</span>
           </div>
         )
 
@@ -121,12 +121,12 @@ export function AuditTrail({
             {!snippet && (
               <div className="flex flex-col gap-2">
                 <a
-                  href={`/core/inventory/${item.sku}`}
+                  href={`/core/inventory/${item.sku_code}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"
                 >
-                  {item.sku}
+                  {item.sku_code}
                   <ExternalLink size={14} className="opacity-70" />
                 </a>
 
@@ -235,12 +235,12 @@ export function AuditTrail({
                   <TabsContent value="context" className="text-sm">
                     <div className="flex flex-col gap-2">
                       <a
-                        href={`/core/inventory/${item.sku}`}
+                        href={`/core/inventory/${item.sku_code}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"
                       >
-                        {item.sku}
+                        {item.sku_code}
                         <ExternalLink size={14} className="opacity-70" />
                       </a>
 
