@@ -44,7 +44,7 @@ class Settings(BaseSettings):
     PROJECT_NAME: str = "Nooryx"
     SECRET_KEY: str = secrets.token_urlsafe(32)
     HASHING_ALGORITHM: str = "HS256"
-    ACCESS_TOKEN_EXPIRE_MINUTES: int = 30
+    ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     ENVIRONMENT: Literal["dev", "prod", "test"] = "dev"
     DATABASE_URL: str
     REDIS_URL: str
@@ -53,6 +53,7 @@ class Settings(BaseSettings):
     FIRST_USER_PASSWORD: str = ""
     INVITATION_TOKEN_EXPIRE_HOURS: int = 72
     ALGORITHM: str = "HS256"
+    REFRESH_TOKEN_EXPIRE_DAYS: int = 14
 
 
     @model_validator(mode="after")
