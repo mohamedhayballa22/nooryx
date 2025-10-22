@@ -44,7 +44,7 @@ def _format_action(action: str) -> str:
     return action_map.get(action, action + "ed")
 
 
-def _calculate_stock_after(qty_before: int, qty: int, action: str) -> int:
+def _calculate_qty_after(qty_before: int, qty: int, action: str) -> int:
     """Calculate stock after based on qty_before, qty, and action type."""
     if action in ["reserve", "unreserve"]:
         return qty_before
@@ -167,7 +167,7 @@ async def get_transactions(
                 sku_code=row.Transaction.sku_code,
                 location=row.location_name,
                 qty_before=row.Transaction.qty_before,
-                qty_after=_calculate_stock_after(
+                qty_after=_calculate_qty_after(
                     row.Transaction.qty_before,
                     row.Transaction.qty,
                     row.Transaction.action,
@@ -255,7 +255,7 @@ async def get_latest_transactions_by_sku(
             sku_code=row.Transaction.sku_code,
             location=row.location_name,
             qty_before=row.Transaction.qty_before,
-            qty_after=_calculate_stock_after(
+            qty_after=_calculate_qty_after(
                 row.Transaction.qty_before,
                 row.Transaction.qty,
                 row.Transaction.action,
@@ -340,7 +340,7 @@ async def get_latest_transactions(
             sku_code=row.Transaction.sku_code,
             location=row.location_name,
             qty_before=row.Transaction.qty_before,
-            qty_after=_calculate_stock_after(
+            qty_after=_calculate_qty_after(
                 row.Transaction.qty_before,
                 row.Transaction.qty,
                 row.Transaction.action,
