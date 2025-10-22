@@ -44,8 +44,8 @@ const STOCK_STATUSES = [
 ]
 
 const SORT_OPTIONS = [
-  { value: "product_name", label: "Product Name" },
-  { value: "sku", label: "SKU" },
+  { value: "name", label: "Product Name" }, // Changed from 'product_name'
+  { value: "sku_code", label: "SKU Code" }, // Changed from 'sku'
   { value: "available", label: "Available" },
   { value: "status", label: "Status" },
   { value: "location", label: "Location" },
@@ -103,7 +103,7 @@ export function DataTable<TData, TValue>({
         table={table}
         search={search}
         onSearchChange={onSearchChange}
-        searchPlaceholder="Search by SKU or location..."
+        searchPlaceholder="Search by SKU Code or location..."
         filterLabel="Status"
         filterOptions={STOCK_STATUSES}
         activeFilters={statusFilters}
@@ -153,9 +153,9 @@ export function DataTable<TData, TValue>({
                   key={row.id}
                   className="cursor-pointer"
                   onClick={() => {
-                    const sku = (row.original as any).sku
-                    if (sku) {
-                      router.push(`/core/inventory/${sku}`)
+                    const skuCode = (row.original as any).sku_code
+                    if (skuCode) {
+                      router.push(`/core/inventory/${skuCode}`)
                     }
                   }}
                 >
@@ -202,7 +202,7 @@ DataTable.Skeleton = function DataTableSkeleton() {
         <Table>
           <TableHeader>
             <TableRow>
-              <TableHead>SKU</TableHead>
+              <TableHead>SKU Code</TableHead>
               <TableHead>Product Name</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Available</TableHead>
