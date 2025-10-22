@@ -15,6 +15,7 @@ from app.routers import actions, inventory, transactions
 from app.routers import reports
 from app.core.auth.users import fastapi_users, auth_backend
 from app.core.auth.register import router as register_router
+from app.core.auth.refresh_router import router as refresh_router
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -62,6 +63,7 @@ app.include_router(
     prefix="/auth/jwt",
     tags=["auth"]
 )
+app.include_router(refresh_router, prefix="/auth/jwt", tags=["refresh"])
 
 add_pagination(app)
 
