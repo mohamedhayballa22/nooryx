@@ -1,3 +1,4 @@
+import { StringDecoder } from "node:string_decoder";
 import { apiClient } from "./client";
 
 // Types
@@ -11,8 +12,8 @@ export interface InventorySummary {
 }
 
 export interface InventorySnapshot {
-  sku: string;
-  product_name: string;
+  sku_code: string;
+  name: string;
   status: string;
   location: string | null;
   locations: number;
@@ -27,7 +28,7 @@ export interface InventoryTrendPoint {
 }
 
 export interface InventoryTrend {
-  sku?: string;
+  sku_code?: string;
   location: string | null;
   oldest_data_point: string;
   points: InventoryTrendPoint[];
@@ -39,10 +40,10 @@ export interface TransactionItem {
   actor: string;
   action: string;
   quantity: number;
-  sku: string;
+  sku_code: string;
   location: string;
-  stock_before: number;
-  stock_after: number;
+  qty_before: number;
+  qty_after: number;
   metadata?: {
     target_location?: string;
     source_location?: string;
@@ -68,14 +69,14 @@ export interface TransactionsParams {
 }
 
 export interface LatestAuditTrailData {
-  sku?: string
+  sku_code?: StringDecoder
   location: string | null
   transactions: TransactionItem[]
 }
 
 export type Product = {
-  sku: string
-  product_name: string
+  sku_code: string
+  name: string
   location: string
   available: number
   last_transaction: string
@@ -101,7 +102,6 @@ export interface InventoryListResponse {
 
 // Helpers
 
-
 // Builds a query string based on the optional location filter.
 function buildQuery(location?: string): string {
   return location ? `?location=${encodeURIComponent(location)}` : "";
@@ -109,31 +109,31 @@ function buildQuery(location?: string): string {
 
 // API Functions
 
-// Fetch inventory summary for a given SKU. Optionally filtered by location.
+// Fetch inventory summary for a given SKU Code. Optionally filtered by location.
 export async function getInventoryBySku(
-  sku: string,
+  sku_code: string,
   location?: string
 ): Promise<InventorySnapshot> {
-  return apiClient<InventorySnapshot>(`/inventory/${sku}${buildQuery(location)}`);
+  return apiClient<InventorySnapshot>(`/inventory/${sku_code}${buildQuery(location)}`);
 }
 
-//Fetch inventory trend data for a given SKU. Optionally filtered by location.
+// Fetch inventory trend data for a given SKU Code. Optionally filtered by location.
 export async function getInventoryTrend(
-  sku: string,
+  sku_code: string,
   period: string = "30d",
   location?: string
 ): Promise<InventoryTrend> {
   const params = new URLSearchParams({ period });
   if (location) params.append("location", location);
-  return apiClient<InventoryTrend>(`/reports/trend/inventory/${sku}?${params.toString()}`);
+  return apiClient<InventoryTrend>(`/reports/trend/inventory/${sku_code}?${params.toString()}`);
 }
 
-// Fetch latest inventory transactions for a given SKU. Optionally filtered by location.
+// Fetch latest inventory transactions for a given SKU Code. Optionally filtered by location.
 export async function getLatestTransactionsBySku(
-  sku: string,
+  sku_code: string,
   location?: string
 ): Promise<LatestAuditTrailData> {
-  return apiClient<LatestAuditTrailData>(`/transactions/latest/${sku}${buildQuery(location)}`);
+  return apiClient<LatestAuditTrailData>(`/transactions/latest/${sku_code}${buildQuery(location)}`);
 }
 
 export async function getInventoryList(
