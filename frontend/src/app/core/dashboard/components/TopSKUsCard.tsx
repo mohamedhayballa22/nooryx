@@ -10,7 +10,7 @@ import { cn } from "@/lib/utils"
 
 interface TopSKUsItem {
   sku: string
-  product_name: string
+  sku_name: string
   available: number
   status: string
 }
@@ -25,7 +25,7 @@ type PeriodKey = "7d" | "31d" | "180d" | "365d"
 interface TopSKUsCardProps {
   title: string
   description?: string
-  data: TopSKUsResponse // ✅ renamed from skus
+  data: TopSKUsResponse
   onPeriodChange?: (period: PeriodKey) => void
   variant?: "movers" | "inactives" // NEW PROP
 }
@@ -41,7 +41,6 @@ export function TopSKUsCard({
 }: TopSKUsCardProps) {
   const [period, setPeriod] = useState<PeriodKey>("31d")
 
-  // ✅ Two label maps based on variant
   const labelMaps = {
     movers: {
       "7d": "Last Week",
@@ -191,7 +190,7 @@ export function TopSKUsCard({
                   {/* Product Info */}
                   <div className="flex-1 min-w-0">
                     <p className="font-medium text-foreground truncate">{sku.sku}</p>
-                    <p className="text-xs text-muted-foreground">{sku.product_name}</p>
+                    <p className="text-xs text-muted-foreground">{sku.sku_name}</p>
                   </div>
 
                   {/* Stock Bar */}
