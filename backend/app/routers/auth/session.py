@@ -219,13 +219,24 @@ async def logout(
     )
     await session.commit()
 
-    # Clear authentication cookies
-    response.delete_cookie(cookie_transport.cookie_name, path="/")
-    response.delete_cookie(REFRESH_COOKIE_NAME, path="/")
+    # Clear authentication cookies with matching parameters
+    response.delete_cookie(
+        key=cookie_transport.cookie_name,
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax"
+    )
+    response.delete_cookie(
+        key=REFRESH_COOKIE_NAME,
+        path="/",
+        secure=True,
+        httponly=True,
+        samesite="lax"
+    )
 
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
-
 
 @router.delete("/{session_id}")
 async def logout_session(
