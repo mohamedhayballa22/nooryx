@@ -13,14 +13,14 @@ interface Props {
 }
 
 export default function SkuHeader({ data, selectedTab, onTabChange }: Props) {
-  const { sku, product_name, status, locations, location_names } = data
+  const { sku_code, name, status, locations, location_names } = data
 
   return (
     <div className="flex flex-col gap-4 pb-4">
       <div className="flex flex-col sm:flex-row sm:items-center sm:justify-between gap-2">
         <div>
-          <h1 className="text-2xl font-semibold tracking-tight">{sku}</h1>
-          <p className="text-sm text-muted-foreground">{product_name}</p>
+          <h1 className="text-2xl font-semibold tracking-tight">{sku_code}</h1>
+          <p className="text-sm text-muted-foreground">{name}</p>
         </div>
         <Badge
           className={cn(
