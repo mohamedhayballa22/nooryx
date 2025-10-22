@@ -227,7 +227,7 @@ async def logout(
     return response
 
 
-@router.post("/logout_session/{session_id}")
+@router.delete("/{session_id}")
 async def logout_session(
     session_id: str,
     response: Response,
@@ -265,7 +265,7 @@ async def logout_session(
     return response
 
 
-@router.get("/sessions", response_model=List[dict])
+@router.get("", response_model=List[dict])
 async def sessions(
     user: User = Depends(get_current_user), 
     session: AsyncSession = Depends(get_session)
@@ -312,3 +312,62 @@ async def sessions(
         }
         for r in rows
     ]
+
+
+@router.get("/current")
+async def get_current_session(
+    request: Request,
+    user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session),
+):
+    """
+    Retrieve the current active session information.
+    
+    Returns metadata about the current session based on the refresh token cookie.
+    Used by frontend on page reload to verify session validity and display user info.
+    
+    Returns:
+    - Session metadata (creation time, last used, expiration, device info)
+    - User information (id, email, name, org)
+    - Session validity status
+    
+    If no valid refresh token is found, returns minimal user info from access token only.
+    """
+    now = datetime.now(timezone.utc)
+    
+    raw = request.cookies.get(REFRESH_COOKIE_NAME)
+    
+    # Base response with user info (always available from access token)
+    response_data = {
+        "user": {
+            "id": str(user.id),
+            "email": user.email,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "org_id": str(user.org_id),
+        },
+        "session": None,
+    }
+    
+    # If refresh token exists, get session details
+    if raw:
+        h = hash_refresh_token(raw)
+        
+        q = await session.execute(
+            select(RefreshToken)
+            .where(RefreshToken.token_hash == h)
+            .where(RefreshToken.user_id == user.id)
+            .where(RefreshToken.revoked == 0)
+        )
+        token = q.scalar_one_or_none()
+        
+        # Only include session info if token is valid and not expired
+        if token and token.expires_at > now:
+            response_data["session"] = {
+                "id": str(token.id),
+                "created_at": token.created_at.isoformat() if token.created_at else None,
+                "last_used_at": token.last_used_at.isoformat() if token.last_used_at else None,
+                "expires_at": token.expires_at.isoformat() if token.expires_at else None,
+            }
+    
+    return response_data
