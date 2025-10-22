@@ -336,3 +336,31 @@ class Subscription(Base):
 
     organization = relationship("Organization", back_populates="subscription")
     
+
+class RefreshToken(Base):
+    """Refresh tokens for managing user session persistence and rotation."""
+    
+    __tablename__ = "refresh_tokens"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
+    token_hash = Column(String(64), nullable=False, index=True, doc="SHA-256 hash of the refresh token.")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_used_at = Column(DateTime(timezone=True), nullable=True)
+    expires_at = Column(DateTime(timezone=True), nullable=False)
+    revoked = Column(Integer, nullable=False, default=0, doc="0=active, 1=revoked")
+    device_info = Column(String, nullable=True)
+    ip_address = Column(String, nullable=True)
+
+    user = relationship("User", backref="refresh_tokens")
+
+    __table_args__ = (
+        ForeignKeyConstraint(
+            ['user_id'],
+            ['users.id'],
+            ondelete="CASCADE"
+        ),
+        Index('ix_refresh_tokens_user_id', 'user_id'),
+        Index('ix_refresh_tokens_token_hash', 'token_hash'),
+    )
+    
