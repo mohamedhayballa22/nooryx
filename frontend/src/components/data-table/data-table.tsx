@@ -44,8 +44,8 @@ const STOCK_STATUSES = [
 ]
 
 const SORT_OPTIONS = [
-  { value: "name", label: "Product Name" }, // Changed from 'product_name'
-  { value: "sku_code", label: "SKU Code" }, // Changed from 'sku'
+  { value: "name", label: "Product Name" },
+  { value: "sku_code", label: "SKU Code" },
   { value: "available", label: "Available" },
   { value: "status", label: "Status" },
   { value: "location", label: "Location" },

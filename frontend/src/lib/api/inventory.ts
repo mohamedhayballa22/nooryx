@@ -80,7 +80,7 @@ export type Product = {
   location: string
   available: number
   last_transaction: string
-  status: "In Stock" | "Low stock" | "Out of Stock"
+  status: "In Stock" | "Low Stock" | "Out of Stock"
 }
 
 export interface InventoryListParams {
