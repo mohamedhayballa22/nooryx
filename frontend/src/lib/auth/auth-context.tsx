@@ -32,9 +32,14 @@ export function AuthProvider({ children }: { children: ReactNode }) {
   const checkAuth = async () => {
     setIsLoading(true);
     try {
-      const response = await apiClient<{ user: User }>("/auth/sessions/current");
+      // Not setting requiresAuth - this is just checking if user is logged in
+      // If they're not, we don't want to redirect them
+      const response = await apiClient<{ user: User }>("/auth/sessions/current", {
+        requiresAuth: false, // Don't redirect on 401
+      });
       setUser(response.user);
     } catch (error) {
+      // 401 or any error means not authenticated - this is fine for guests
       setUser(null);
     } finally {
       setIsLoading(false);
