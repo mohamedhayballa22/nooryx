@@ -1,5 +1,5 @@
 import { StringDecoder } from "node:string_decoder";
-import { apiClient } from "./client";
+import { protectedApiClient } from "./protected-client";
 
 // Types
 export interface InventorySummary {
@@ -114,7 +114,7 @@ export async function getInventoryBySku(
   sku_code: string,
   location?: string
 ): Promise<InventorySnapshot> {
-  return apiClient<InventorySnapshot>(`/inventory/${sku_code}${buildQuery(location)}`);
+  return protectedApiClient<InventorySnapshot>(`/inventory/${sku_code}${buildQuery(location)}`);
 }
 
 // Fetch inventory trend data for a given SKU Code. Optionally filtered by location.
@@ -125,7 +125,7 @@ export async function getInventoryTrend(
 ): Promise<InventoryTrend> {
   const params = new URLSearchParams({ period });
   if (location) params.append("location", location);
-  return apiClient<InventoryTrend>(`/reports/trend/inventory/${sku_code}?${params.toString()}`);
+  return protectedApiClient<InventoryTrend>(`/reports/trend/inventory/${sku_code}?${params.toString()}`);
 }
 
 // Fetch latest inventory transactions for a given SKU Code. Optionally filtered by location.
@@ -133,7 +133,7 @@ export async function getLatestTransactionsBySku(
   sku_code: string,
   location?: string
 ): Promise<LatestAuditTrailData> {
-  return apiClient<LatestAuditTrailData>(`/transactions/latest/${sku_code}${buildQuery(location)}`);
+  return protectedApiClient<LatestAuditTrailData>(`/transactions/latest/${sku_code}${buildQuery(location)}`);
 }
 
 export async function getInventoryList(
@@ -155,7 +155,7 @@ export async function getInventoryList(
   }
 
   const query = searchParams.toString();
-  return apiClient<InventoryListResponse>(
+  return protectedApiClient<InventoryListResponse>(
     `/inventory${query ? `?${query}` : ""}`
   );
 }
@@ -176,5 +176,5 @@ export async function getTransactions(
     params.actions.forEach((action) => searchParams.append("action", action));
   }
 
-  return apiClient<TransactionsResponse>(`/transactions?${searchParams.toString()}`);
+  return protectedApiClient<TransactionsResponse>(`/transactions?${searchParams.toString()}`);
 }
