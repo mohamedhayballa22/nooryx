@@ -35,25 +35,27 @@ export const authApi = {
         "Content-Type": "application/x-www-form-urlencoded",
       },
       body,
+      requiresAuth: false,
     });
   },
 
   issueRefresh: async (): Promise<void> => {
     return apiClient("/auth/sessions/issue_refresh", {
       method: "POST",
+      requiresAuth: false,
     });
   },
 
   getCurrentSession: async (): Promise<CurrentSessionResponse> => {
-    return apiClient<CurrentSessionResponse>("/auth/sessions/current");
+    return apiClient<CurrentSessionResponse>("/auth/sessions/current", {
+      requiresAuth: false,
+    });
   },
 
   logout: async (): Promise<void> => {
-    try {
-      await apiClient("/auth/jwt/logout", {
-        method: "POST",
-      });
-    } catch (err) {
-    }
+    return apiClient("/auth/jwt/logout", {
+      method: "POST",
+      requiresAuth: true,
+    });
   },
 };
