@@ -51,107 +51,123 @@ async def get_inventory(
     order: Optional[str] = Query("asc", description="Sort order", regex="^(asc|desc)$"),
 ):
     """
-    Returns current inventory status across all SKUs and locations.
-    Efficiently joins state with latest transaction per SKU/location.
+    Returns list of current inventory with stock status across all SKUs 
+    (aggregated across locations). Efficiently aggregates inventory and 
+    finds the most recent transaction per SKU.
 
     Supports searching across SKU and location, filtering by stock status, and sorting by multiple fields.
     """
     # Check if any inventory exists at all (only when no filters are applied)
     if not search and not stock_status:
         inventory_count = await db.scalar(
-            select(func.count()).select_from(State)
+            select(func.count()).select_from(State).where(State.org_id == user.org_id)
         )
         if inventory_count == 0:
             raise NotFound
 
-    # Subquery to get the most recent transaction for each SKU/location
+    # Subquery to get the most recent transaction for each SKU (across all locations)
     latest_txn_subq = (
         select(
             Transaction.sku_code,
-            Transaction.location_id,
-            func.max(Transaction.created_at).label("max_created_at"),
+            Transaction.id,
+            func.row_number()
+            .over(
+                partition_by=Transaction.sku_code,
+                order_by=Transaction.created_at.desc()
+            )
+            .label("rn"),
         )
-        .group_by(Transaction.sku_code, Transaction.location_id)
+        .where(Transaction.org_id == user.org_id)
         .subquery()
     )
 
-    # Define the status case expression for reuse (based on available property)
-    status_expr = case(
-        (State.available == 0, "Out of Stock"),
-        (State.available < 10, "Low Stock"),
-        else_="In Stock",
-    ).label("status")
-
-    # Main query joining state with latest transaction
-    query = (
+    # Subquery for aggregated inventory per SKU
+    aggregated_inventory = (
         select(
             State.sku_code,
-            SKU.name,
-            Location.name.label("location"),
-            State.available,
-            Transaction,
-            status_expr,
+            func.sum(State.available).label("total_available"),
+            func.string_agg(Location.name, ", ").label("locations"),
         )
-        .join(SKU, State.sku_code == SKU.code)
         .join(Location, State.location_id == Location.id)
-        .outerjoin(
-            latest_txn_subq,
-            (State.sku_code == latest_txn_subq.c.sku_code)
-            & (State.location_id == latest_txn_subq.c.location_id),
-        )
-        .outerjoin(
-            Transaction,
-            (Transaction.sku_code == latest_txn_subq.c.sku_code)
-            & (Transaction.location_id == latest_txn_subq.c.location_id)
-            & (Transaction.created_at == latest_txn_subq.c.max_created_at)
-        )
-        .options(selectinload(Transaction.location))
         .where(State.org_id == user.org_id)
+        .group_by(State.sku_code)
     )
 
-    # Apply search filter across SKU and location
+    # Apply search filter to the aggregated subquery if needed
     if search:
-        query = query.where(
+        aggregated_inventory = aggregated_inventory.where(
             or_(
                 State.sku_code.ilike(f"%{search}%"),
                 Location.name.ilike(f"%{search}%"),
             )
         )
 
+    aggregated_inventory = aggregated_inventory.subquery()
+
+    # Define the status case expression for reuse (based on aggregated available)
+    status_expr = case(
+        (aggregated_inventory.c.total_available == 0, "Out of Stock"),
+        (aggregated_inventory.c.total_available < 10, "Low Stock"),
+        else_="In Stock",
+    ).label("status")
+
+    # Main query joining aggregated inventory with SKU and latest transaction
+    query = (
+        select(
+            aggregated_inventory.c.sku_code,
+            SKU.name,
+            aggregated_inventory.c.locations,
+            aggregated_inventory.c.total_available,
+            Transaction,
+            status_expr,
+        )
+        .join(SKU, aggregated_inventory.c.sku_code == SKU.code)
+        .outerjoin(
+            latest_txn_subq,
+            (aggregated_inventory.c.sku_code == latest_txn_subq.c.sku_code)
+            & (latest_txn_subq.c.rn == 1),
+        )
+        .outerjoin(
+            Transaction,
+            Transaction.id == latest_txn_subq.c.id
+        )
+        .options(selectinload(Transaction.location))
+    )
+
     # Apply stock_status filter at the database level
     if stock_status:
         status_conditions = []
         for status in stock_status:
             if status == StockStatus.OUT_OF_STOCK:
-                status_conditions.append(State.available == 0)
+                status_conditions.append(aggregated_inventory.c.total_available == 0)
             elif status == StockStatus.LOW_STOCK:
                 status_conditions.append(
-                    and_(State.available > 0, State.available < 10)
+                    and_(
+                        aggregated_inventory.c.total_available > 0,
+                        aggregated_inventory.c.total_available < 10
+                    )
                 )
             elif status == StockStatus.IN_STOCK:
-                status_conditions.append(State.available >= 10)
+                status_conditions.append(aggregated_inventory.c.total_available >= 10)
 
         if status_conditions:
             query = query.where(or_(*status_conditions))
 
     # Apply sorting
     sort_mapping = {
-        "sku_code": State.sku_code,
+        "sku_code": aggregated_inventory.c.sku_code,
         "name": SKU.name,
-        "location": Location.name,
-        "available": State.available,
+        "location": aggregated_inventory.c.locations,
+        "available": aggregated_inventory.c.total_available,
         "status": status_expr,
     }
 
-    sort_column = sort_mapping.get(sort_by, State.sku_code)
+    sort_column = sort_mapping.get(sort_by, aggregated_inventory.c.sku_code)
 
     if order == "desc":
         query = query.order_by(sort_column.desc())
     else:
         query = query.order_by(sort_column.asc())
-
-    if sort_by != "location":
-        query = query.order_by(Location.name)
 
     return await apaginate(
         db,
@@ -160,8 +176,8 @@ async def get_inventory(
             InventoryItemResponse(
                 sku_code=row.sku_code,
                 name=row.name,
-                location=row.location,
-                available=row.available,
+                location=row.locations,
+                available=row.total_available,
                 last_transaction=row.Transaction.narrative
                 if row.Transaction
                 else "No transactions yet",
