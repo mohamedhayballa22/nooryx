@@ -3,8 +3,10 @@ const BASE_URL = process.env.NEXT_PUBLIC_API_URL || "http://localhost:8000";
 interface FetchOptions extends RequestInit {
   // Optionally override automatic JSON parsing
   rawResponse?: boolean;
-  // Internal flag to prevent infinite refresh loops
+  // Internal flag to prevent infinite JWT token refresh loops
   _isRetry?: boolean;
+  // Flag to indicate if this request requires auth (protected route)
+  requiresAuth?: boolean;
 }
 
 // Custom error class that preserves HTTP status
@@ -37,8 +39,26 @@ async function refreshAccessToken(): Promise<boolean> {
 
     return response.ok;
   } catch (error) {
-    console.error('Token refresh failed:', error);
     return false;
+  }
+}
+
+// Redirect to login page
+function redirectToLogin() {
+  // Only redirect if we're in a protected route or on login page
+  if (typeof window !== 'undefined') {
+    const pathname = window.location.pathname;
+    const isProtectedRoute = pathname.startsWith('/core');
+    const isLoginPage = pathname === '/login';
+    
+    // Only redirect if we're in a protected route and not already on login
+    if (isProtectedRoute && !isLoginPage) {
+      import('next/navigation').then(({ useRouter }) => {
+        window.location.href = '/login';
+      }).catch(() => {
+        window.location.href = '/login';
+      });
+    }
   }
 }
 
@@ -47,12 +67,7 @@ async function handle401<T>(
   endpoint: string,
   options: FetchOptions
 ): Promise<T> {
-  // Don't attempt refresh for auth endpoints themselves
-  const isAuthEndpoint = endpoint.startsWith('/auth/');
-  
-  if (isAuthEndpoint) {
-    throw new ApiError('Authentication required', 401);
-  }
+  const { requiresAuth } = options;
 
   // If we're already refreshing, wait for that to complete
   if (isRefreshing && refreshPromise) {
@@ -61,7 +76,10 @@ async function handle401<T>(
       // Retry the original request
       return apiClient(endpoint, { ...options, _isRetry: true });
     } else {
-      // Refresh failed, just throw the error without redirecting
+      // Refresh failed - only redirect if this was an authenticated request
+      if (requiresAuth) {
+        redirectToLogin();
+      }
       throw new ApiError('Authentication failed', 401);
     }
   }
@@ -78,7 +96,11 @@ async function handle401<T>(
       const result = await apiClient<T>(endpoint, { ...options, _isRetry: true });
       return result;
     } else {
-      // Refresh failed, just throw the error without redirecting
+      // Refresh failed - only redirect if this was an authenticated request
+      // This means they had a session but it's now invalid
+      if (requiresAuth) {
+        redirectToLogin();
+      }
       throw new ApiError('Authentication failed', 401);
     }
   } finally {
@@ -93,10 +115,10 @@ export async function apiClient<T = any>(
   endpoint: string,
   options: FetchOptions = {}
 ): Promise<T> {
-  const { rawResponse, headers, _isRetry, ...fetchOptions } = options;
+  const { rawResponse, headers, _isRetry, requiresAuth, ...fetchOptions } = options;
 
   const response = await fetch(`${BASE_URL}${endpoint}`, {
-    credentials: 'include', // Always include cookies for HttpOnly auth
+    credentials: 'include',
     headers: {
       "Content-Type": "application/json",
       Accept: "application/json",
@@ -113,8 +135,11 @@ export async function apiClient<T = any>(
       return handle401<T>(endpoint, options);
     }
 
-    // If we get here with a 401 after retry, DON'T redirect
-    // Let the calling code handle it (auth context will handle redirects)
+    // If we get here with a 401 after retry, only redirect if auth was required
+    if (response.status === 401 && _isRetry && requiresAuth) {
+      redirectToLogin();
+    }
+
     throw new ApiError(
       errorBody?.message || `HTTP error ${response.status}`,
       response.status,
