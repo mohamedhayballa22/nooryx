@@ -38,7 +38,7 @@ export function TopSKUsCard({
   description,
   data,
   onPeriodChange,
-  variant = "movers", // default
+  variant = "movers",
 }: TopSKUsCardProps) {
   const [period, setPeriod] = useState<PeriodKey>("31d")
 
@@ -179,8 +179,6 @@ export function TopSKUsCard({
                 <Link
                   key={sku.sku}
                   href={`/core/inventory/${sku.sku}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
                   className="flex items-center gap-4 px-4 py-3 rounded-lg border border-muted/20 bg-muted/5 hover:bg-muted/15 hover:border-muted/40 hover:shadow-sm transition-all cursor-pointer group"
                 >
                   {/* Rank */}
