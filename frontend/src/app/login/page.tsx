@@ -1,6 +1,29 @@
-import { LoginForm } from "@/components/login-form"
+"use client";
+
+import { LoginForm } from "@/components/login-form";
+import { useAuth } from "@/lib/auth";
+import { AuthLoading } from "@/components/auth-loading";
+import { useRouter } from "next/navigation";
+import { useEffect } from "react";
 
 export default function LoginPage() {
+  const { isAuthenticated, isLoading } = useAuth();
+  const router = useRouter();
+
+  useEffect(() => {
+    if (!isLoading && isAuthenticated) {
+      router.push("/core/dashboard");
+    }
+  }, [isLoading, isAuthenticated, router]);
+
+  if (isLoading) {
+    return <AuthLoading />;
+  }
+
+  if (isAuthenticated) {
+    return null; // Redirecting...
+  }
+
   return (
     <div className="grid min-h-svh lg:grid-cols-2">
       <div className="flex flex-col gap-4 p-6 md:p-10">
