@@ -221,9 +221,6 @@ async def get_overall_inventory_trend(
     states_result = await session.execute(states_query)
     states = states_result.scalars().all()
     
-    if not states:
-        raise NotFound
-    
     # Get trend data
     days = int(period.rstrip('d'))
     points, oldest_data_point = await get_inventory_trend_points(
