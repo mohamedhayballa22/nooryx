@@ -204,7 +204,7 @@ class TransactionService:
             transfer_cost_display = self.currency_service.format_amount(
                 transfer_cost_minor,
                 currency
-            )
+            ) + " " + currency
             
             # 2. Create transfer_out transaction
             transfer_out_payload = TransferOutTxn(
