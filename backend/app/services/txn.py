@@ -192,12 +192,6 @@ class TransactionService:
                     sku_code=txn_payload.sku_code
                 )
             
-            # Generate transfer_uuid to link both transactions
-            transfer_uuid = txn_payload.txn_metadata.get('transfer_uuid')
-            if not transfer_uuid:
-                import uuid
-                transfer_uuid = str(uuid.uuid4())
-            
             # 1. Calculate transfer cost from source location (returns int minor units)
             transfer_cost_minor = await self.cost_tracker.calculate_transfer_cost(
                 sku_code=txn_payload.sku_code,
@@ -220,7 +214,6 @@ class TransactionService:
                 location=txn_payload.location,
                 txn_metadata={
                     **txn_payload.txn_metadata,
-                    'transfer_uuid': transfer_uuid,
                     'target_location': txn_payload.target_location,
                     'transfer_cost_per_unit': transfer_cost_display
                 }
@@ -245,7 +238,6 @@ class TransactionService:
                 cost_price=transfer_cost_decimal,  # Decimal in major units
                 txn_metadata={
                     **txn_payload.txn_metadata,
-                    'transfer_uuid': transfer_uuid,
                     'source_location': txn_payload.location,
                     'transfer_cost_per_unit': transfer_cost_display
                 }

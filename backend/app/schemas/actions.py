@@ -114,7 +114,7 @@ class TransferOutTxn(BaseModel):
     
     txn_metadata: dict = Field(
         default_factory=dict,
-        description="Transfer metadata including transfer_uuid and target_location"
+        description="Transfer metadata target_location"
     )
     
     class Config:
@@ -139,7 +139,7 @@ class TransferInTxn(BaseModel):
     
     txn_metadata: dict = Field(
         default_factory=dict,
-        description="Transfer metadata including transfer_uuid and source_location"
+        description="Transfer metadata including source_location"
     )
     
     class Config:
