@@ -102,7 +102,7 @@ export default function Page() {
       ) : skuData ? (
         <SkuHeader
           data={skuData}
-          selectedTab={selectedLocation}
+          selectedLocation={selectedLocation}
           onTabChange={setSelectedLocation}
         />
       ) : null}

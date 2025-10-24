@@ -8,11 +8,11 @@ import type { InventorySnapshot } from "@/lib/api/inventory"
 
 interface Props {
   data: InventorySnapshot
-  selectedTab: string
+  selectedLocation: string
   onTabChange: (tab: string) => void
 }
 
-export default function SkuHeader({ data, selectedTab, onTabChange }: Props) {
+export default function SkuHeader({ data, selectedLocation, onTabChange }: Props) {
   const { sku_code, name, status, locations, location_names } = data
 
   return (
@@ -39,7 +39,7 @@ export default function SkuHeader({ data, selectedTab, onTabChange }: Props) {
 
       {locations > 1 && (
         <Tabs
-          value={selectedTab}
+          value={selectedLocation}
           onValueChange={onTabChange}
           className="w-full"
         >
