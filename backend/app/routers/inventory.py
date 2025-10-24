@@ -58,7 +58,7 @@ async def get_inventory(
     Supports searching across SKU and location, filtering by stock status, and sorting by multiple fields.
     """
     # Check if any inventory exists at all (only when no filters are applied)
-    if not search and not stock_status:
+    if not search and len(stock_status) == 3:
         inventory_count = await db.scalar(
             select(func.count()).select_from(State).where(State.org_id == user.org_id)
         )

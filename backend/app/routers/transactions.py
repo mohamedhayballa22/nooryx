@@ -81,7 +81,7 @@ async def get_transactions(
     """
 
     # Check if ANY transactions exist at all (before filters)
-    has_filters = bool(search or action)
+    has_filters = bool(search or len(action) != 6)
     
     if not has_filters:
         # Only check for existence when there are no filters
