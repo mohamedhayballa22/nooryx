@@ -27,6 +27,7 @@ interface TopSKUsCardProps {
   title: string
   description?: string
   data: TopSKUsResponse
+  period?: PeriodKey
   onPeriodChange?: (period: PeriodKey) => void
   variant?: "movers" | "inactives"
 }
@@ -37,10 +38,14 @@ export function TopSKUsCard({
   title,
   description,
   data,
+  period: controlledPeriod,
   onPeriodChange,
   variant = "movers",
 }: TopSKUsCardProps) {
-  const [period, setPeriod] = useState<PeriodKey>("31d")
+  const [uncontrolledPeriod, setUncontrolledPeriod] = useState<PeriodKey>("31d")
+
+  // Use controlled prop if provided; otherwise, fallback to internal state
+  const period = controlledPeriod ?? uncontrolledPeriod
 
   const labelMaps = {
     movers: {
@@ -60,7 +65,9 @@ export function TopSKUsCard({
   const periodLabelMap = labelMaps[variant]
 
   const handlePeriodChange = (newPeriod: PeriodKey) => {
-    setPeriod(newPeriod)
+    if (controlledPeriod === undefined) {
+      setUncontrolledPeriod(newPeriod)
+    }
     onPeriodChange?.(newPeriod)
   }
 

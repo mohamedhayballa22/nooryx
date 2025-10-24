@@ -1,11 +1,12 @@
 "use client"
 
+import { useState } from "react"
 import { DashboardMetrics } from "./components/DashboardMetrics"
 import { TopSKUsCard } from "./components/TopSKUsCard"
 import DashboardHeader from "./components/DashboardHeader"
-import { useEffect, useMemo, useState } from "react"
 import { LatestAuditTrail } from "@/components/LatestAuditTrail"
 import TrendChart from "@/components/TrendChart"
+
 import { useDashboardSummary } from "./hooks/useDashboardSummary"
 import { useDashbaordMetrics } from "./hooks/useDashboardMetrics"
 import { useDashLatestTransactions } from "./hooks/useDashLatestTransactions"
@@ -13,98 +14,54 @@ import { useTopMovers } from "./hooks/useTopMovers"
 import { useTopInactives } from "./hooks/useTopInactives"
 import { useDashInventoryTrend } from "./hooks/useDashTrend"
 
-
 type PeriodKey = "7d" | "31d" | "180d" | "365d"
-
 
 export default function DashboardPage() {
   const [selectedLocation, setselectedLocation] = useState("all")
-  const [preferredPeriod, setPreferredPeriod] = useState<PeriodKey | null>(null)
+
+  // Each section manages its own period
+  const [moversPeriod, setMoversPeriod] = useState<PeriodKey>("31d")
+  const [inactivesPeriod, setInactivesPeriod] = useState<PeriodKey>("31d")
+  const [trendPeriod, setTrendPeriod] = useState<PeriodKey>("365d")
 
   const {
     data: summaryData,
     isLoading: isSummaryLoading,
-    errorStatus: summaryErrorStatus,
-  } = useDashboardSummary();
+  } = useDashboardSummary()
 
   const {
     data: metricsData,
     isLoading: isMetricsLoading,
-    errorStatus: metricsErrorStatus,
-    hasData,
-  } = useDashbaordMetrics(selectedLocation === "all" ? undefined : selectedLocation);
+  } = useDashbaordMetrics(selectedLocation === "all" ? undefined : selectedLocation)
 
   const {
     data: transactionsData,
     isLoading: isTransactionsLoading,
-    errorStatus: transactionsErrorStatus,
-    hasTransactions,
-  } = useDashLatestTransactions(selectedLocation === "all" ? undefined : selectedLocation);
+  } = useDashLatestTransactions(selectedLocation === "all" ? undefined : selectedLocation)
 
   const {
     data: topMoversData,
     isLoading: isTopMoversLoading,
-    errorStatus: topMoversErrorStatus,
   } = useTopMovers(
-    selectedLocation === "all" ? undefined : selectedLocation);
+    selectedLocation === "all" ? undefined : selectedLocation,
+    moversPeriod
+  )
 
   const {
     data: topInactivesData,
     isLoading: isTopInactivesLoading,
-    errorStatus: topInactivesErrorStatus,
   } = useTopInactives(
-    selectedLocation === "all" ? undefined : selectedLocation);
+    selectedLocation === "all" ? undefined : selectedLocation,
+    inactivesPeriod
+  )
 
   const {
     data: trendData,
     isLoading: isTrendLoading,
-    errorStatus: trendStatus,
   } = useDashInventoryTrend(
     selectedLocation === "all" ? undefined : selectedLocation,
-    preferredPeriod ?? "365d"
+    trendPeriod
   )
-  
-
-
-
-  useEffect(() => {
-    const stored = localStorage.getItem("dashboard-trend-period") as PeriodKey | null
-    if (stored) {
-      setPreferredPeriod(stored)
-    }
-  }, [])
-    
-  const handlePeriodChange = (newPeriod: PeriodKey) => {
-      setPreferredPeriod(newPeriod)
-      localStorage.setItem("dashboard-trend-period", newPeriod)
-    }
-
-  const displayPeriod = useMemo<PeriodKey>(() => {
-      if (!trendData?.oldest_data_point) return "31d" // Fallback while loading
-  
-      const oldest = new Date(trendData.oldest_data_point)
-      const now = new Date()
-      const daysDiff = Math.floor((now.getTime() - oldest.getTime()) / (1000 * 60 * 60 * 24))
-  
-      const validPeriods: Record<PeriodKey, boolean> = {
-        "7d": daysDiff > 0,
-        "31d": daysDiff > 7,
-        "180d": daysDiff > 31,
-        "365d": daysDiff > 180,
-      }
-  
-      // If user has a preference and it's valid, use it
-      if (preferredPeriod && validPeriods[preferredPeriod]) {
-        return preferredPeriod
-      }
-  
-      // Otherwise, use the widest valid period (for new users or when preference isn't valid)
-      const widest = (["365d", "180d", "31d", "7d"] as PeriodKey[]).find(
-        (k) => validPeriods[k]
-      ) || "7d"
-      
-      return widest
-    }, [trendData, preferredPeriod])
 
   return (
     <div className="grid gap-5">
@@ -122,14 +79,12 @@ export default function DashboardPage() {
       {isMetricsLoading ? (
         <DashboardMetrics.Skeleton />
       ) : metricsData ? (
-        <DashboardMetrics
-          data={metricsData}
-        />
+        <DashboardMetrics data={metricsData} />
       ) : null}
 
       {/* Second row */}
       <div className="grid grid-cols-1 lg:grid-cols-6 gap-5 auto-rows-[minmax(300px,480px)]">
-        {/* Active Locations */}
+        {/* Latest transactions */}
         <div className="lg:col-span-2">
           {isTransactionsLoading ? (
             <LatestAuditTrail.Skeleton />
@@ -148,9 +103,12 @@ export default function DashboardPage() {
               description="SKUs with no outbound activity"
               data={topInactivesData}
               variant="inactives"
+              period={inactivesPeriod}
+              onPeriodChange={setInactivesPeriod}
             />
           ) : null}
         </div>
+
         {/* Fast Movers */}
         <div className="lg:col-span-2">
           {isTopMoversLoading ? (
@@ -161,20 +119,22 @@ export default function DashboardPage() {
               description="SKUs with the highest outbound movement"
               data={topMoversData}
               variant="movers"
+              period={moversPeriod}
+              onPeriodChange={setMoversPeriod}
             />
           ) : null}
         </div>
       </div>
 
-      {/* Third row */}
+      {/* Third row: Trend Chart */}
       <div className="w-full max-h-[480px]">
         {isTrendLoading ? (
           <TrendChart.Skeleton />
         ) : trendData ? (
           <TrendChart
             inventoryTrend={trendData}
-            period={displayPeriod}
-            onPeriodChange={handlePeriodChange}
+            period={trendPeriod}
+            onPeriodChange={setTrendPeriod}
           />
         ) : null}
       </div>
