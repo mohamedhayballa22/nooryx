@@ -7,6 +7,7 @@ import { Button } from "@/components/ui/button"
 import { ChevronDown, Check } from "lucide-react"
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu"
 import { cn } from "@/lib/utils"
+import { Skeleton } from "@/components/ui/skeleton"
 
 interface TopSKUsItem {
   sku: string
@@ -27,7 +28,7 @@ interface TopSKUsCardProps {
   description?: string
   data: TopSKUsResponse
   onPeriodChange?: (period: PeriodKey) => void
-  variant?: "movers" | "inactives" // NEW PROP
+  variant?: "movers" | "inactives"
 }
 
 const TOTAL_ROWS = 5
@@ -234,6 +235,52 @@ export function TopSKUsCard({
         ) : (
           <p className="text-sm text-muted-foreground">No inventory data available.</p>
         )}
+      </CardContent>
+    </Card>
+  )
+}
+
+TopSKUsCard.Skeleton = function TopSKUsCardSkeleton() {
+  return (
+    <Card className="h-full flex flex-col">
+      <CardHeader className="flex flex-row items-start justify-between">
+        <div>
+          <Skeleton className="h-6 w-32 mb-2" />
+          <Skeleton className="h-4 w-48" />
+        </div>
+
+        <Skeleton className="h-9 w-28" />
+      </CardHeader>
+
+      <CardContent>
+        <div className="space-y-2">
+          {Array.from({ length: TOTAL_ROWS }).map((_, index) => (
+            <div
+              key={index}
+              className="flex items-center gap-4 px-4 py-3 rounded-lg border border-muted/20 bg-muted/5"
+            >
+              {/* Rank */}
+              <Skeleton className="flex-shrink-0 w-8 h-8 rounded-full" />
+
+              {/* Product Info */}
+              <div className="flex-1 min-w-0 space-y-1.5">
+                <Skeleton className="h-4 w-24" />
+                <Skeleton className="h-3 w-32" />
+              </div>
+
+              {/* Stock Bar */}
+              <div className="flex-shrink-0 w-20">
+                <Skeleton className="h-1.5 w-full rounded-full" />
+              </div>
+
+              {/* Available Count */}
+              <div className="flex-shrink-0 text-right min-w-[60px] space-y-1">
+                <Skeleton className="h-5 w-12 ml-auto" />
+                <Skeleton className="h-2.5 w-14 ml-auto" />
+              </div>
+            </div>
+          ))}
+        </div>
       </CardContent>
     </Card>
   )
