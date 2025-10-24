@@ -13,9 +13,14 @@ import {
   navigationMenuTriggerStyle
 } from "@/components/ui/navigation-menu"
 import { Button } from "@/components/ui/button"
+import { useAuth } from "@/lib/auth"
+import { useRouter } from "next/navigation"
+import { MoveRight } from "lucide-react"
 
 export default function GuestNavbar() {
   const [isScrolled, setIsScrolled] = useState(false)
+  const { isAuthenticated } = useAuth()
+  const router = useRouter()
 
   useEffect(() => {
     const handleScroll = () => {
@@ -129,12 +134,21 @@ export default function GuestNavbar() {
         </NavigationMenu>
 
         <div className="flex items-center gap-3 ml-auto">
-            <Button asChild variant="outline">
-            <Link href="/login">Log In</Link>
+          {isAuthenticated ? (
+            <Button variant="outline" className="cursor-pointer" onClick={() => router.push('/core/dashboard')}>
+              Go to App
+              <MoveRight className="ml-1 mt-0.5 h-4 w-4" />
             </Button>
-            <Button asChild>
-            <Link href="/demo">Book a Demo</Link>
-            </Button>
+          ) : (
+            <>
+              <Button asChild variant="outline">
+                <Link href="/login">Log In</Link>
+              </Button>
+              <Button asChild>
+                <Link href="/demo">Get Started</Link>
+              </Button>
+            </>
+          )}
         </div>
         </div>
     </header>
