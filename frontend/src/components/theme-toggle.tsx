@@ -23,21 +23,21 @@ export default function ThemeToggle() {
         <ToggleGroupItem
           value="system"
           aria-label="System theme"
-          className="flex items-center justify-center rounded-sm p-2 data-[state=on]:bg-background h-8"
+          className="flex items-center justify-center rounded-sm p-2 data-[state=on]:bg-background h-8 cursor-pointer"
         >
           <MonitorIcon size={16} />
         </ToggleGroupItem>
         <ToggleGroupItem
           value="light"
           aria-label="Light theme"
-          className="flex items-center justify-center rounded-sm p-2 data-[state=on]:bg-background h-8"
+          className="flex items-center justify-center rounded-sm p-2 data-[state=on]:bg-background h-8 cursor-pointer"
         >
           <SunIcon size={16} />
         </ToggleGroupItem>
         <ToggleGroupItem
           value="dark"
           aria-label="Dark theme"
-          className="flex items-center justify-center rounded-sm p-2 data-[state=on]:bg-background h-8"
+          className="flex items-center justify-center rounded-sm p-2 data-[state=on]:bg-background h-8 cursor-pointer"
         >
           <MoonIcon size={16} />
         </ToggleGroupItem>

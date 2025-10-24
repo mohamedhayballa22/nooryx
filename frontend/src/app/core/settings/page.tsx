@@ -26,7 +26,7 @@ export default function PreferencesPage() {
             label="Reduce motion"
             description="Minimize animations and transitions for accessibility"
             control={
-              <Switch
+              <Switch className="cursor-pointer"
                 checked={reduceMotion}
                 onCheckedChange={setReduceMotion}
               />
