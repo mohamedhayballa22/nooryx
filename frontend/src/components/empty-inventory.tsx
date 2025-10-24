@@ -28,7 +28,7 @@ export function EmptyInventory() {
 
       <EmptyContent>
         <Button variant="outline" className="cursor-pointer rounded-sm">
-          Add Your First Item
+          Create Your First Item
         </Button>
       </EmptyContent>
     </Empty>
