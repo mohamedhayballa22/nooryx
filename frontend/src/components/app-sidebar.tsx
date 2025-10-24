@@ -45,7 +45,7 @@ const mainItems = [
   { title: "Dashboard", url: "/core/dashboard", icon: ChartSpline },
   { title: "Inventory", url: "/core/inventory", icon: Box },
   { title: "Audit Trail", url: "/core/audit-trail", icon: ClipboardClock },
-  { title: "Notifications", url: "#", icon: Bell },
+  { title: "Alerts", url: "#", icon: Bell },
 ]
 
 const systemItems = [
@@ -92,7 +92,7 @@ export function AppSidebar() {
                     <Link href={item.url} className="relative flex items-center">
                       <div className="relative">
                         <item.icon className="w-5 h-5" />
-                        {item.title === "Notifications" && (
+                        {item.title === "Alerts" && (
                           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">
                             3
                           </span>
