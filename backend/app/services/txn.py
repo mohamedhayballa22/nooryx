@@ -227,17 +227,20 @@ class TransactionService:
                 transfer_cost_minor,
                 currency
             )
+
+            txn_metadata = txn_payload.txn_metadata.copy()
+            txn_metadata.pop('target_location', None)
             
             # 4. Create transfer_in transaction with calculated cost AND sku_name
             transfer_in_payload = TransferInTxn(
                 action="transfer_in",
                 sku_code=txn_payload.sku_code,
-                sku_name=sku_name,  # ← Retrieved internally
+                sku_name=sku_name,
                 qty=abs(txn_payload.qty),
                 location=txn_payload.target_location,
-                cost_price=transfer_cost_decimal,  # Decimal in major units
+                cost_price=transfer_cost_decimal,
                 txn_metadata={
-                    **txn_payload.txn_metadata,
+                    **txn_metadata,
                     'source_location': txn_payload.location,
                     'transfer_cost_per_unit': transfer_cost_display
                 }
