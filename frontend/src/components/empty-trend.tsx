@@ -11,7 +11,7 @@ import {
 
 export function EmptyTrend() {
   return (
-    <Empty className="h-full flex flex-col items-center justify-center text-center px-6">
+    <Empty className="h-full flex flex-col items-center justify-center text-center px-6 -mt-4">
       <EmptyHeader className="max-w-2xl mx-auto">
         <EmptyMedia variant="icon" className="size-16">
           <UnplugIcon className="size-10" strokeWidth={1.5} />
