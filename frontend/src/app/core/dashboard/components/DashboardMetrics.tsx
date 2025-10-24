@@ -1,17 +1,7 @@
 "use client"
 
 import { MetricCard } from "@/components/MetricCard"
-
-interface DashboardMetricsData {
-  total_available: number
-  total_on_hand: {
-    value: number;
-    delta_pct: number;
-  };
-  stockouts: number
-  low_stock: number
-  location: string | null
-}
+import { DashboardMetricsData } from "@/lib/api/dashboard"
 
 interface DashboardMetricsProps {
   data: DashboardMetricsData

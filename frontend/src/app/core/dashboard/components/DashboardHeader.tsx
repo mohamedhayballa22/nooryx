@@ -5,21 +5,11 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
 import { ChevronDown } from "lucide-react"
 import { cn } from "@/lib/utils"
-
-interface DashboardSummary {
-  first_name: string
-  low_stock: number
-  out_of_stock: number
-  fast_mover_low_stock_sku: string[] | null
-  fast_mover_out_of_stock_sku: string[] | null
-  inactive_sku_in_stock: string[] | null
-  empty_inventory: boolean
-  locations: string[]
-}
+import { DashboardSummary } from "@/lib/api/dashboard"
 
 interface Props {
   data: DashboardSummary
-  selectedTab: string
+  selectedLocation: string
   onTabChange: (tab: string) => void
 }
 
@@ -56,7 +46,7 @@ function formatMessageWithLinks(message: string) {
 
 export default function DashboardHeader({
   data,
-  selectedTab,
+  selectedLocation,
   onTabChange,
 }: Props) {
   const [expandedMessage, setExpandedMessage] = useState(false)
@@ -197,7 +187,7 @@ export default function DashboardHeader({
 
       {/* Location Tabs */}
       {locations.length > 1 && (
-        <Tabs value={selectedTab} onValueChange={onTabChange} className="w-full">
+        <Tabs value={selectedLocation} onValueChange={onTabChange} className="w-full">
           <TabsList className="flex flex-wrap gap-2 bg-transparent border-b border-border p-0">
             <TabsTrigger
               value="all"
