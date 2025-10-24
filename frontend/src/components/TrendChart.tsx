@@ -100,8 +100,8 @@ export default function TrendChart({
     },
   }
 
-  const title = inventoryTrend.sku
-    ? `Inventory Trend - ${inventoryTrend.sku}`
+  const title = inventoryTrend.sku_code
+    ? `Inventory Trend - ${inventoryTrend.sku_code}`
     : "Inventory Trend"
 
   const description = inventoryTrend.location
