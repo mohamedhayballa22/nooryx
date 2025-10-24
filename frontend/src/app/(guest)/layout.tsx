@@ -3,7 +3,7 @@
 import GuestNavbar from "@/components/guest-navbar";
 import { useAuth } from "@/lib/auth";
 import { AuthLoading } from "@/components/auth-loading";
-import { useRouter } from "next/navigation";
+import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 
 export default function GuestLayout({
@@ -13,26 +13,31 @@ export default function GuestLayout({
 }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
+  const pathname = usePathname();
+  
+  const isRootPage = pathname === "/";
 
   useEffect(() => {
-    if (!isLoading && isAuthenticated) {
+    // Only redirect from root page
+    if (isRootPage && !isLoading && isAuthenticated) {
       router.push("/core/dashboard");
     }
-  }, [isLoading, isAuthenticated, router]);
+  }, [isRootPage, isLoading, isAuthenticated, router]);
 
-  if (isLoading) {
-    return <AuthLoading />;
+  // For root page: don't show anything while checking or redirecting
+  if (isRootPage) {
+    if (isLoading) {
+      return <AuthLoading />;
+    }
+    if (isAuthenticated) {
+      return null; // Redirecting...
+    }
   }
 
-  if (isAuthenticated) {
-    return null; // Redirecting...
-  }
-
+  // For all other guest routes: render normally
   return (
     <div className="min-h-screen flex flex-col">
       <GuestNavbar />
-
-      {/* Main content (pushed down because Navbar is fixed) */}
       <main className="flex-1 pt-20">{children}</main>
     </div>
   );
