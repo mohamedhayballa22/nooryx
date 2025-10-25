@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo } from "react"
+import React, { useMemo, useEffect } from "react"
 import { AreaChart, Area, XAxis, CartesianGrid } from "recharts"
 import {
   Card,
@@ -90,6 +90,25 @@ export default function TrendChart({
       "365d": daysDiff > 180,
     } as Record<PeriodKey, boolean>
   }, [inventoryTrend.oldest_data_point, hasInsufficientData])
+
+  // Auto-adjust period to closest valid option
+  useEffect(() => {
+    if (hasInsufficientData) return
+    
+    if (!validPeriods[period]) {
+      // Define period order from longest to shortest
+      const periodOrder: PeriodKey[] = ["365d", "180d", "31d", "7d"]
+      const currentIndex = periodOrder.indexOf(period)
+      
+      // Find the closest valid period (walk backwards from current)
+      for (let i = currentIndex + 1; i < periodOrder.length; i++) {
+        if (validPeriods[periodOrder[i]]) {
+          onPeriodChange(periodOrder[i])
+          return
+        }
+      }
+    }
+  }, [period, validPeriods, hasInsufficientData, onPeriodChange])
 
   const displayPeriod = hasInsufficientData ? "7d" : period
 
