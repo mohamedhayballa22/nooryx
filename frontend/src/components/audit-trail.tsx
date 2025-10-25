@@ -121,7 +121,7 @@ export function AuditTrail({
             {!snippet && (
               <div className="flex flex-col gap-2">
                 <a
-                  href={`/core/inventory?sku=${item.sku_code}`}
+                  href={`/core/inventory?sku=${encodeURIComponent(item.sku_code)}`}
                   target="_blank"
                   rel="noopener noreferrer"
                   className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"
@@ -235,7 +235,7 @@ export function AuditTrail({
                   <TabsContent value="context" className="text-sm">
                     <div className="flex flex-col gap-2">
                       <a
-                        href={`/core/inventory?sku=${item.sku_code}`}
+                        href={`/core/inventory?sku=${encodeURIComponent(item.sku_code)}`}
                         target="_blank"
                         rel="noopener noreferrer"
                         className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"

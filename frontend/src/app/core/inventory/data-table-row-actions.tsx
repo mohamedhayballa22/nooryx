@@ -38,7 +38,7 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
         onClick={(e) => e.stopPropagation()}
       >
         <DropdownMenuItem asChild>
-          <Link href={`/core/inventory?sku=${product.sku_code}`}>See more</Link>
+          <Link href={`/core/inventory?sku=${encodeURIComponent(product.sku_code)}`}>See more</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href={`/core/audit-trail?search=${product.sku_code}`}>View History</Link>
