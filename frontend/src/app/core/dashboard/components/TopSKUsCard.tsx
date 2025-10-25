@@ -185,7 +185,7 @@ export function TopSKUsCard({
               return (
                 <Link
                   key={sku.sku}
-                  href={`/core/inventory/${sku.sku}`}
+                  href={`/core/inventory/?sku=${sku.sku}`}
                   className="flex items-center gap-4 px-4 py-3 rounded-lg border border-muted/20 bg-muted/5 hover:bg-muted/15 hover:border-muted/40 hover:shadow-sm transition-all cursor-pointer group"
                 >
                   {/* Rank */}
