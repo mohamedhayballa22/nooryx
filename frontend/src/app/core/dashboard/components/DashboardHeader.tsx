@@ -44,6 +44,24 @@ function formatMessageWithLinks(message: string) {
   return formatted
 }
 
+// Utility: determines if truncation is worthwhile
+function shouldShowToggle(primary: string, full: string): boolean {
+  if (primary === full) return false
+  
+  const primaryWords = primary.split(/\s+/).length
+  const fullWords = full.split(/\s+/).length
+  const wordDiff = fullWords - primaryWords
+  
+  // Threshold: Show toggle only if full text has at least 20 more words
+  // AND is at least 60% longer
+  const MIN_WORD_DIFFERENCE = 20
+  const MIN_PERCENTAGE_INCREASE = 0.6
+  
+  const percentageIncrease = (fullWords - primaryWords) / primaryWords
+  
+  return wordDiff >= MIN_WORD_DIFFERENCE && percentageIncrease >= MIN_PERCENTAGE_INCREASE
+}
+
 export default function DashboardHeader({
   data,
   selectedLocation,
@@ -82,10 +100,13 @@ export default function DashboardHeader({
   // Build message variants
   const { primary, full, hasExpanded } = useMemo(() => {
     if (empty_inventory) {
+      const primaryMsg = "Your inventory is currently empty."
+      const fullMsg = "Your inventory is currently empty. Start by receiving new stock to get things moving."
+      const showToggle = shouldShowToggle(primaryMsg, fullMsg)
       return {
-        primary: "Your inventory is currently empty.",
-        full: "Your inventory is currently empty. Start by receiving new stock to get things moving.",
-        hasExpanded: true,
+        primary: showToggle ? primaryMsg : fullMsg, // Use full message if no toggle
+        full: fullMsg,
+        hasExpanded: showToggle,
       }
     }
 
@@ -93,15 +114,19 @@ export default function DashboardHeader({
       if (inactive_sku_in_stock?.length) {
         const joined = joinSkus(inactive_sku_in_stock)
         const plural = inactive_sku_in_stock.length > 1
+        const primaryMsg = `${joined} ${plural ? "have" : "has"} not moved in over 10 days.`
+        const fullMsg = `All SKUs are well stocked, but ${joined} ${plural ? "have" : "has"} not moved in over 10 days. These items are tying up capital.`
+        const showToggle = shouldShowToggle(primaryMsg, fullMsg)
         return {
-          primary: `${joined} ${plural ? "have" : "has"} not moved in over 10 days.`,
-          full: `All SKUs are well stocked, but ${joined} ${plural ? "have" : "has"} not moved in over 10 days. These items are tying up capital.`,
-          hasExpanded: true,
+          primary: showToggle ? primaryMsg : fullMsg,
+          full: fullMsg,
+          hasExpanded: showToggle,
         }
       }
+      const msg = "Your inventory looks healthy. All SKUs are well stocked."
       return {
-        primary: "Your inventory looks healthy.",
-        full: "Your inventory looks healthy. All SKUs are well stocked.",
+        primary: msg,
+        full: msg,
         hasExpanded: false,
       }
     }
@@ -110,16 +135,22 @@ export default function DashboardHeader({
       if (fast_mover_low_stock_sku?.length) {
         const joined = joinSkus(fast_mover_low_stock_sku)
         const plural = fast_mover_low_stock_sku.length > 1
+        const primaryMsg = `${joined} ${plural ? "are" : "is"} running low.`
+        const fullMsg = `Most SKUs are in good shape, but ${joined} ${plural ? "are" : "is"} moving out quickly but running low. Replenish them soon.`
+        const showToggle = shouldShowToggle(primaryMsg, fullMsg)
         return {
-          primary: `${joined} ${plural ? "are" : "is"} running low.`,
-          full: `Most SKUs are in good shape, but ${joined} ${plural ? "are" : "is"} moving out quickly but running low. Replenish them soon.`,
-          hasExpanded: true,
+          primary: showToggle ? primaryMsg : fullMsg,
+          full: fullMsg,
+          hasExpanded: showToggle,
         }
       }
+      const primaryMsg = `${low_stock} ${pluralize(low_stock)} running low.`
+      const fullMsg = `${low_stock} ${pluralize(low_stock)} ${low_stock === 1 ? "is" : "are"} running low. Consider restocking soon.`
+      const showToggle = shouldShowToggle(primaryMsg, fullMsg)
       return {
-        primary: `${low_stock} ${pluralize(low_stock)} running low.`,
-        full: `${low_stock} ${pluralize(low_stock)} ${low_stock === 1 ? "is" : "are"} running low. Consider restocking soon.`,
-        hasExpanded: true,
+        primary: showToggle ? primaryMsg : fullMsg,
+        full: fullMsg,
+        hasExpanded: showToggle,
       }
     }
 
@@ -127,28 +158,38 @@ export default function DashboardHeader({
       if (fast_mover_out_of_stock_sku?.length) {
         const joined = joinSkus(fast_mover_out_of_stock_sku)
         const plural = fast_mover_out_of_stock_sku.length > 1
+        const primaryMsg = `${out_of_stock} ${pluralize(out_of_stock)} out of stock.`
+        const fullMsg = `${out_of_stock} ${pluralize(out_of_stock)} ${out_of_stock === 1 ? "is" : "are"} completely out of stock, including fast movers such as ${joined}. Replenish ${plural ? "them" : "it"} immediately.`
+        const showToggle = shouldShowToggle(primaryMsg, fullMsg)
         return {
-          primary: `${out_of_stock} ${pluralize(out_of_stock)} out of stock.`,
-          full: `${out_of_stock} ${pluralize(out_of_stock)} ${out_of_stock === 1 ? "is" : "are"} completely out of stock, including fast movers such as ${joined}. Replenish ${plural ? "them" : "it"} immediately.`,
-          hasExpanded: true,
+          primary: showToggle ? primaryMsg : fullMsg,
+          full: fullMsg,
+          hasExpanded: showToggle,
         }
       }
+      const primaryMsg = `${out_of_stock} ${pluralize(out_of_stock)} out of stock.`
+      const fullMsg = `${out_of_stock} ${pluralize(out_of_stock)} ${out_of_stock === 1 ? "is" : "are"} completely out of stock. Restocking should be your top priority.`
+      const showToggle = shouldShowToggle(primaryMsg, fullMsg)
       return {
-        primary: `${out_of_stock} ${pluralize(out_of_stock)} out of stock.`,
-        full: `${out_of_stock} ${pluralize(out_of_stock)} ${out_of_stock === 1 ? "is" : "are"} completely out of stock. Restocking should be your top priority.`,
-        hasExpanded: true,
+        primary: showToggle ? primaryMsg : fullMsg,
+        full: fullMsg,
+        hasExpanded: showToggle,
       }
     }
 
     if (low_stock > 0 && out_of_stock > 0) {
+      const primaryMsg = `${out_of_stock} out of stock, ${low_stock} running low.`
+      const fullMsg = buildFullMessage(out_of_stock, low_stock, fast_mover_out_of_stock_sku, fast_mover_low_stock_sku, inactive_sku_in_stock, pluralize, joinSkus)
+      const showToggle = shouldShowToggle(primaryMsg, fullMsg)
       return {
-        primary: `${out_of_stock} out of stock, ${low_stock} running low.`,
-        full: buildFullMessage(out_of_stock, low_stock, fast_mover_out_of_stock_sku, fast_mover_low_stock_sku, inactive_sku_in_stock, pluralize, joinSkus),
-        hasExpanded: true,
+        primary: showToggle ? primaryMsg : fullMsg,
+        full: fullMsg,
+        hasExpanded: showToggle,
       }
     }
 
-    return { primary: "Monitoring inventory health...", full: "Monitoring inventory health...", hasExpanded: false }
+    const msg = "Monitoring inventory health..."
+    return { primary: msg, full: msg, hasExpanded: false }
   }, [low_stock, out_of_stock, fast_mover_low_stock_sku, fast_mover_out_of_stock_sku, inactive_sku_in_stock, empty_inventory])
 
   const displayedMessage = expandedMessage ? full : primary
