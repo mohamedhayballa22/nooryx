@@ -83,7 +83,7 @@ export default function DashboardPage() {
       ) : null}
 
       {/* Second row */}
-      <div className="grid grid-cols-1 lg:grid-cols-6 gap-5 auto-rows-[minmax(300px,480px)]">
+      <div className="grid grid-cols-1 lg:grid-cols-6 gap-5">
         {/* Latest transactions */}
         <div className="lg:col-span-2">
           {isTransactionsLoading ? (
