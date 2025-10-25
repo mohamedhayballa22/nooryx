@@ -105,8 +105,8 @@ export function SkuMasterView({ skuCode }: SkuMasterViewProps) {
         <SkuSnapshotCards data={skuData} />
       ) : null}
 
-      <div className="grid grid-cols-1 lg:grid-cols-6 gap-5 auto-rows-[minmax(300px,480px)]">
-        <div className="lg:col-span-4">
+      <div className="grid grid-cols-1 lg:grid-cols-6 gap-5">
+        <div className="lg:col-span-4 lg:max-h-[450px]">
           {isTrendLoading ? (
             <TrendChart.Skeleton />
           ) : trendData ? (
@@ -118,7 +118,7 @@ export function SkuMasterView({ skuCode }: SkuMasterViewProps) {
           ) : null}
         </div>
 
-        <div className="lg:col-span-2">
+        <div className="lg:col-span-2 lg:max-h-[450px]">
           {isTransactionsLoading ? (
             <LatestAuditTrail.Skeleton />
           ) : transactionsData ? (
