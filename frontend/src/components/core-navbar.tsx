@@ -11,11 +11,12 @@ import {
 } from "@/components/ui/breadcrumb";
 import { SearchDialog } from "@/components/app-search";
 import { ThemeToggle } from "@/components/nav-theme-toggle";
-import { usePathname } from "next/navigation";
+import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
 
 export function CoreNavbar() {
   const pathname = usePathname();
+  const searchParams = useSearchParams();
 
   // Split the path into segments
   const segments = pathname.split("/").filter(Boolean);
@@ -26,6 +27,9 @@ export function CoreNavbar() {
   // Helper to rebuild URLs progressively after '/core'
   const getHref = (index: number) =>
     "/core/" + filteredSegments.slice(0, index + 1).join("/");
+
+  // Check if we're on inventory page with a SKU query param
+  const skuCode = pathname === "/core/inventory" ? searchParams.get("sku") : null;
 
   return (
     <nav className="w-full h-14 border-b flex items-center justify-between px-4">
@@ -45,7 +49,7 @@ export function CoreNavbar() {
               return (
                 <div key={href} className="flex items-center gap-1.5">
                   <BreadcrumbItem>
-                    {isLast ? (
+                    {isLast && !skuCode ? (
                       <BreadcrumbPage>{label}</BreadcrumbPage>
                     ) : (
                       <BreadcrumbLink asChild>
@@ -53,10 +57,17 @@ export function CoreNavbar() {
                       </BreadcrumbLink>
                     )}
                   </BreadcrumbItem>
-                  {!isLast && <BreadcrumbSeparator />}
+                  <BreadcrumbSeparator />
                 </div>
               );
             })}
+
+            {/* Add SKU breadcrumb if present */}
+            {skuCode && (
+              <BreadcrumbItem>
+                <BreadcrumbPage>{skuCode}</BreadcrumbPage>
+              </BreadcrumbItem>
+            )}
           </BreadcrumbList>
         </Breadcrumb>
       </div>
