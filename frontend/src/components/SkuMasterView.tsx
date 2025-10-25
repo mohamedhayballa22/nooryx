@@ -1,13 +1,13 @@
 "use client"
 
 import { useState, useMemo } from "react"
-import { SkuSnapshotCards } from "@/app/core/inventory/[sku]/components/SkuSnapshotCards"
+import { SkuSnapshotCards } from "@/app/core/inventory/(sku)/components/SkuSnapshotCards"
 import TrendChart from "@/components/TrendChart"
 import { LatestAuditTrail } from "@/components/LatestAuditTrail"
-import SkuHeader from "@/app/core/inventory/[sku]/components/SkuHeader"
-import { useSku } from "@/app/core/inventory/[sku]/hooks/useSku"
-import { useSkuTransactions } from "@/app/core/inventory/[sku]/hooks/useSkuTransactions"
-import { useSkuTrend } from "@/app/core/inventory/[sku]/hooks/useSkuTrend"
+import SkuHeader from "@/app/core/inventory/(sku)/components/SkuHeader"
+import { useSku } from "@/app/core/inventory/(sku)/hooks/useSku"
+import { useSkuTransactions } from "@/app/core/inventory/(sku)/hooks/useSkuTransactions"
+import { useSkuTrend } from "@/app/core/inventory/(sku)/hooks/useSkuTrend"
 import SkuNotFound from "@/components/sku-not-found"
 
 type PeriodKey = "7d" | "31d" | "180d" | "365d"
