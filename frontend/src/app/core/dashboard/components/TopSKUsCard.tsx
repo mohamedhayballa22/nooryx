@@ -165,7 +165,7 @@ export function TopSKUsCard({
                     </div>
 
                     {/* Empty Stock Bar */}
-                    <div className="flex-shrink-0 w-20">
+                    <div className="flex-shrink-0 w-15">
                       <div className="h-1.5 bg-muted rounded-full overflow-hidden" />
                     </div>
 
@@ -200,7 +200,7 @@ export function TopSKUsCard({
                   </div>
 
                   {/* Stock Bar */}
-                  <div className="flex-shrink-0 w-20">
+                  <div className="flex-shrink-0 w-15">
                     <div className="h-1.5 bg-muted rounded-full overflow-hidden">
                       <div
                         className={cn(
