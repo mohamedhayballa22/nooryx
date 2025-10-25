@@ -35,11 +35,10 @@ export function DataTableRowActions({ row }: DataTableRowActionsProps) {
       <DropdownMenuContent
         align="end"
         className="w-[160px]"
-        // Stop propagation to prevent the row's onClick from firing
         onClick={(e) => e.stopPropagation()}
       >
         <DropdownMenuItem asChild>
-          <Link href={`/core/inventory/${product.sku_code}`}>See more</Link>
+          <Link href={`/core/inventory?sku=${product.sku_code}`}>See more</Link>
         </DropdownMenuItem>
         <DropdownMenuItem asChild>
           <Link href={`/core/audit-trail?search=${product.sku_code}`}>View History</Link>

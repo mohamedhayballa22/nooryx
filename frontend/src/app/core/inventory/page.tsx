@@ -1,11 +1,26 @@
 "use client"
 
+import { useSearchParams } from "next/navigation"
 import { DataTable } from "@/components/data-table/data-table"
 import { columns } from "./columns"
 import { useInventoryList } from "@/hooks/use-inventory"
-import {EmptyInventory} from "@/components/empty-inventory";
+import { EmptyInventory } from "@/components/empty-inventory"
+import { SkuMasterView } from "@/components/SkuMasterView"
 
-export default function StockPage() {
+function InventoryContent() {
+  const searchParams = useSearchParams()
+  const skuCode = searchParams.get("sku")
+
+  // If SKU is in query params, show detail view (don't use the hook)
+  if (skuCode) {
+    return <SkuMasterView skuCode={skuCode} />
+  }
+
+  // Only use the hook for list view
+  return <InventoryListView />
+}
+
+function InventoryListView() {
   const {
     data,
     isLoading,
@@ -26,7 +41,7 @@ export default function StockPage() {
   } = useInventoryList()
 
   if (errorStatus === 404) {
-    return <EmptyInventory />;
+    return <EmptyInventory />
   }
 
   return (
@@ -57,3 +72,10 @@ export default function StockPage() {
     </div>
   )
 }
+
+export default function StockPage() {
+  return (
+    <InventoryContent />
+  )
+}
+
