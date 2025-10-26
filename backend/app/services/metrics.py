@@ -1,5 +1,5 @@
 from datetime import datetime, timedelta
-from sqlalchemy import select, func, and_, case
+from sqlalchemy import select, func, and_, case, cast, Date
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.models import Transaction
@@ -24,7 +24,7 @@ async def calculate_weekly_delta(
         Percentage change from last week, rounded to 1 decimal place
     """
 
-    # Special case: current stock is 0
+    # Handle special case where current stock is 0
     if current_on_hand == 0:
         one_week_ago = datetime.now() - timedelta(days=7)
         two_weeks_ago = datetime.now() - timedelta(days=14)
@@ -54,7 +54,7 @@ async def calculate_weekly_delta(
 
         return 0.0
 
-    # Find transaction from 5-11 days ago, closest to 7 days
+    # Normal weekly delta calculation ---
     today = datetime.now()
     min_date = today - timedelta(days=11)
     max_date = today - timedelta(days=5)
@@ -68,35 +68,51 @@ async def calculate_weekly_delta(
     if location_id is not None:
         filters.append(Transaction.location_id == location_id)
 
-    # Handle aggregation across all locations
-    if location_id is None:
-        # First, find the best timestamp (closest to 7 days ago)
-        timestamp_stmt = (
-            select(Transaction.created_at)
-            .where(and_(*filters))
-            .order_by(
-                func.abs(
-                    func.extract(
-                        "epoch",
-                        Transaction.created_at - (today - timedelta(days=7)),
-                    )
+    # Build subquery that keeps only the most recent transaction per day
+    # This ensures that when we pick the "closest to 7 days ago" record, it’s the newest within its day.
+    day_subquery = (
+        select(
+            cast(Transaction.created_at, Date).label("txn_day"),
+            func.max(Transaction.created_at).label("max_created_at"),
+        )
+        .where(and_(*filters))
+        .group_by(cast(Transaction.created_at, Date))
+    ).subquery()
+
+    # Join to get back the full transaction rows, limited by filters
+    joined_stmt = (
+        select(Transaction)
+        .join(
+            day_subquery,
+            Transaction.created_at == day_subquery.c.max_created_at,
+        )
+        .where(and_(*filters))
+        .order_by(
+            func.abs(
+                func.extract(
+                    "epoch",
+                    Transaction.created_at - (today - timedelta(days=7)),
                 )
             )
-            .limit(1)
         )
-        timestamp_result = await db.execute(timestamp_stmt)
-        target_timestamp = timestamp_result.scalar_one_or_none()
+        .limit(1)
+    )
 
-        if not target_timestamp:
-            return 0.0
+    result = await db.execute(joined_stmt)
+    ideal_txn = result.scalar_one_or_none()
 
-        # Build subquery filters
+    if not ideal_txn:
+        return 0.0
+
+    # Multi-location case
+    if location_id is None:
+        # The "ideal" txn is from the aggregated context (not restricted to one location)
+        target_timestamp = ideal_txn.created_at
+
         subquery_filters = [Transaction.created_at <= target_timestamp]
         if sku_code is not None:
             subquery_filters.append(Transaction.sku_code == sku_code)
 
-        # Get most recent transaction at or before this timestamp for each location
-        # and sum their on_hand values
         subquery = (
             select(
                 Transaction.location_id,
@@ -106,7 +122,6 @@ async def calculate_weekly_delta(
             .group_by(Transaction.location_id)
         ).subquery()
 
-        # Build join conditions
         join_conditions = [
             Transaction.location_id == subquery.c.location_id,
             Transaction.created_at == subquery.c.max_created_at,
@@ -133,34 +148,16 @@ async def calculate_weekly_delta(
         result = await db.execute(stmt)
         last_week_on_hand = result.scalar() or 0
 
-        if last_week_on_hand == 0:
-            return 0.0
+    # Single-location case
     else:
-        # Single location query
-        stmt = (
-            select(Transaction)
-            .where(and_(*filters))
-            .order_by(
-                func.abs(
-                    func.extract(
-                        "epoch",
-                        Transaction.created_at - (today - timedelta(days=7)),
-                    )
-                )
-            )
-            .limit(1)
-        )
-        result = await db.execute(stmt)
-        last_week_txn = result.scalar_one_or_none()
-        if not last_week_txn:
-            return 0.0
+        # The "ideal_txn" was chosen within that specific location already
+        last_week_txn = ideal_txn
         last_week_on_hand = _calculate_on_hand_from_txn(last_week_txn)
-        if last_week_on_hand == 0:
-            return 0.0
 
     if last_week_on_hand == 0:
-        return 0.0  # Avoid division by zero if last week was 0 and this week isn't
-        
+        return 0.0
+
+    # Compute delta percentage
     delta_pct = ((current_on_hand - last_week_on_hand) / last_week_on_hand) * 100
     return round(delta_pct, 1)
 
@@ -171,4 +168,3 @@ def _calculate_on_hand_from_txn(txn: Transaction) -> int:
         return txn.qty_before
     else:
         return txn.qty_before + txn.qty
-    
