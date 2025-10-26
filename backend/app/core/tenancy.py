@@ -142,33 +142,17 @@ def _apply_tenant_filter(orm_execute_state: ORMExecuteState): # noqa: F811
             )
             
         except InvalidRequestError as e:
-            # This can occur with certain query structures where the filter
-            # cannot be applied due to the entity not being in the correct context.
-            # This might be a legitimate case (e.g., subquery in SELECT clause),
-            # but we need to verify the query is already filtered.
-            
-            # Check if org_id filter already exists in the WHERE clause
-            where_clause_str = str(orm_execute_state.statement.whereclause)
-            entity_table = entity.class_.__tablename__
-            
-            if f"{entity_table}.org_id" in where_clause_str or "org_id =" in where_clause_str:
-                # Filter already present, this is safe
-                continue
-            
-            # If we can't apply the filter and it's not already there, this is critical
+            # Cannot apply filter - fail safely to prevent data leakage
             logger.error(
-                f"Could not apply tenant filter to {entity.class_.__name__} and no existing filter found: {e}",
+                f"Could not apply tenant filter to {entity.class_.__name__}: {e}",
                 extra={
                     'tenant_id': str(tenant_id),
                     'entity': entity.class_.__name__,
                     'error': str(e),
-                    'statement': str(orm_execute_state.statement)
                 },
                 exc_info=True
             )
-            # Re-raise to fail safely rather than risk tenant data exposure
             raise
-            
         except AttributeError as e:
             # This should not occur if _is_table_entity works correctly,
             # but we catch it explicitly for security
