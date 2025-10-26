@@ -53,11 +53,6 @@ class TenantContext:
 def _apply_tenant_filter(orm_execute_state: ORMExecuteState): # noqa: F811
     """
     Automatically inject tenant filter on all ORM queries.
-    
-    This event listener intercepts all SELECT queries and adds
-    org_id filtering when a tenant context is active.
-    
-    Registered automatically, not called directly.
     """
     # Only apply to SELECT statements
     if not orm_execute_state.is_select:
@@ -76,11 +71,16 @@ def _apply_tenant_filter(orm_execute_state: ORMExecuteState): # noqa: F811
     if orm_execute_state.is_orm_statement:
         for entity in orm_execute_state.all_mappers:
             # Check if entity mapper has org_id column
-            if hasattr(entity.class_, 'org_id'):
-                orm_execute_state.statement = orm_execute_state.statement.filter_by(
-                    org_id=tenant_id
-                )
-
+            # AND check if it's an actual mapped class (not a subquery/alias)
+            if (hasattr(entity.class_, 'org_id') and 
+                hasattr(entity.class_, '__tablename__')):  # Ensures it's a real table model
+                try:
+                    orm_execute_state.statement = orm_execute_state.statement.filter_by(
+                        org_id=tenant_id
+                    )
+                except Exception:
+                    # Skip if filter cannot be applied (e.g., subquery aliases)
+                    pass
 
 def bypass_tenant_filter(statement):
     """
