@@ -1,19 +1,6 @@
 "use client"
 
 import {
-  ArrowDownUp,
-  ListPlus,
-  SendHorizonal,
-  Tag,
-  BookOpen,
-  Crosshair,
-  ArrowRight,
-  ExternalLink,
-  ClipboardMinus,
-  SlidersHorizontal,
-} from "lucide-react"
-
-import {
   Timeline,
   TimelineContent,
   TimelineDate,
@@ -30,6 +17,11 @@ import React from "react"
 
 import { TransactionItem } from "@/lib/api/inventory"
 import { Skeleton } from "@/components/ui/skeleton"
+import { 
+  Plus, Lock, LockSlash, 
+  DeliveryTruck, Edit, Upload, 
+  OpenBook, InfoCircle, OpenNewWindow, 
+  ArrowRight, Puzzle } from "iconoir-react"
 
 export function AuditTrail({
   items,
@@ -41,12 +33,13 @@ export function AuditTrail({
   const isMobile = useMobile()
 
   const actionIcons: Record<string, any> = {
-    added: ListPlus,
-    shipped: SendHorizonal,
-    reserved: Tag,
-    transferred: ArrowDownUp,
-    adjusted: SlidersHorizontal,
-    unreserved: ClipboardMinus,
+    added: Plus,
+    shipped: DeliveryTruck,
+    reserved: Lock,
+    adjusted: Edit,
+    unreserved: LockSlash,
+    "transferred in": Upload,
+    "transferred out": Upload,
   }
 
   if (items.length === 0) {
@@ -83,14 +76,14 @@ export function AuditTrail({
           overviewText = `${item.quantity} ${itemWord} ${verb} ${item.action} at ${item.location}`
         }
 
-        const Icon = actionIcons[item.action] || Tag
+        const Icon = actionIcons[item.action] || OpenBook
 
         const quantityLine = (
           <div className="flex items-center gap-1 text-sm mt-1">
             <span>
               Quantity at {item.location}: {item.qty_before}
             </span>
-            <ArrowRight size={14} className="text-muted-foreground" />
+            <ArrowRight width={14} height={14} className="text-muted-foreground" />
             <span>{item.qty_after}</span>
           </div>
         )
@@ -127,7 +120,7 @@ export function AuditTrail({
                   className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"
                 >
                   {item.sku_code}
-                  <ExternalLink size={14} className="opacity-70" />
+                  <OpenNewWindow width={14} height={14} className="opacity-70" />
                 </a>
 
                 {quantityLine}
@@ -154,7 +147,11 @@ export function AuditTrail({
                         <TimelineDate className="text-xs text-muted-foreground pt-1">{item.date}</TimelineDate>
                       </div>
                       <TimelineIndicator className="border border-primary/10 group-data-completed/timeline-item:border-primary group-data-completed/timeline-item:text-primary-foreground flex size-7 items-center justify-center group-data-[orientation=vertical]/timeline:-left-7">
-                        <Icon size={14} />
+                        <Icon
+                          width={18}
+                          height={18}
+                          className={item.action === "transferred in" ? "rotate-180" : ""}
+                        />
                       </TimelineIndicator>
                     </TimelineHeader>
                   </AccordionTrigger>
@@ -178,7 +175,11 @@ export function AuditTrail({
               <TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-7" />
               <TimelineTitle className="mt-0.5">{headerText}</TimelineTitle>
               <TimelineIndicator className="border border-primary/10 group-data-completed/timeline-item:border-primary group-data-completed/timeline-item:text-primary-foreground flex size-7 items-center justify-center group-data-[orientation=vertical]/timeline:-left-7">
-                <Icon size={14} />
+                <Icon
+                  width={18}
+                  height={18}
+                  className={item.action === "transferred in" ? "rotate-180" : ""}
+                />
               </TimelineIndicator>
             </TimelineHeader>
 
@@ -196,14 +197,14 @@ export function AuditTrail({
                     className={`grid w-full ${snippet ? "grid-cols-2" : "grid-cols-3"}`}
                   >
                     <TabsTrigger value="overview" className="text-xs">
-                      <BookOpen /> Overview
+                      <OpenBook /> Overview
                     </TabsTrigger>
                     <TabsTrigger value="metadata" className="text-xs" disabled={!item.metadata}>
-                      <Tag /> Metadata
+                      <InfoCircle /> Metadata
                     </TabsTrigger>
                     {!snippet && (
                       <TabsTrigger value="context" className="text-xs">
-                        <Crosshair /> Context
+                        <Puzzle /> Context
                       </TabsTrigger>
                     )}
                   </TabsList>
@@ -241,7 +242,7 @@ export function AuditTrail({
                         className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"
                       >
                         {item.sku_code}
-                        <ExternalLink size={14} className="opacity-70" />
+                        <OpenNewWindow width={14} height={14} className="opacity-70" />
                       </a>
 
                       {quantityLine}
