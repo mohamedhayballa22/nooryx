@@ -3,7 +3,7 @@
 import { useMemo, useState } from "react"
 import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Skeleton } from "@/components/ui/skeleton"
-import { ChevronDown } from "lucide-react"
+import { NavArrowDown } from "iconoir-react"
 import { cn } from "@/lib/utils"
 import { DashboardSummary } from "@/lib/api/dashboard"
 
@@ -215,7 +215,7 @@ export default function DashboardHeader({
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
             >
               {expandedMessage ? "Show less" : "See more"}
-              <ChevronDown
+              <NavArrowDown
                 className={cn(
                   "h-4 w-4 transition-transform duration-200",
                   expandedMessage && "rotate-180"
