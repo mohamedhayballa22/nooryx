@@ -6,18 +6,6 @@ import Image from "next/image"
 import { useAuth } from "@/lib/auth";
 
 import {
-  Bell,
-  Settings,
-  HelpCircle,
-  User,
-  LogOut,
-  ChevronUp,
-  ClipboardClock,
-  ChartSpline,
-  Box,
-} from "lucide-react"
-
-import {
   Sidebar,
   SidebarContent,
   SidebarGroup,
@@ -39,13 +27,18 @@ import {
 } from "@/components/ui/dropdown-menu"
 
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
-import { authApi } from "@/lib/api/auth";
+import { 
+  HomeSimple, BoxIso, ClockRotateRight, 
+  BellNotification, Settings, HelpCircle,
+  NavArrowUp, LogOut, User, Coins
+ } from "iconoir-react"
 
 const mainItems = [
-  { title: "Dashboard", url: "/core/dashboard", icon: ChartSpline },
-  { title: "Inventory", url: "/core/inventory", icon: Box },
-  { title: "Audit Trail", url: "/core/audit-trail", icon: ClipboardClock },
-  { title: "Alerts", url: "#", icon: Bell },
+  { title: "Dashboard", url: "/core/dashboard", icon: HomeSimple },
+  { title: "Inventory", url: "/core/inventory", icon: BoxIso },
+  { title: "Audit Trail", url: "/core/audit-trail", icon: ClockRotateRight },
+  { title: "Valuation", url: "#", icon: Coins },
+  { title: "Alerts", url: "#", icon: BellNotification },
 ]
 
 const systemItems = [
@@ -150,18 +143,18 @@ export function AppSidebar() {
                         {userEmail}
                       </span>
                     </div>
-                    <ChevronUp className="flex-shrink-0 h-4 w-4 group-data-[collapsible=icon]:hidden" />
+                    <NavArrowUp className="flex-shrink-0 h-4 w-4 group-data-[collapsible=icon]:hidden" />
                   </div>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
               <DropdownMenuContent side="top" className="w-(--radix-popper-anchor-width)">
                 <DropdownMenuItem className="cursor-pointer">
-                  <User className="mr-2 h-4 w-4" />
+                  <User className="mr-2" />
                   Account
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
                 <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
-                  <LogOut className="mr-2 h-4 w-4" />
+                  <LogOut className="mr-2" />
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
