@@ -18,6 +18,7 @@ import { DataToolbar } from "@/components/data-toolbar"
 import { PaginationControls } from "@/components/app-pagination"
 import { Button } from "@/components/ui/button"
 import { PlusIcon } from "lucide-react"
+import { ReceiveForm } from "@/components/forms/receiveForm"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -70,6 +71,7 @@ export function DataTable<TData, TValue>({
 }: DataTableProps<TData, TValue>) {
   const router = useRouter()
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
+  const [isFormOpen, setIsFormOpen] = useState(false)
 
   const handlePaginationChange: OnChangeFn<PaginationState> = (updaterOrValue) => {
     const newPagination =
@@ -77,6 +79,10 @@ export function DataTable<TData, TValue>({
         ? updaterOrValue(pagination)
         : updaterOrValue
     onPaginationChange(newPagination)
+  }
+
+  const handleFormSubmit = (data: { name: string; email: string }) => {
+    console.log("Form submitted:", data)
   }
 
   const table = useReactTable({
@@ -98,99 +104,110 @@ export function DataTable<TData, TValue>({
   const showSkeleton = isLoading || (isFetching && data.length === 0)
 
   return (
-    <div className="space-y-4">
-      <DataToolbar
-        table={table}
-        search={search}
-        onSearchChange={onSearchChange}
-        searchPlaceholder="Search by SKU Code or location..."
-        filterLabel="Status"
-        filterOptions={STOCK_STATUSES}
-        activeFilters={statusFilters}
-        onFiltersChange={onStatusFiltersChange}
-        sortBy={sortBy}
-        sortOrder={sortOrder}
-        sortOptions={SORT_OPTIONS}
-        onSortChange={onSortChange}
-        showViewToggle
-        actions={
-          <Button variant="outline" className="cursor-pointer">
-            <PlusIcon className="-ms-1 opacity-60" size={16} />
-            Add
-          </Button>
-        }
-      />
+    <>
+      <div className="space-y-4">
+        <DataToolbar
+          table={table}
+          search={search}
+          onSearchChange={onSearchChange}
+          searchPlaceholder="Search by SKU Code or location..."
+          filterLabel="Status"
+          filterOptions={STOCK_STATUSES}
+          activeFilters={statusFilters}
+          onFiltersChange={onStatusFiltersChange}
+          sortBy={sortBy}
+          sortOrder={sortOrder}
+          sortOptions={SORT_OPTIONS}
+          onSortChange={onSortChange}
+          showViewToggle
+          actions={
+            <Button 
+              variant="outline" 
+              onClick={() => setIsFormOpen(true)}
+            >
+              <PlusIcon className="-ms-1 opacity-60" size={16} />
+              Add
+            </Button>
+          }
+        />
 
-      <div className="overflow-hidden rounded-md border">
-        <Table>
-          <TableHeader>
-            {table.getHeaderGroups().map((headerGroup) => (
-              <TableRow key={headerGroup.id}>
-                {headerGroup.headers.map((header) => (
-                  <TableHead key={header.id}>
-                    {header.isPlaceholder
-                      ? null
-                      : flexRender(header.column.columnDef.header, header.getContext())}
-                  </TableHead>
-                ))}
-              </TableRow>
-            ))}
-          </TableHeader>
-          <TableBody>
-            {showSkeleton ? (
-              Array.from({ length: pagination.pageSize }).map((_, index) => (
-                <TableRow key={index}>
-                  {columns.map((_, cellIndex) => (
-                    <TableCell key={cellIndex}>
-                      <Skeleton className="h-6 w-full" />
-                    </TableCell>
+        <div className="overflow-hidden rounded-md border">
+          <Table>
+            <TableHeader>
+              {table.getHeaderGroups().map((headerGroup) => (
+                <TableRow key={headerGroup.id}>
+                  {headerGroup.headers.map((header) => (
+                    <TableHead key={header.id}>
+                      {header.isPlaceholder
+                        ? null
+                        : flexRender(header.column.columnDef.header, header.getContext())}
+                    </TableHead>
                   ))}
                 </TableRow>
-              ))
-            ) : table.getRowModel().rows?.length ? (
-              table.getRowModel().rows.map((row) => (
-                <TableRow
-                  key={row.id}
-                  className="cursor-pointer"
-                  onClick={() => {
-                    const skuCode = (row.original as any).sku_code
-                    if (skuCode) {
-                      router.push(`/core/inventory?sku=${encodeURIComponent(skuCode)}`)
-                    }
-                  }}
-                >
-                  {row.getVisibleCells().map((cell) => (
-                    <TableCell key={cell.id}>
-                      {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                    </TableCell>
-                  ))}
+              ))}
+            </TableHeader>
+            <TableBody>
+              {showSkeleton ? (
+                Array.from({ length: pagination.pageSize }).map((_, index) => (
+                  <TableRow key={index}>
+                    {columns.map((_, cellIndex) => (
+                      <TableCell key={cellIndex}>
+                        <Skeleton className="h-6 w-full" />
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : table.getRowModel().rows?.length ? (
+                table.getRowModel().rows.map((row) => (
+                  <TableRow
+                    key={row.id}
+                    className="cursor-pointer"
+                    onClick={() => {
+                      const skuCode = (row.original as any).sku_code
+                      if (skuCode) {
+                        router.push(`/core/inventory?sku=${encodeURIComponent(skuCode)}`)
+                      }
+                    }}
+                  >
+                    {row.getVisibleCells().map((cell) => (
+                      <TableCell key={cell.id}>
+                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                      </TableCell>
+                    ))}
+                  </TableRow>
+                ))
+              ) : (
+                <TableRow>
+                  <TableCell colSpan={columns.length} className="h-24 text-center">
+                    No results found.
+                  </TableCell>
                 </TableRow>
-              ))
-            ) : (
-              <TableRow>
-                <TableCell colSpan={columns.length} className="h-24 text-center">
-                  No results found.
-                </TableCell>
-              </TableRow>
-            )}
-          </TableBody>
-        </Table>
+              )}
+            </TableBody>
+          </Table>
+        </div>
+
+        <PaginationControls
+          pageIndex={pagination.pageIndex}
+          pageSize={pagination.pageSize}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          loading={isFetching}
+          onPageChange={(newPage) =>
+            onPaginationChange({ ...pagination, pageIndex: newPage })
+          }
+          onPageSizeChange={(newSize) =>
+            onPaginationChange({ pageIndex: 0, pageSize: newSize })
+          }
+        />
       </div>
 
-      <PaginationControls
-        pageIndex={pagination.pageIndex}
-        pageSize={pagination.pageSize}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        loading={isFetching}
-        onPageChange={(newPage) =>
-          onPaginationChange({ ...pagination, pageIndex: newPage })
-        }
-        onPageSizeChange={(newSize) =>
-          onPaginationChange({ pageIndex: 0, pageSize: newSize })
-        }
+      <ReceiveForm
+        open={isFormOpen}
+        onOpenChange={setIsFormOpen}
+        onSubmit={handleFormSubmit}
       />
-    </div>
+    </>
   )
 }
 
