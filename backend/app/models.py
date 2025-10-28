@@ -35,6 +35,11 @@ class SKU(Base):
     cost_records = relationship("CostRecord", back_populates="sku")
     organization = relationship("Organization", back_populates="skus")
 
+    __table_args__ = (
+        Index('ix_skus_org_code_prefix', 'org_id', 'code'),
+        Index('ix_skus_org_name_trgm', func.lower(name), postgresql_using='gin', postgresql_ops={'lower': 'gin_trgm_ops'}),
+    )
+
 
 class Location(Base):
     """Physical or logical location where inventory is stored."""
@@ -54,6 +59,7 @@ class Location(Base):
 
     __table_args__ = (
         UniqueConstraint("name", "org_id", name="uix_locations_org_id_name"),
+        Index('ix_locations_orgid_lower_name_trgm', func.lower(name), postgresql_using='gin', postgresql_ops={'lower': 'gin_trgm_ops'}),
     )
 
 
