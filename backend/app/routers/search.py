@@ -1,7 +1,7 @@
 from fastapi import APIRouter, Depends, Query
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.auth.tenant_dependencies import get_tenant_session
-from app.schemas.search import SKUSearchResponse, SKUSearchResult
+from app.schemas.search import SKUSearchResult
 from app.services.search import search_skus, search_locations
 from typing import List
 
@@ -9,7 +9,7 @@ from typing import List
 router = APIRouter()
 
 
-@router.get("/skus", response_model=SKUSearchResponse)
+@router.get("/skus", response_model=List[SKUSearchResult])
 async def search_sku(
     q: str = Query(..., min_length=1, max_length=100, description="Search query string"),
     limit: int = Query(5, ge=1, le=20, description="Maximum number of results"),
@@ -29,15 +29,14 @@ async def search_sku(
     """
     results = await search_skus(db=db, query=q, limit=limit)
     
-    return SKUSearchResponse(
-        results=[
+    return [
             SKUSearchResult(
                 sku_code=row["sku_code"],
                 sku_name=row["sku_name"]
             )
             for row in results
         ]
-    )
+
 
 @router.get("/locations", response_model=List[str])
 async def search_location(
