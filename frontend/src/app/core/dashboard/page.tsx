@@ -16,6 +16,7 @@ import { useDashInventoryTrend } from "./hooks/useDashTrend"
 
 type PeriodKey = "7d" | "31d" | "180d" | "365d"
 
+// Add selected location as a URL param and reflect in breadcrumbs
 export default function DashboardPage() {
   const [selectedLocation, setselectedLocation] = useState("all")
 

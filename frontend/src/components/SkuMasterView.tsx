@@ -16,6 +16,7 @@ interface SkuMasterViewProps {
   skuCode: string
 }
 
+// Add selected location as a URL param and reflect in breadcrumbs
 export function SkuMasterView({ skuCode }: SkuMasterViewProps) {
   const [selectedLocation, setSelectedLocation] = useState<string>("all")
 
