@@ -138,6 +138,30 @@
   display: none;
 }
 
+.scrollable-form::-webkit-scrollbar {
+  width: 6px; /* thinner scrollbar */
+  transition: opacity 0.2s ease-in-out;
+}
+
+.scrollable-form::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+.scrollable-form::-webkit-scrollbar-thumb {
+  background-color: rgba(100, 100, 100, 0.4);
+  border-radius: 9999px;
+}
+
+/* Hide scrollbar buttons (chevrons) */
+.scrollable-form::-webkit-scrollbar-button {
+  display: none;
+}
+
+/* Hhover feedback */
+.scrollable-form::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(100, 100, 100, 0.6);
+}
+
 @layer base {
   * {
     @apply border-border outline-ring/50;
