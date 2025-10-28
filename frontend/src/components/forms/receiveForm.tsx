@@ -23,7 +23,7 @@ import {
   DialogFooter,
 } from "@/components/ui/dialog";
 import { OpenNewWindow } from "iconoir-react";
-import { SearchableCombobox, Option } from "./searchable-combobox";
+import { SearchableAutocomplete, Option } from "./searchable-autocomplete";
 import { useQuery } from "@tanstack/react-query";
 import { cn } from "@/lib/utils";
 
@@ -262,14 +262,13 @@ export function ReceiveForm({
                     </p>
                   )}
                   <FieldContent>
-                    <SearchableCombobox
+                    <SearchableAutocomplete
                       options={skuOptions}
                       value={watch("sku_code")}
                       onChange={handleSkuChange}
                       onSearchChange={setSearchQuery}
                       isLoading={isLoadingSkus}
-                      placeholder="Select or create SKU"
-                      searchPlaceholder="Search... (e.g. CHAIR-OFFICE-GRY)"
+                      placeholder="Type to search SKU..."
                       transformInput={(val) => val.toUpperCase()}
                     />
                   </FieldContent>
@@ -311,14 +310,13 @@ export function ReceiveForm({
                     </p>
                   )}
                   <FieldContent>
-                    <SearchableCombobox
+                    <SearchableAutocomplete
                       options={locationOptions}
                       value={watch("location")}
                       onChange={handleLocationChange}
                       onSearchChange={setLocationQuery}
                       isLoading={isLoadingLocations}
-                      placeholder="Select or create location"
-                      searchPlaceholder="Search location..."
+                      placeholder="Type to search location..."
                       transformInput={(val) => val.toUpperCase()}
                     />
                   </FieldContent>
