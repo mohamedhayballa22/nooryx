@@ -29,9 +29,9 @@ type SearchableAutocompleteProps = {
 function SkeletonList() {
   return (
     <div className="animate-pulse flex flex-col gap-2 p-2">
-      <div className="h-9 w-full rounded bg-muted" />
-      <div className="h-9 w-full rounded bg-muted" />
-      <div className="h-9 w-full rounded bg-muted" />
+      <div className="h-7 w-full rounded bg-muted" />
+      <div className="h-7 w-full rounded bg-muted" />
+      <div className="h-7 w-full rounded bg-muted" />
     </div>
   );
 }
@@ -59,15 +59,13 @@ export function SearchableAutocomplete({
 
   // Sync external value to input when not focused
   React.useEffect(() => {
-    if (!isFocused && value) {
-      setInputValue(value);
+    if (!isFocused) {
+      setInputValue(value || "");
     }
   }, [value, isFocused]);
 
   React.useEffect(() => {
-    if (debounced) {
-      onSearchChange?.(debounced);
-    }
+    onSearchChange?.(debounced);
   }, [debounced, onSearchChange]);
 
   const exactMatch = options.some(
@@ -79,7 +77,7 @@ export function SearchableAutocomplete({
   const handleSelect = (val: string) => {
     const selectedOption = options.find((o) => o.value === val);
     onChange?.(val, selectedOption);
-    setInputValue(val);
+    setInputValue(selectedOption?.label || val);
     setIsFocused(false);
     setHighlightedIndex(-1);
   };
@@ -192,8 +190,7 @@ export function SearchableAutocomplete({
           onBlur={handleBlur}
           placeholder={placeholder}
           className={cn(
-            "pr-8",
-            allowClear && value && "pr-8"
+            "pr-8"
           )}
           autoComplete="off"
         />

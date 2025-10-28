@@ -299,6 +299,9 @@ export function ReceiveForm({
                       {...register("sku_name")}
                     />
                   </FieldContent>
+                  <FieldDescription>
+                    Human-friendly name tied to the SKU Code.
+                  </FieldDescription>
                 </Field>
 
                 {/* LOCATION */}
