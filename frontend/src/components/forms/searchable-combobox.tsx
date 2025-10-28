@@ -41,9 +41,9 @@ type SearchableComboboxProps = {
 function SkeletonList() {
   return (
     <div className="animate-pulse flex flex-col gap-3 px-2 py-3">
-      <div className="h-6 w-50 rounded bg-muted" />
-      <div className="h-6 w-50 rounded bg-muted" />
-      <div className="h-6 w-50 rounded bg-muted" />
+      <div className="h-6 w-full rounded bg-muted" />
+      <div className="h-6 w-full rounded bg-muted" />
+      <div className="h-6 w-full rounded bg-muted" />
     </div>
   );
 }
@@ -59,7 +59,7 @@ export function SearchableCombobox({
   allowCreate = true,
   allowClear = true,
   emptyText = "No results found",
-  transformInput = (val) => val.toUpperCase(),
+  transformInput = (val) => val,
 }: SearchableComboboxProps) {
   const [open, setOpen] = React.useState(false);
   const [inputValue, setInputValue] = React.useState("");
