@@ -1,4 +1,3 @@
-import { StringDecoder } from "node:string_decoder";
 import { protectedApiClient } from "./protected-client";
 
 // Types
@@ -69,7 +68,7 @@ export interface TransactionsParams {
 }
 
 export interface LatestAuditTrailData {
-  sku_code?: StringDecoder
+  sku_code?: string;
   location: string | null
   transactions: TransactionItem[]
 }
