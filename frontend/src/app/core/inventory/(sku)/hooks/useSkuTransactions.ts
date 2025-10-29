@@ -13,7 +13,7 @@ function getErrorStatus(error: unknown): number | undefined {
 
 export function useSkuTransactions(skuId: string, location?: string) {
   const query = useQuery({
-    queryKey: ["inventoryTransactions", skuId, location],
+    queryKey: ["transactions", skuId, location],
     queryFn: () => getLatestTransactionsBySku(skuId, location),
     enabled: !!skuId,
     staleTime: 5 * 60_000,
