@@ -1,0 +1,521 @@
+import type {
+  FormConfig,
+  ReceiveFormValues,
+  ShipFormValues,
+  AdjustFormValues,
+  ReserveFormValues,
+  UnreserveFormValues,
+  TransferFormValues,
+} from "./types"
+import { validationRules } from "./validation-schemas"
+
+export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
+  action: "receive",
+  title: "Receive Stock",
+  description: "Record new inventory being received into a location.",
+  fields: [
+    {
+      name: "sku_code",
+      label: "SKU Code",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.skuCode,
+      description: "Learn more about SKUs",
+      learnMoreLink: "#", // TODO: Update with actual docs link
+      gridColumn: "full",
+    },
+    {
+      name: "sku_name",
+      label: "SKU Name",
+      required: true,
+      type: "text",
+      validation: validationRules.skuName,
+      description: "Human-friendly name tied to the SKU Code.",
+      placeholder: "e.g., Office Chair Grey Fabric",
+      gridColumn: "full",
+    },
+    {
+      name: "location",
+      label: "Location",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.location,
+      description: "Where the inventory is being received.",
+      gridColumn: "full",
+    },
+    {
+      name: "qty",
+      label: "Quantity",
+      required: true,
+      type: "number",
+      validation: validationRules.qty(1),
+      description: "Number of units received.",
+      placeholder: "0",
+      gridColumn: "half",
+    },
+    {
+      name: "cost_price",
+      label: "Cost Price Per Unit (USD)", // TODO: Get currency from user's profile
+      required: true,
+      type: "number",
+      validation: validationRules.costPrice,
+      description: "Learn more about valuation",
+      learnMoreLink: "#", // TODO: Update with actual docs link
+      placeholder: "0.00",
+      gridColumn: "half",
+    },
+    {
+      name: "notes",
+      label: "Notes",
+      type: "textarea",
+      validation: validationRules.notes,
+      gridColumn: "full",
+    },
+  ],
+  defaultValues: {
+    sku_code: "",
+    sku_name: "",
+    location: "",
+    qty: 0,
+    cost_price: 0,
+    notes: "",
+  },
+  transformPayload: (data) => {
+    const { notes, ...rest } = data
+    const payload: any = {
+      ...rest,
+      sku_code: rest.sku_code.trim().toUpperCase(),
+      location: rest.location.trim().toUpperCase(),
+      action: "receive",
+    }
+
+    if (notes && notes.trim() !== "") {
+      payload.txn_metadata = { notes: notes.trim() }
+    }
+
+    return payload
+  },
+  successMessage: (data) => ({
+    title: "Stock received successfully",
+    description: `${data.qty} units of ${data.sku_name} added to ${data.location}.`,
+  }),
+}
+
+export const shipFormConfig: FormConfig<ShipFormValues> = {
+  action: "ship",
+  title: "Ship Stock",
+  description: "Record inventory being shipped out from a location.",
+  fields: [
+    {
+      name: "sku_code",
+      label: "SKU Code",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.skuCode,
+      gridColumn: "full",
+    },
+    {
+      name: "location",
+      label: "Location",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.location,
+      description: "Where the inventory is being shipped from.",
+      gridColumn: "full",
+    },
+    {
+      name: "qty",
+      label: "Quantity",
+      required: true,
+      type: "number",
+      validation: validationRules.qty(1),
+      description: "Number of units to ship.",
+      placeholder: "0",
+      gridColumn: "half",
+    },
+    {
+      name: "ship_from",
+      label: "Ship From",
+      type: "select",
+      options: [
+        { value: "auto", label: "Auto" },
+        { value: "reserved", label: "Reserved" },
+        { value: "available", label: "Available" },
+      ],
+      description: "Inventory bucket to ship from.",
+      placeholder: "Select ship from...",
+      gridColumn: "half",
+    },
+    {
+      name: "notes",
+      label: "Notes",
+      type: "textarea",
+      validation: validationRules.notes,
+      gridColumn: "full",
+    },
+  ],
+  defaultValues: {
+    sku_code: "",
+    location: "",
+    qty: 0,
+    ship_from: "auto",
+    notes: "",
+  },
+  transformPayload: (data) => {
+    const { notes, ship_from, ...rest } = data
+    const payload: any = {
+      ...rest,
+      sku_code: rest.sku_code.trim().toUpperCase(),
+      location: rest.location.trim().toUpperCase(),
+      action: "ship",
+    }
+
+    const metadata: any = {}
+    if (ship_from) metadata.ship_from = ship_from
+    if (notes && notes.trim() !== "") metadata.notes = notes.trim()
+
+    if (Object.keys(metadata).length > 0) {
+      payload.txn_metadata = metadata
+    }
+
+    return payload
+  },
+  successMessage: (data) => ({
+    title: "Stock shipped successfully",
+    description: `${data.qty} units shipped from ${data.location}.`,
+  }),
+}
+
+export const adjustFormConfig: FormConfig<AdjustFormValues> = {
+  action: "adjust",
+  title: "Adjust Stock",
+  description: "Make manual adjustments to inventory levels.",
+  fields: [
+    {
+      name: "sku_code",
+      label: "SKU Code",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.skuCode,
+      gridColumn: "full",
+    },
+    {
+      name: "location",
+      label: "Location",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.location,
+      gridColumn: "full",
+    },
+    {
+      name: "qty",
+      label: "Quantity Adjustment",
+      required: true,
+      type: "number",
+      validation: validationRules.qtyAdjust,
+      description: "Positive to add, negative to subtract.",
+      placeholder: "0",
+      gridColumn: "full",
+    },
+    {
+      name: "reason",
+      label: "Reason",
+      required: true,
+      type: "textarea",
+      validation: validationRules.reason,
+      description: "Explain why this adjustment is being made.",
+      placeholder: "e.g., Damaged goods, count discrepancy, etc.",
+      gridColumn: "full",
+    },
+    {
+      name: "notes",
+      label: "Additional Notes",
+      type: "textarea",
+      validation: validationRules.notes,
+      gridColumn: "full",
+    },
+  ],
+  defaultValues: {
+    sku_code: "",
+    location: "",
+    qty: 0,
+    reason: "",
+    notes: "",
+  },
+  transformPayload: (data) => {
+    const { notes, reason, ...rest } = data
+    const payload: any = {
+      ...rest,
+      sku_code: rest.sku_code.trim().toUpperCase(),
+      location: rest.location.trim().toUpperCase(),
+      action: "adjust",
+      txn_metadata: { reason: reason.trim() },
+    }
+
+    if (notes && notes.trim() !== "") {
+      payload.txn_metadata.notes = notes.trim()
+    }
+
+    return payload
+  },
+  successMessage: (data) => ({
+    title: "Stock adjusted successfully",
+    description: `Adjusted ${data.qty > 0 ? "+" : ""}${data.qty} units at ${data.location}.`,
+  }),
+}
+
+export const reserveFormConfig: FormConfig<ReserveFormValues> = {
+  action: "reserve",
+  title: "Reserve Stock",
+  description: "Reserve inventory for a specific order or customer.",
+  fields: [
+    {
+      name: "sku_code",
+      label: "SKU Code",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.skuCode,
+      gridColumn: "full",
+    },
+    {
+      name: "location",
+      label: "Location",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.location,
+      gridColumn: "full",
+    },
+    {
+      name: "qty",
+      label: "Quantity",
+      required: true,
+      type: "number",
+      validation: validationRules.qty(1),
+      description: "Number of units to reserve.",
+      placeholder: "0",
+      gridColumn: "full",
+    },
+    {
+      name: "order_id",
+      label: "Order ID",
+      type: "text",
+      validation: validationRules.orderId,
+      placeholder: "e.g., ORD-12345",
+      gridColumn: "half",
+    },
+    {
+      name: "customer",
+      label: "Customer",
+      type: "text",
+      validation: validationRules.customer,
+      placeholder: "e.g., Acme Corp",
+      gridColumn: "half",
+    },
+    {
+      name: "notes",
+      label: "Notes",
+      type: "textarea",
+      validation: validationRules.notes,
+      gridColumn: "full",
+    },
+  ],
+  defaultValues: {
+    sku_code: "",
+    location: "",
+    qty: 0,
+    order_id: "",
+    customer: "",
+    notes: "",
+  },
+  transformPayload: (data) => {
+    const { notes, order_id, customer, ...rest } = data
+    const payload: any = {
+      ...rest,
+      sku_code: rest.sku_code.trim().toUpperCase(),
+      location: rest.location.trim().toUpperCase(),
+      action: "reserve",
+    }
+
+    const metadata: any = {}
+    if (order_id && order_id.trim() !== "") metadata.order_id = order_id.trim()
+    if (customer && customer.trim() !== "") metadata.customer = customer.trim()
+    if (notes && notes.trim() !== "") metadata.notes = notes.trim()
+
+    if (Object.keys(metadata).length > 0) {
+      payload.txn_metadata = metadata
+    }
+
+    return payload
+  },
+  successMessage: (data) => ({
+    title: "Stock reserved successfully",
+    description: `${data.qty} units reserved at ${data.location}.`,
+  }),
+}
+
+export const unreserveFormConfig: FormConfig<UnreserveFormValues> = {
+  action: "unreserve",
+  title: "Unreserve Stock",
+  description: "Release previously reserved inventory back to available stock.",
+  fields: [
+    {
+      name: "sku_code",
+      label: "SKU Code",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.skuCode,
+      gridColumn: "full",
+    },
+    {
+      name: "location",
+      label: "Location",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.location,
+      gridColumn: "full",
+    },
+    {
+      name: "qty",
+      label: "Quantity",
+      required: true,
+      type: "number",
+      validation: validationRules.qty(1),
+      description: "Number of units to unreserve.",
+      placeholder: "0",
+      gridColumn: "full",
+    },
+    {
+      name: "order_id",
+      label: "Order ID",
+      type: "text",
+      validation: validationRules.orderId,
+      placeholder: "e.g., ORD-12345",
+      gridColumn: "half",
+    },
+    {
+      name: "reason",
+      label: "Reason",
+      type: "text",
+      validation: validationRules.reason,
+      placeholder: "e.g., Order cancelled",
+      gridColumn: "half",
+    },
+    {
+      name: "notes",
+      label: "Notes",
+      type: "textarea",
+      validation: validationRules.notes,
+      gridColumn: "full",
+    },
+  ],
+  defaultValues: {
+    sku_code: "",
+    location: "",
+    qty: 0,
+    order_id: "",
+    reason: "",
+    notes: "",
+  },
+  transformPayload: (data) => {
+    const { notes, order_id, reason, ...rest } = data
+    const payload: any = {
+      ...rest,
+      sku_code: rest.sku_code.trim().toUpperCase(),
+      location: rest.location.trim().toUpperCase(),
+      action: "unreserve",
+    }
+
+    const metadata: any = {}
+    if (order_id && order_id.trim() !== "") metadata.order_id = order_id.trim()
+    if (reason && reason.trim() !== "") metadata.reason = reason.trim()
+    if (notes && notes.trim() !== "") metadata.notes = notes.trim()
+
+    if (Object.keys(metadata).length > 0) {
+      payload.txn_metadata = metadata
+    }
+
+    return payload
+  },
+  successMessage: (data) => ({
+    title: "Stock unreserved successfully",
+    description: `${data.qty} units unreserved at ${data.location}.`,
+  }),
+}
+
+export const transferFormConfig: FormConfig<TransferFormValues> = {
+  action: "transfer",
+  title: "Transfer Stock",
+  description: "Move inventory from one location to another.",
+  fields: [
+    {
+      name: "sku_code",
+      label: "SKU Code",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.skuCode,
+      gridColumn: "full",
+    },
+    {
+      name: "location",
+      label: "Source Location",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.location,
+      description: "Where the inventory is being transferred from.",
+      gridColumn: "half",
+    },
+    {
+      name: "target_location",
+      label: "Target Location",
+      required: true,
+      type: "autocomplete",
+      validation: validationRules.location,
+      description: "Where the inventory is being transferred to.",
+      gridColumn: "half",
+    },
+    {
+      name: "qty",
+      label: "Quantity",
+      required: true,
+      type: "number",
+      validation: validationRules.qty(1),
+      description: "Number of units to transfer.",
+      placeholder: "0",
+      gridColumn: "full",
+    },
+    {
+      name: "notes",
+      label: "Notes",
+      type: "textarea",
+      validation: validationRules.notes,
+      gridColumn: "full",
+    },
+  ],
+  defaultValues: {
+    sku_code: "",
+    location: "",
+    target_location: "",
+    qty: 0,
+    notes: "",
+  },
+  transformPayload: (data) => {
+    const { notes, ...rest } = data
+    const payload: any = {
+      ...rest,
+      sku_code: rest.sku_code.trim().toUpperCase(),
+      location: rest.location.trim().toUpperCase(),
+      target_location: rest.target_location.trim().toUpperCase(),
+      action: "transfer",
+    }
+
+    if (notes && notes.trim() !== "") {
+      payload.txn_metadata = { notes: notes.trim() }
+    }
+
+    return payload
+  },
+  successMessage: (data) => ({
+    title: "Stock transferred successfully",
+    description: `${data.qty} units transferred from ${data.location} to ${data.target_location}.`,
+  }),
+}
