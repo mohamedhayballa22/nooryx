@@ -1,0 +1,22 @@
+"use client"
+
+import React from "react"
+import { BaseTransactionForm } from "./transaction-forms"
+import { unreserveFormConfig } from "./transaction-forms/form-configs"
+import type { UnreserveFormValues } from "./transaction-forms/types"
+
+type UnreserveFormProps = {
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onSubmit?: (payload: any) => void
+  sizeClass?: string
+}
+
+export function UnreserveForm(props: UnreserveFormProps) {
+  return (
+    <BaseTransactionForm<UnreserveFormValues>
+      config={unreserveFormConfig}
+      {...props}
+    />
+  )
+}
