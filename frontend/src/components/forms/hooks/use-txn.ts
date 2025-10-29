@@ -1,8 +1,22 @@
-import { useMutation } from "@tanstack/react-query";
-import { postTransaction, TransactionPayload } from "@/lib/api/txn";
+import { useMutation, useQueryClient } from "@tanstack/react-query"
+import { postTransaction, type TransactionPayload } from "@/lib/api/txn"
 
-export function useTxn() {
-  return useMutation<void, unknown, TransactionPayload>({
+interface UseTxnOptions {
+  invalidateQueries?: string[]
+}
+
+export function useTxn(options?: UseTxnOptions) {
+  const queryClient = useQueryClient()
+
+  return useMutation({
     mutationFn: (payload: TransactionPayload) => postTransaction(payload),
-  });
+    onSuccess: () => {
+      // Invalidate specified queries to trigger refetch
+      if (options?.invalidateQueries) {
+        options.invalidateQueries.forEach((queryKey) => {
+          queryClient.invalidateQueries({ queryKey: [queryKey] })
+        })
+      }
+    },
+  })
 }
