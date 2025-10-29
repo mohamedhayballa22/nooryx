@@ -81,10 +81,6 @@ export function DataTable<TData, TValue>({
     onPaginationChange(newPagination)
   }
 
-  const handleFormSubmit = (data: { name: string; email: string }) => {
-    console.log("Form submitted:", data)
-  }
-
   const table = useReactTable({
     data,
     columns,
@@ -205,7 +201,6 @@ export function DataTable<TData, TValue>({
       <ReceiveForm
         open={isFormOpen}
         onOpenChange={setIsFormOpen}
-        onSubmit={handleFormSubmit}
       />
     </>
   )
