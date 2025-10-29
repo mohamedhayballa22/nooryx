@@ -10,9 +10,14 @@ import {
   EmptyDescription,
   EmptyContent,
 } from "@/components/ui/empty";
+import { ReceiveForm } from "./forms/receive-form";
+import { useState } from "react";
 
 export function EmptyAuditTrail() {
+  const [isReceiveFormOpen, setIsReceiveFormOpen] = useState(false);
+  
   return (
+    <>
     <Empty className="h-[calc(100vh-8rem)] flex flex-col items-center justify-center text-center px-6 -mt-8">
       <EmptyHeader className="2 max-w-2xl mx-auto">
         <EmptyMedia variant="icon" className="size-16">
@@ -28,9 +33,12 @@ export function EmptyAuditTrail() {
 
       <EmptyContent>
         <Button variant="outline" className="cursor-pointer rounded-sm">
-          Create Your First Item
+          Receive Stock
         </Button>
       </EmptyContent>
     </Empty>
+    
+    <ReceiveForm open={isReceiveFormOpen} onOpenChange={setIsReceiveFormOpen} />
+    </>
   );
 }
