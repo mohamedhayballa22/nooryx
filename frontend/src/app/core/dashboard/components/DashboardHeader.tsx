@@ -136,7 +136,7 @@ export default function DashboardHeader({
         const joined = joinSkus(fast_mover_low_stock_sku)
         const plural = fast_mover_low_stock_sku.length > 1
         const primaryMsg = `${joined} ${plural ? "are" : "is"} running low.`
-        const fullMsg = `Most SKUs are in good shape, but ${joined} ${plural ? "are" : "is"} moving out quickly but running low. Replenish them soon.`
+        const fullMsg = `Most SKUs are in good shape, but ${joined} ${plural ? "are" : "is"} moving out quickly but running low. Consider restocking soon.`
         const showToggle = shouldShowToggle(primaryMsg, fullMsg)
         return {
           primary: showToggle ? primaryMsg : fullMsg,
