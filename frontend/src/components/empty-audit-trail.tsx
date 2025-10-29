@@ -38,7 +38,11 @@ export function EmptyAuditTrail() {
       </EmptyContent>
     </Empty>
     
-    <ReceiveForm open={isReceiveFormOpen} onOpenChange={setIsReceiveFormOpen} />
+    <ReceiveForm
+      open={isReceiveFormOpen}
+      onOpenChange={setIsReceiveFormOpen} 
+      invalidateQueries={["transactions", "inventory"]}
+    />
     </>
   );
 }
