@@ -18,7 +18,22 @@ import { DataToolbar } from "@/components/data-toolbar"
 import { PaginationControls } from "@/components/app-pagination"
 import { Button } from "@/components/ui/button"
 import { PlusIcon } from "lucide-react"
-import { ReceiveForm } from "@/components/forms/receiveForm"
+
+import {
+  DropdownMenu,
+  DropdownMenuTrigger,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuSeparator,
+} from "@/components/ui/dropdown-menu"
+
+import { ReceiveForm } from "@/components/forms/receive-form"
+import { AdjustForm } from "@/components/forms/adjust-form"
+import { ReserveForm } from "@/components/forms/reserve-form"
+import { ShipForm } from "@/components/forms/ship-form"
+import { UnreserveForm } from "@/components/forms/unreserve-form"
+import { TransferForm } from "@/components/forms/transfer-form"
+import { NavArrowDownSolid } from "iconoir-react"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -72,6 +87,7 @@ export function DataTable<TData, TValue>({
   const router = useRouter()
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [isFormOpen, setIsFormOpen] = useState(false)
+  const [activeForm, setActiveForm] = useState<string | null>(null)
 
   const handlePaginationChange: OnChangeFn<PaginationState> = (updaterOrValue) => {
     const newPagination =
@@ -117,13 +133,42 @@ export function DataTable<TData, TValue>({
           onSortChange={onSortChange}
           showViewToggle
           actions={
-            <Button 
-              variant="outline" 
-              onClick={() => setIsFormOpen(true)}
-            >
-              <PlusIcon className="-ms-1 opacity-60" size={16} />
-              Add
-            </Button>
+            <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                onClick={() => setIsFormOpen(true)}
+              >
+                <PlusIcon className="-ms-1 opacity-60" size={16} />
+                Receive
+              </Button>
+
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button variant="outline">
+                    Stock Actions
+                    <NavArrowDownSolid /> 
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setActiveForm("ship")}>
+                    Ship Stock
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveForm("reserve")}>
+                    Reserve Stock
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveForm("unreserve")}>
+                    Unreserve Stock
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveForm("transfer")}>
+                    Transfer Stock
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setActiveForm("adjust")}>
+                    Adjust Stock
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
           }
         />
 
@@ -198,10 +243,13 @@ export function DataTable<TData, TValue>({
         />
       </div>
 
-      <ReceiveForm
-        open={isFormOpen}
-        onOpenChange={setIsFormOpen}
-      />
+      {/* Forms */}
+      <ReceiveForm open={isFormOpen || activeForm === "receive"} onOpenChange={(open) => !open && (setIsFormOpen(false), setActiveForm(null))} />
+      <ShipForm open={activeForm === "ship"} onOpenChange={(open) => !open && setActiveForm(null)} />
+      <ReserveForm open={activeForm === "reserve"} onOpenChange={(open) => !open && setActiveForm(null)} />
+      <UnreserveForm open={activeForm === "unreserve"} onOpenChange={(open) => !open && setActiveForm(null)} />
+      <TransferForm open={activeForm === "transfer"} onOpenChange={(open) => !open && setActiveForm(null)} />
+      <AdjustForm open={activeForm === "adjust"} onOpenChange={(open) => !open && setActiveForm(null)} />
     </>
   )
 }
@@ -226,24 +274,12 @@ DataTable.Skeleton = function DataTableSkeleton() {
           <TableBody>
             {Array.from({ length: 10 }).map((_, index) => (
               <TableRow key={index}>
-                <TableCell>
-                  <Skeleton className="h-5 w-20" />
-                </TableCell>
-                <TableCell>
-                  <Skeleton className="h-5 w-40" />
-                </TableCell>
-                <TableCell>
-                  <Skeleton className="h-5 w-24" />
-                </TableCell>
-                <TableCell>
-                  <Skeleton className="h-5 w-12" />
-                </TableCell>
-                <TableCell>
-                  <Skeleton className="h-6 w-20 rounded-full" />
-                </TableCell>
-                <TableCell>
-                  <Skeleton className="h-5 w-32" />
-                </TableCell>
+                <TableCell><Skeleton className="h-5 w-20" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-40" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-24" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-12" /></TableCell>
+                <TableCell><Skeleton className="h-6 w-20 rounded-full" /></TableCell>
+                <TableCell><Skeleton className="h-5 w-32" /></TableCell>
                 <TableCell>
                   <div className="flex justify-end">
                     <Button variant="ghost" className="h-8 w-8 p-0" disabled>
