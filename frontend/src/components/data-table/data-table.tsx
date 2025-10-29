@@ -244,12 +244,36 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Forms */}
-      <ReceiveForm open={isFormOpen || activeForm === "receive"} onOpenChange={(open) => !open && (setIsFormOpen(false), setActiveForm(null))} />
-      <ShipForm open={activeForm === "ship"} onOpenChange={(open) => !open && setActiveForm(null)} />
-      <ReserveForm open={activeForm === "reserve"} onOpenChange={(open) => !open && setActiveForm(null)} />
-      <UnreserveForm open={activeForm === "unreserve"} onOpenChange={(open) => !open && setActiveForm(null)} />
-      <TransferForm open={activeForm === "transfer"} onOpenChange={(open) => !open && setActiveForm(null)} />
-      <AdjustForm open={activeForm === "adjust"} onOpenChange={(open) => !open && setActiveForm(null)} />
+      <ReceiveForm
+        open={isFormOpen || activeForm === "receive"}
+        onOpenChange={(open) => !open && (setIsFormOpen(false), setActiveForm(null))}
+        invalidateQueries={["inventory"]}
+      />
+      <ShipForm
+        open={activeForm === "ship"}
+        onOpenChange={(open) => !open && setActiveForm(null)}
+        invalidateQueries={["inventory"]}
+      />
+      <ReserveForm
+        open={activeForm === "reserve"}
+        onOpenChange={(open) => !open && setActiveForm(null)}
+        invalidateQueries={["inventory"]}
+      />
+      <UnreserveForm
+        open={activeForm === "unreserve"}
+        onOpenChange={(open) => !open && setActiveForm(null)}
+        invalidateQueries={["inventory"]}
+      />
+      <TransferForm
+        open={activeForm === "transfer"}
+        onOpenChange={(open) => !open && setActiveForm(null)}
+        invalidateQueries={["inventory"]}
+      />
+      <AdjustForm
+        open={activeForm === "adjust"}
+        onOpenChange={(open) => !open && setActiveForm(null)}
+        invalidateQueries={["inventory"]}
+      />
     </>
   )
 }
