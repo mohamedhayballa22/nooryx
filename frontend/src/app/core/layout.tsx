@@ -7,6 +7,7 @@ import { useAuth } from "@/lib/auth";
 import { AuthLoading } from "@/components/auth-loading";
 import { useRouter } from "next/navigation";
 import { useEffect } from "react";
+import { Toaster } from "sonner"
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -41,6 +42,8 @@ export default function Layout({ children }: { children: React.ReactNode }) {
           <main className="flex-1 overflow-auto p-8">{children}</main>
         </div>
       </div>
+
+      <Toaster position="bottom-right"/>
     </SidebarProvider>
   );
 }

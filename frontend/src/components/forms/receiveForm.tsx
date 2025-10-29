@@ -1,7 +1,7 @@
-"use client";
+"use client"
 
-import React, { useState } from "react";
-import { useForm } from "react-hook-form";
+import React, { useState } from "react"
+import { useForm, Controller } from "react-hook-form"
 import {
   Field,
   FieldContent,
@@ -10,10 +10,10 @@ import {
   FieldLabel,
   FieldLegend,
   FieldSet,
-} from "@/components/ui/field";
-import { Input } from "@/components/ui/input";
-import { Textarea } from "@/components/ui/textarea";
-import { Button } from "@/components/ui/button";
+} from "@/components/ui/field"
+import { Input } from "@/components/ui/input"
+import { Textarea } from "@/components/ui/textarea"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -21,85 +21,32 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "@/components/ui/dialog";
-import { OpenNewWindow } from "iconoir-react";
-import { SearchableAutocomplete, Option } from "./searchable-autocomplete";
-import { useQuery } from "@tanstack/react-query";
-import { cn } from "@/lib/utils";
-
-// Fake service function
-async function fetchSkus(query: string) {
-  await new Promise((r) => setTimeout(r, 800)); // simulate latency
-  const data = [
-    { sku_code: "SHIRT-BLK-M", sku_name: "Black Shirt Size M" },
-    { sku_code: "SHIRT-WHT-L", sku_name: "White Shirt Size L" },
-    { sku_code: "PANTS-BLU-32", sku_name: "Blue Pants 32" },
-  ];
-
-  return data.filter((sku) =>
-    sku.sku_code.toLowerCase().includes(query.toLowerCase())
-  );
-}
-
-async function fetchLocations(query: string) {
-  await new Promise((r) => setTimeout(r, 600)); // simulate latency
-  const data = [
-    { location_code: "WAREHOUSE-A", location_name: "Main Warehouse A" },
-    { location_code: "WAREHOUSE-B", location_name: "Secondary Warehouse B" },
-    { location_code: "STORE-NYC", location_name: "NYC Retail Store" },
-  ];
-
-  return data.filter((loc) =>
-    loc.location_code.toLowerCase().includes(query.toLowerCase())
-  );
-}
-
-// Hooks
-function useSkuSearch(query: string) {
-  return useQuery({
-    queryKey: ["skus", query],
-    queryFn: () => fetchSkus(query),
-    enabled: !!query,
-    select: (data) =>
-      data.map((sku) => ({
-        value: sku.sku_code,
-        label: sku.sku_code,
-        metadata: { sku_name: sku.sku_name },
-      })),
-  });
-}
-
-function useLocationSearch(query: string) {
-  return useQuery({
-    queryKey: ["locations", query],
-    queryFn: () => fetchLocations(query),
-    enabled: !!query,
-    select: (data) =>
-      data.map((loc) => ({
-        value: loc.location_code,
-        label: loc.location_code,
-        metadata: { location_name: loc.location_name },
-      })),
-  });
-}
+} from "@/components/ui/dialog"
+import { OpenNewWindow } from "iconoir-react"
+import { SearchableAutocomplete, Option } from "./searchable-autocomplete"
+import { cn } from "@/lib/utils"
+import { useSkuSearch } from "./hooks/use-sku-search"
+import { useLocationSearch } from "./hooks/use-location-search"
+import { useTxn } from "./hooks/use-txn"
+import { toast } from "sonner"
 
 type ReceiveFormProps = {
-  open?: boolean;
-  onOpenChange?: (open: boolean) => void;
-  onSubmit?: (payload: any) => void;
-  sizeClass?: string;
-};
+  open?: boolean
+  onOpenChange?: (open: boolean) => void
+  onSubmit?: (payload: any) => void
+  sizeClass?: string
+}
 
 type FormValues = {
-  sku_code: string;
-  sku_name: string;
-  location: string;
-  qty: number;
-  cost_price: number;
-  notes?: string;
-};
+  sku_code: string
+  sku_name: string
+  location: string
+  qty: number
+  cost_price: number
+  notes?: string
+}
 
-const NOTES_MAX_LENGTH = 500;
+const NOTES_MAX_LENGTH = 500
 
 export function ReceiveForm({
   open,
@@ -107,22 +54,22 @@ export function ReceiveForm({
   onSubmit,
   sizeClass = "max-w-lg",
 }: ReceiveFormProps) {
-  const [localOpen, setLocalOpen] = useState(false);
-  const isControlled = typeof open === "boolean";
-  const show = isControlled ? open! : localOpen;
+  const [localOpen, setLocalOpen] = useState(false)
+  const isControlled = typeof open === "boolean"
+  const show = isControlled ? open! : localOpen
   const setShow = (v: boolean) => {
-    if (isControlled) onOpenChange?.(v);
-    else setLocalOpen(v);
-  };
+    if (isControlled) onOpenChange?.(v)
+    else setLocalOpen(v)
+  }
 
   const {
     register,
     handleSubmit,
     formState: { errors },
     reset,
-    watch,
+    control,
     setValue,
-    trigger,
+    watch,
   } = useForm<FormValues>({
     defaultValues: {
       sku_code: "",
@@ -132,7 +79,13 @@ export function ReceiveForm({
       cost_price: 0,
       notes: "",
     },
-  });
+  })
+
+  const { mutate: postTxn, isPending } = useTxn()
+
+  // Watch once at the top to avoid multiple subscriptions
+  const notesValue = watch("notes") || ""
+  const notesLength = notesValue.length
 
   // SKU code validation registration
   register("sku_code", {
@@ -147,7 +100,7 @@ export function ReceiveForm({
       message:
         "SKU must only contain letters, numbers, and dashes (no spaces or special characters)",
     },
-  });
+  })
 
   // Location validation registration
   register("location", {
@@ -162,7 +115,7 @@ export function ReceiveForm({
       message:
         "Location must only contain letters, numbers, and dashes (no spaces or special characters)",
     },
-  });
+  })
 
   // SKU name validation registration
   register("sku_name", {
@@ -177,61 +130,64 @@ export function ReceiveForm({
       message:
         "SKU Name can only contain letters, numbers, spaces, and dashes",
     },
-  });
+  })
 
   const onValid = (data: FormValues) => {
     // Destructure notes out so it doesn't appear at root level
-    const { notes, ...rest } = data;
+    const { notes, ...rest } = data
 
     // Build base payload
     const payload: any = {
-        ...rest,
-        sku_code: rest.sku_code.trim().toUpperCase(),
-        location: rest.location.trim().toUpperCase(),
-        action: "receive",
-    };
+      ...rest,
+      sku_code: rest.sku_code.trim().toUpperCase(),
+      location: rest.location.trim().toUpperCase(),
+      action: "receive",
+    }
 
     // Only include txn_metadata if notes were entered
     if (notes && notes.trim() !== "") {
-        payload.txn_metadata = { notes: notes.trim() };
+      payload.txn_metadata = { notes: notes.trim() }
     }
 
-    onSubmit?.(payload);
-    reset();
-    setShow(false);
-    };
+    postTxn(payload, {
+      onSuccess: () => {
+        onSubmit?.(payload)
+        reset()
+        setShow(false)
+
+        toast.success("Stock received successfully", {
+          description: `${payload.qty} units of ${payload.sku_name} added to ${payload.location}.`,
+        })
+      },
+    })
+  }
 
   // SKU search
-  const [searchQuery, setSearchQuery] = useState("");
+  const [searchQuery, setSearchQuery] = useState("")
   const { data: skuOptions = [], isLoading: isLoadingSkus } =
-    useSkuSearch(searchQuery);
+    useSkuSearch(searchQuery)
 
   // Location search
-  const [locationQuery, setLocationQuery] = useState("");
+  const [locationQuery, setLocationQuery] = useState("")
   const { data: locationOptions = [], isLoading: isLoadingLocations } =
-    useLocationSearch(locationQuery);
+    useLocationSearch(locationQuery)
 
   const handleSkuChange = (val: string, option?: Option) => {
     // Trim and uppercase before setting
-    const formattedVal = val.trim().toUpperCase();
-    setValue("sku_code", formattedVal, { shouldValidate: true });
-    trigger("sku_code");
+    const formattedVal = val.trim().toUpperCase()
+    setValue("sku_code", formattedVal, { shouldValidate: true })
 
     if (option?.metadata?.sku_name) {
-      setValue("sku_name", option.metadata.sku_name);
+      setValue("sku_name", option.metadata.sku_name)
     } else {
-      setValue("sku_name", "");
+      setValue("sku_name", "")
     }
-  };
+  }
 
   const handleLocationChange = (val: string) => {
-    const formattedVal = val.trim().toUpperCase();
-    setValue("location", formattedVal, { shouldValidate: true });
-    trigger("location");
-  };
-
-  const notesValue = watch("notes") || "";
-  const notesLength = notesValue.length;
+    const formattedVal = val.trim().toUpperCase()
+    setValue("location", formattedVal, { shouldValidate: true })
+  }
 
   return (
     <Dialog open={show} onOpenChange={setShow}>
@@ -262,14 +218,20 @@ export function ReceiveForm({
                     </p>
                   )}
                   <FieldContent>
-                    <SearchableAutocomplete
-                      options={skuOptions}
-                      value={watch("sku_code")}
-                      onChange={handleSkuChange}
-                      onSearchChange={setSearchQuery}
-                      isLoading={isLoadingSkus}
-                      placeholder="Type to search SKU..."
-                      transformInput={(val) => val.toUpperCase()}
+                    <Controller
+                      name="sku_code"
+                      control={control}
+                      render={({ field }) => (
+                        <SearchableAutocomplete
+                          options={skuOptions}
+                          value={field.value}
+                          onChange={handleSkuChange}
+                          onSearchChange={setSearchQuery}
+                          isLoading={isLoadingSkus}
+                          placeholder="Type to search SKU..."
+                          transformInput={(val) => val.toUpperCase()}
+                        />
+                      )}
                     />
                   </FieldContent>
                   <FieldDescription>
@@ -313,14 +275,20 @@ export function ReceiveForm({
                     </p>
                   )}
                   <FieldContent>
-                    <SearchableAutocomplete
-                      options={locationOptions}
-                      value={watch("location")}
-                      onChange={handleLocationChange}
-                      onSearchChange={setLocationQuery}
-                      isLoading={isLoadingLocations}
-                      placeholder="Type to search location..."
-                      transformInput={(val) => val.toUpperCase()}
+                    <Controller
+                      name="location"
+                      control={control}
+                      render={({ field }) => (
+                        <SearchableAutocomplete
+                          options={locationOptions}
+                          value={field.value}
+                          onChange={handleLocationChange}
+                          onSearchChange={setLocationQuery}
+                          isLoading={isLoadingLocations}
+                          placeholder="Type to search location..."
+                          transformInput={(val) => val.toUpperCase()}
+                        />
+                      )}
                     />
                   </FieldContent>
                   <FieldDescription>
@@ -380,7 +348,7 @@ export function ReceiveForm({
                       />
                     </FieldContent>
                     <FieldDescription>
-                        {/* TODO: Redirect to correct valuation docs page */}
+                      {/* TODO: Redirect to correct valuation docs page */}
                       <a
                         target="_blank"
                         rel="noopener noreferrer"
@@ -435,14 +403,17 @@ export function ReceiveForm({
                 variant="outline"
                 type="button"
                 onClick={() => setShow(false)}
+                disabled={isPending}
               >
                 Cancel
               </Button>
-              <Button type="submit">Receive</Button>
+              <Button type="submit" disabled={isPending}>
+                {isPending ? "Receiving..." : "Receive"}
+              </Button>
             </DialogFooter>
           </form>
         </div>
       </DialogContent>
     </Dialog>
-  );
+  )
 }
