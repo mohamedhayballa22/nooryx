@@ -26,6 +26,8 @@ interface BaseTransactionFormProps<T extends FormValues> {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onSubmit?: (payload: any) => void
+  onSuccess?: () => void
+  invalidateQueries?: string[]
   sizeClass?: string
 }
 
@@ -34,6 +36,8 @@ export function BaseTransactionForm<T extends FormValues>({
   open,
   onOpenChange,
   onSubmit,
+  onSuccess,
+  invalidateQueries,
   sizeClass = "max-w-lg",
 }: BaseTransactionFormProps<T>) {
   const [localOpen, setLocalOpen] = useState(false)
@@ -49,7 +53,7 @@ export function BaseTransactionForm<T extends FormValues>({
   })
 
   const { handleSubmit, reset } = methods
-  const { mutate: postTxn, isPending } = useTxn()
+  const { mutate: postTxn, isPending } = useTxn({ invalidateQueries })
 
   const onValid = (data: T) => {
     const payload = config.transformPayload(data)
@@ -57,6 +61,7 @@ export function BaseTransactionForm<T extends FormValues>({
     postTxn(payload, {
       onSuccess: () => {
         onSubmit?.(payload)
+        onSuccess?.()
         reset()
         setShow(false)
 
@@ -80,16 +85,15 @@ export function BaseTransactionForm<T extends FormValues>({
     return actionMap[action.toLowerCase()] || `${action.charAt(0).toUpperCase() + action.slice(1)}ing`
   }
 
-  // Separate notes field from others
+  // Separate notes field from other fields
   const notesField = config.fields.find((f) => f.name === "notes")
-  // Filter out the notes field from the regular fields
-  const regularFields = config.fields.filter((f) => f.name !== "notes")
+  const otherFields = config.fields.filter((f) => f.name !== "notes")
 
-  // Group non-notes fields by grid column
-  const nonNotesFullWidthFields = regularFields.filter(
+  // Group non-notes fields by grid column for layout
+  const fullWidthFields = otherFields.filter(
     (f) => f.gridColumn === "full" || !f.gridColumn
   )
-  const nonNotesHalfWidthFields = regularFields.filter((f) => f.gridColumn === "half")
+  const halfWidthFields = otherFields.filter((f) => f.gridColumn === "half")
 
   return (
     <Dialog open={show} onOpenChange={setShow}>
@@ -110,15 +114,15 @@ export function BaseTransactionForm<T extends FormValues>({
             >
               <FieldSet>
                 <FieldGroup>
-                  {/* Render non-notes full-width fields first */}
-                  {nonNotesFullWidthFields.map((fieldConfig) => (
+                  {/* Render full-width fields first */}
+                  {fullWidthFields.map((fieldConfig) => (
                     <FormField key={fieldConfig.name} config={fieldConfig} />
                   ))}
 
-                  {/* Render non-notes half-width fields in a grid */}
-                  {nonNotesHalfWidthFields.length > 0 && (
+                  {/* Render half-width fields in a grid */}
+                  {halfWidthFields.length > 0 && (
                     <div className="grid grid-cols-2 gap-4">
-                      {nonNotesHalfWidthFields.map((fieldConfig) => (
+                      {halfWidthFields.map((fieldConfig) => (
                         <FormField
                           key={fieldConfig.name}
                           config={fieldConfig}
@@ -128,9 +132,7 @@ export function BaseTransactionForm<T extends FormValues>({
                   )}
 
                   {/* Always render notes field last if it exists */}
-                  {notesField && (
-                    <FormField key={notesField.name} config={notesField} />
-                  )}
+                  {notesField && <FormField config={notesField} />}
                 </FieldGroup>
               </FieldSet>
 
