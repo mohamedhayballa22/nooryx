@@ -9,6 +9,8 @@ type TransferFormProps = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onSubmit?: (payload: any) => void
+  onSuccess?: () => void
+  invalidateQueries?: string[]
   sizeClass?: string
 }
 
