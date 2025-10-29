@@ -27,7 +27,7 @@ class ReceiveTxn(BaseTxn):
 class ShipTxn(BaseTxn):
     """Ship inventory from a location."""
     action: Literal["ship"] = "ship"
-    qty: int = Field(..., lt=0, description="Quantity to ship (negative)")
+    qty: int = Field(..., gt=0, description="Quantity to ship (negative)")
     txn_metadata: Optional[Dict[str, Any]] = Field(
         None, 
         description="Optional: {ship_from: 'reserved'|'available'|'auto'}"

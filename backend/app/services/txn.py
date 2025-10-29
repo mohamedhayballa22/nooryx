@@ -117,6 +117,9 @@ class TransactionService:
                 txn_payload.action
             )
             
+            if txn_payload.action == "ship":
+                txn_payload.qty = -abs(txn_payload.qty)
+            
             # 4. Create transaction record (with cost_price in minor units)
             transaction = await self._create_transaction(
                 txn_payload, 
