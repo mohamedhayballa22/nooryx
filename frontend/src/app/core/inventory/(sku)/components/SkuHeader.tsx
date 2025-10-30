@@ -39,6 +39,8 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
     sku_name: name,
   }
 
+  const locationContext = location_names.length === 1 ? { location: location_names[0] } : undefined
+
   return (
     <>
       <div className="flex flex-col gap-4 pb-4">
@@ -135,36 +137,42 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
         onOpenChange={(open) => !open && (setIsReceiveFormOpen(false), setActiveForm(null))}
         invalidateQueries={["inventory", "transactions", "trend"]}
         skuContext={skuContext}
+        locationContext={locationContext}
       />
       <ShipForm
         open={activeForm === "ship"}
         onOpenChange={(open) => !open && setActiveForm(null)}
         invalidateQueries={["inventory", "transactions", "trend"]}
         skuContext={skuContext}
+        locationContext={locationContext}
       />
       <ReserveForm
         open={activeForm === "reserve"}
         onOpenChange={(open) => !open && setActiveForm(null)}
         invalidateQueries={["inventory", "transactions", "trend"]}
         skuContext={skuContext}
+        locationContext={locationContext}
       />
       <UnreserveForm
         open={activeForm === "unreserve"}
         onOpenChange={(open) => !open && setActiveForm(null)}
         invalidateQueries={["inventory", "transactions", "trend"]}
         skuContext={skuContext}
+        locationContext={locationContext}
       />
       <TransferForm
         open={activeForm === "transfer"}
         onOpenChange={(open) => !open && setActiveForm(null)}
         invalidateQueries={["inventory", "transactions", "trend"]}
         skuContext={skuContext}
+        locationContext={locationContext}
       />
       <AdjustForm
         open={activeForm === "adjust"}
         onOpenChange={(open) => !open && setActiveForm(null)}
         invalidateQueries={["inventory", "transactions", "trend"]}
         skuContext={skuContext}
+        locationContext={locationContext}
       />
     </>
   )
