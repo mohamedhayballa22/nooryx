@@ -6,7 +6,6 @@ import type {
   ReserveFormValues,
   UnreserveFormValues,
   TransferFormValues,
-  SkuContext,
 } from "./types"
 import { validationRules } from "./validation-schemas"
 
@@ -14,13 +13,11 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
   action: "receive",
   title: "Receive Stock",
   description: "Record new inventory being received into a location.",
-  // Dynamic title based on SKU context
   getTitle: (skuContext) => {
     return skuContext 
       ? `Receive ${skuContext.sku_name}` 
       : "Receive Stock"
   },
-  // Dynamic description based on SKU context
   getDescription: (skuContext) => {
     return skuContext
       ? `Record new inventory of ${skuContext.sku_name} (${skuContext.sku_code}) being received.`
@@ -93,12 +90,11 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
     cost_price: 0,
     notes: "",
   },
-  // Dynamic default values when SKU context is provided
-  getDefaultValues: (skuContext) => {
+  getDefaultValues: (skuContext, locationContext) => {
     return {
       sku_code: skuContext?.sku_code || "",
       sku_name: skuContext?.sku_name || "",
-      location: "",
+      location: locationContext?.location || "",
       qty: 0,
       cost_price: 0,
       notes: "",
@@ -195,10 +191,10 @@ export const shipFormConfig: FormConfig<ShipFormValues> = {
     ship_from: "auto",
     notes: "",
   },
-  getDefaultValues: (skuContext) => {
+  getDefaultValues: (skuContext, locationContext) => {
     return {
       sku_code: skuContext?.sku_code || "",
-      location: "",
+      location: locationContext?.location || "",
       qty: 0,
       ship_from: "auto" as "auto",
       notes: "",
@@ -295,10 +291,10 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
     reason: "",
     notes: "",
   },
-  getDefaultValues: (skuContext) => {
+  getDefaultValues: (skuContext, locationContext) => {
     return {
       sku_code: skuContext?.sku_code || "",
-      location: "",
+      location: locationContext?.location || "",
       qty: 0,
       reason: "",
       notes: "",
@@ -399,10 +395,10 @@ export const reserveFormConfig: FormConfig<ReserveFormValues> = {
     customer: "",
     notes: "",
   },
-  getDefaultValues: (skuContext) => {
+  getDefaultValues: (skuContext, locationContext) => {
     return {
       sku_code: skuContext?.sku_code || "",
-      location: "",
+      location: locationContext?.location || "",
       qty: 0,
       order_id: "",
       customer: "",
@@ -508,10 +504,10 @@ export const unreserveFormConfig: FormConfig<UnreserveFormValues> = {
     reason: "",
     notes: "",
   },
-  getDefaultValues: (skuContext) => {
+  getDefaultValues: (skuContext, locationContext) => {
     return {
       sku_code: skuContext?.sku_code || "",
-      location: "",
+      location: locationContext?.location || "",
       qty: 0,
       order_id: "",
       reason: "",
@@ -610,10 +606,10 @@ export const transferFormConfig: FormConfig<TransferFormValues> = {
     qty: 0,
     notes: "",
   },
-  getDefaultValues: (skuContext) => {
+  getDefaultValues: (skuContext, locationContext) => {
     return {
       sku_code: skuContext?.sku_code || "",
-      location: "",
+      location: locationContext?.location || "",
       target_location: "",
       qty: 0,
       notes: "",
