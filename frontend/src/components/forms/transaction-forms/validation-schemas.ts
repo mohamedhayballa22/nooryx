@@ -28,7 +28,7 @@ export const validationRules = {
     maxLength: { value: 50, message: "Location cannot exceed 50 characters" },
     minLength: { value: 3, message: "Location must be at least 3 characters" },
     pattern: {
-      value: /^[A-Z0-9-]+$/,
+      value: /^[A-Z0-9\s-]+$/,
       message: "Location must only contain letters, numbers, and dashes (no spaces or special characters)",
     },
   } as RegisterOptions,
