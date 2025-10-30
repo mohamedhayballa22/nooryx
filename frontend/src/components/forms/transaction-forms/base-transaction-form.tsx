@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner"
 import { useTxn } from "../hooks/use-txn"
 import { FormField } from "./form-fields"
-import type { FormConfig, FormValues, SkuContext } from "./types"
+import type { FormConfig, FormValues, SkuContext, LocationContext } from "./types"
 
 interface BaseTransactionFormProps<T extends FormValues> {
   config: FormConfig<T>
@@ -29,8 +29,8 @@ interface BaseTransactionFormProps<T extends FormValues> {
   onSuccess?: () => void
   invalidateQueries?: string[]
   sizeClass?: string
-  // SKU context for pre-filling
   skuContext?: SkuContext
+  locationContext?: LocationContext
 }
 
 export function BaseTransactionForm<T extends FormValues>({
@@ -42,6 +42,7 @@ export function BaseTransactionForm<T extends FormValues>({
   invalidateQueries,
   sizeClass = "max-w-lg",
   skuContext,
+  locationContext,
 }: BaseTransactionFormProps<T>) {
   const [localOpen, setLocalOpen] = useState(false)
   const isControlled = typeof open === "boolean"
@@ -51,9 +52,9 @@ export function BaseTransactionForm<T extends FormValues>({
     else setLocalOpen(v)
   }
 
-  // Use SKU-specific default values if context is provided
-  const defaultValues = skuContext && config.getDefaultValues
-    ? config.getDefaultValues(skuContext)
+  // Use SKU-specific and/or location-specific default values if context is provided
+  const defaultValues = (skuContext || locationContext) && config.getDefaultValues
+    ? config.getDefaultValues(skuContext, locationContext)
     : config.defaultValues
 
   const methods = useForm<T>({
