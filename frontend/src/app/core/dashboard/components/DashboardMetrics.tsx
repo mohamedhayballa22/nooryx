@@ -19,11 +19,14 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
       : `Down ${Math.abs(total_on_hand.delta_pct)}% compared to last week`
     : total_on_hand.value === 0
       ? `No units on hand.`
-      : `No movement compared to last week`
+      : `No change compared to last week`
 
   const onHandSubtitle = location
     ? `All stock currently held in ${location}.`
     : `All stock across all active locations.`
+
+  // Helper for pluralization
+  const pluralizeSKU = (count: number) => (count === 1 ? "SKU" : "SKUs")
 
   return (
     <section
@@ -49,7 +52,7 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
         description={
           total_on_hand.value > 0
             ? onHandDescription
-            : "No inventory on hand"
+            : "No units on hand"
         }
         subtitle={onHandSubtitle}
       />
@@ -59,8 +62,8 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
         value={stockouts}
         description={
           stockouts > 0
-            ? `${stockouts} SKUs currently at zero quantity.`
-            : "No SKUs are fully out of stock"
+            ? `${stockouts} ${pluralizeSKU(stockouts)} ${stockouts === 1 ? "is" : "are"} at zero quantity.`
+            : "All SKUs are in stock"
         }
         subtitle="Critical items requiring immediate restock"
       />
@@ -70,8 +73,8 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
         value={low_stock}
         description={
           low_stock > 0
-            ? `${low_stock} SKUs are below reorder threshold.`
-            : "All SKUs are above reorder threshold"
+            ? `${low_stock} ${pluralizeSKU(low_stock)} ${low_stock === 1 ? "is" : "are"} below the reorder threshold.`
+            : "All SKUs are above the reorder threshold"
         }
         subtitle="SKUs below minimum stock levels"
       />
