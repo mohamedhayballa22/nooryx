@@ -60,7 +60,7 @@ const STOCK_STATUSES = [
 ]
 
 const SORT_OPTIONS = [
-  { value: "name", label: "Product Name" },
+  { value: "name", label: "SKU Name" },
   { value: "sku_code", label: "SKU Code" },
   { value: "available", label: "Available" },
   { value: "status", label: "Status" },
@@ -247,32 +247,32 @@ export function DataTable<TData, TValue>({
       <ReceiveForm
         open={isFormOpen || activeForm === "receive"}
         onOpenChange={(open) => !open && (setIsFormOpen(false), setActiveForm(null))}
-        invalidateQueries={["inventory", "transactions"]}
+        invalidateQueries={["inventory", "transactions", "trend"]}
       />
       <ShipForm
         open={activeForm === "ship"}
         onOpenChange={(open) => !open && setActiveForm(null)}
-        invalidateQueries={["inventory", "transactions"]}
+        invalidateQueries={["inventory", "transactions", "trend"]}
       />
       <ReserveForm
         open={activeForm === "reserve"}
         onOpenChange={(open) => !open && setActiveForm(null)}
-        invalidateQueries={["inventory", "transactions"]}
+        invalidateQueries={["inventory", "transactions", "trend"]}
       />
       <UnreserveForm
         open={activeForm === "unreserve"}
         onOpenChange={(open) => !open && setActiveForm(null)}
-        invalidateQueries={["inventory", "transactions"]}
+        invalidateQueries={["inventory", "transactions", "trend"]}
       />
       <TransferForm
         open={activeForm === "transfer"}
         onOpenChange={(open) => !open && setActiveForm(null)}
-        invalidateQueries={["inventory", "transactions"]}
+        invalidateQueries={["inventory", "transactions", "trend"]}
       />
       <AdjustForm
         open={activeForm === "adjust"}
         onOpenChange={(open) => !open && setActiveForm(null)}
-        invalidateQueries={["inventory", "transactions"]}
+        invalidateQueries={["inventory", "transactions", "trend"]}
       />
     </>
   )
@@ -287,7 +287,7 @@ DataTable.Skeleton = function DataTableSkeleton() {
           <TableHeader>
             <TableRow>
               <TableHead>SKU Code</TableHead>
-              <TableHead>Product Name</TableHead>
+              <TableHead>SKU Name</TableHead>
               <TableHead>Location</TableHead>
               <TableHead>Available</TableHead>
               <TableHead>Status</TableHead>

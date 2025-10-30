@@ -32,7 +32,7 @@ export const columns: ColumnDef<Product>[] = [
   {
     accessorKey: "name",
     filterFn: multiColumnFilterFn,
-    header: "Product Name",
+    header: "SKU Name",
   },
   {
     accessorKey: "location",
