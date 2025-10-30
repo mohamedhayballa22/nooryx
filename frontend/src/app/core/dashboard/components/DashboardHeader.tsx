@@ -14,7 +14,119 @@ interface Props {
   onTabChange: (tab: string) => void
 }
 
-// Utility: determines if truncation is worthwhile (works with plain text)
+// MESSAGE CONFIGURATION
+
+type MessageVariables = {
+  outCount?: number
+  lowCount?: number
+  outSkus?: string[]
+  lowSkus?: string[]
+  inactiveSkus?: string[]
+}
+
+type MessageBuilder = (vars: MessageVariables) => {
+  primary: string
+  full: string
+  requiresExpansion: boolean
+}
+
+const DASHBOARD_MESSAGES = {
+  greetings: {
+    morning: "Good morning",
+    afternoon: "Good afternoon",
+    evening: "Good evening",
+  },
+
+  inventory: {
+    empty: {
+      primary: "Your inventory is currently empty.",
+      full: "Your inventory is currently empty. Start by receiving new stock to get things moving.",
+    },
+
+    healthy: {
+      primary: "Your inventory looks healthy. All SKUs are well stocked.",
+      full: "Your inventory looks healthy. All SKUs are well stocked.",
+    },
+
+    healthyWithInactive: {
+      primary: (vars: MessageVariables) =>
+        `{{skus}} ${vars.inactiveSkus!.length > 1 ? "have" : "has"} not moved in over 10 days.`,
+      full: (vars: MessageVariables) =>
+        `All SKUs are well stocked, but {{skus}} ${vars.inactiveSkus!.length > 1 ? "have" : "has"} not moved in over 10 days. These items may be tying up capital.`,
+    },
+
+    lowStockOnly: {
+      withFastMovers: {
+        primary: (vars: MessageVariables) =>
+          `{{skus}} ${vars.lowSkus!.length > 1 ? "are" : "is"} running low.`,
+        full: (vars: MessageVariables) =>
+          `Most SKUs are in good shape, but {{skus}} ${vars.lowSkus!.length > 1 ? "are" : "is"} moving out quickly and running low. Consider restocking soon.`,
+      },
+      generic: {
+        primary: (vars: MessageVariables) => `{{count}} running low.`,
+        full: (vars: MessageVariables) =>
+          `{{count}} ${vars.lowCount === 1 ? "is" : "are"} running low. Consider restocking soon.`,
+      },
+    },
+
+    outOfStockOnly: {
+      withFastMovers: {
+        primary: (vars: MessageVariables) => `{{count}} out of stock.`,
+        full: (vars: MessageVariables) =>
+          `{{count}} ${vars.outCount === 1 ? "is" : "are"} completely out of stock, including fast movers such as {{skus}}. Consider replenishing ${vars.outSkus!.length > 1 ? "them" : "it"}.`,
+      },
+      generic: {
+        primary: (vars: MessageVariables) => `{{count}} out of stock.`,
+        full: (vars: MessageVariables) =>
+          `{{count}} ${vars.outCount === 1 ? "is" : "are"} completely out of stock. Restocking should be your top priority.`,
+      },
+    },
+
+    bothStockIssues: {
+      primary: (vars: MessageVariables) =>
+        `{{outCount}} out of stock, {{lowCount}} running low.`,
+      full: (vars: MessageVariables) => {
+        let message = `{{outCount}} ${vars.outCount === 1 ? "is" : "are"} completely out of stock, and {{lowCount}} ${vars.lowCount === 1 ? "is" : "are"} running low.`
+
+        if (vars.outSkus?.length) {
+          message += ` {{outSkus}} ${vars.outSkus.length > 1 ? "are" : "is"} among your fastest moving items and currently out of stock.`
+        } else if (vars.lowSkus?.length) {
+          message += ` {{lowSkus}} ${vars.lowSkus.length > 1 ? "are" : "is"} fast moving and running low.`
+        }
+
+        if (vars.inactiveSkus?.length) {
+          message += ` Additionally, {{inactiveSkus}} ${vars.inactiveSkus.length > 1 ? "have" : "has"} not moved in over 10 days.`
+        }
+
+        return message
+      },
+    },
+
+    fallback: {
+      primary: "Monitoring inventory health...",
+      full: "Monitoring inventory health...",
+    },
+  },
+
+  actions: {
+    showMore: "See more",
+    showLess: "Show less",
+  },
+
+  links: {
+    skuSingular: "SKU",
+    skuPlural: "SKUs",
+    lowStockFilter: "Low+Stock",
+    outOfStockFilter: "Out+of+Stock",
+  },
+
+  tabs: {
+    allLocations: "All Locations",
+  },
+} as const
+
+// UTILITIES
+
 function shouldShowToggle(primary: string, full: string): boolean {
   if (primary === full) return false
 
@@ -29,31 +141,25 @@ function shouldShowToggle(primary: string, full: string): boolean {
   return wordDiff >= MIN_WORD_DIFFERENCE && percentageIncrease >= MIN_PERCENTAGE_INCREASE
 }
 
-// Type for link data
+// LINK HELPERS
+
 interface LinkData {
   href: string
   text: string
 }
 
-// Helper to create SKU link data
-function createSkuLinkData(sku: string): LinkData {
-  return {
-    href: `/core/inventory?sku=${encodeURIComponent(sku)}`,
-    text: sku,
-  }
-}
-
-// Helper to create count link data
 function createCountLinkData(count: number, status: "low" | "out"): LinkData {
-  const text = `${count} ${count === 1 ? "SKU" : "SKUs"}`
-  const statusParam = status === "out" ? "Out+of+Stock" : "Low+Stock"
+  const text = `${count} ${count === 1 ? DASHBOARD_MESSAGES.links.skuSingular : DASHBOARD_MESSAGES.links.skuPlural}`
+  const statusParam =
+    status === "out"
+      ? DASHBOARD_MESSAGES.links.outOfStockFilter
+      : DASHBOARD_MESSAGES.links.lowStockFilter
   return {
     href: `/core/inventory?status=${statusParam}`,
     text,
   }
 }
 
-// Reusable Link Component
 function InlineLink({ href, children }: { href: string; children: React.ReactNode }) {
   return (
     <Link
@@ -65,195 +171,259 @@ function InlineLink({ href, children }: { href: string; children: React.ReactNod
   )
 }
 
-// Helper: render a limited list of SKU links with natural “and” joining
 function renderSkuLinks(skus: string[], limit = 2): React.ReactNode {
   if (!skus?.length) return null
   const display = skus.slice(0, limit)
+  const hasMore = skus.length > limit
+  
   return (
     <>
       {display.map((sku, i) => (
         <span key={sku}>
-          {i > 0 && (i === display.length - 1 ? " and " : ", ")}
+          {i > 0 && (i === display.length - 1 && !hasMore ? " and " : ", ")}
           <InlineLink href={`/core/inventory?sku=${encodeURIComponent(sku)}`}>{sku}</InlineLink>
         </span>
       ))}
-      {skus.length > limit && " and others"}
+      {hasMore && ", and others"}
     </>
   )
 }
 
+// MESSAGE INTERPOLATION
+
+function interpolateMessage(
+  template: string,
+  vars: MessageVariables,
+  withLinks: boolean = true
+): React.ReactNode {
+  const parts: React.ReactNode[] = []
+  let lastIndex = 0
+  let keyIndex = 0 // Add a counter for keys
+
+  const regex = /\{\{(outCount|lowCount|outSkus|lowSkus|inactiveSkus|count|skus)\}\}/g
+  let match: RegExpExecArray | null
+
+  while ((match = regex.exec(template)) !== null) {
+    if (match.index > lastIndex) {
+      parts.push(<span key={`text-${keyIndex++}`}>{template.slice(lastIndex, match.index)}</span>)
+    }
+
+    const varName = match[1]
+
+    switch (varName) {
+      case "outCount":
+        if (withLinks && vars.outCount !== undefined) {
+          const linkData = createCountLinkData(vars.outCount, "out")
+          parts.push(<InlineLink key={`link-${keyIndex++}`} href={linkData.href}>{linkData.text}</InlineLink>)
+        } else {
+          parts.push(<span key={`text-${keyIndex++}`}>{String(vars.outCount)}</span>)
+        }
+        break
+
+      case "lowCount":
+        if (withLinks && vars.lowCount !== undefined) {
+          const linkData = createCountLinkData(vars.lowCount, "low")
+          parts.push(<InlineLink key={`link-${keyIndex++}`} href={linkData.href}>{linkData.text}</InlineLink>)
+        } else {
+          parts.push(<span key={`text-${keyIndex++}`}>{String(vars.lowCount)}</span>)
+        }
+        break
+
+      case "count":
+        if (vars.outCount !== undefined) {
+          const linkData = createCountLinkData(vars.outCount, "out")
+          parts.push(<InlineLink key={`link-${keyIndex++}`} href={linkData.href}>{linkData.text}</InlineLink>)
+        } else if (vars.lowCount !== undefined) {
+          const linkData = createCountLinkData(vars.lowCount, "low")
+          parts.push(<InlineLink key={`link-${keyIndex++}`} href={linkData.href}>{linkData.text}</InlineLink>)
+        }
+        break
+
+      case "outSkus":
+        if (vars.outSkus?.length) {
+          parts.push(<span key={`skus-${keyIndex++}`}>{renderSkuLinks(vars.outSkus)}</span>)
+        }
+        break
+
+      case "lowSkus":
+        if (vars.lowSkus?.length) {
+          parts.push(<span key={`skus-${keyIndex++}`}>{renderSkuLinks(vars.lowSkus)}</span>)
+        }
+        break
+
+      case "inactiveSkus":
+        if (vars.inactiveSkus?.length) {
+          parts.push(<span key={`skus-${keyIndex++}`}>{renderSkuLinks(vars.inactiveSkus)}</span>)
+        }
+        break
+
+      case "skus":
+        if (vars.outSkus?.length) {
+          parts.push(<span key={`skus-${keyIndex++}`}>{renderSkuLinks(vars.outSkus)}</span>)
+        } else if (vars.lowSkus?.length) {
+          parts.push(<span key={`skus-${keyIndex++}`}>{renderSkuLinks(vars.lowSkus)}</span>)
+        } else if (vars.inactiveSkus?.length) {
+          parts.push(<span key={`skus-${keyIndex++}`}>{renderSkuLinks(vars.inactiveSkus)}</span>)
+        }
+        break
+    }
+
+    lastIndex = regex.lastIndex
+  }
+
+  if (lastIndex < template.length) {
+    parts.push(<span key={`text-${keyIndex++}`}>{template.slice(lastIndex)}</span>)
+  }
+
+  return <>{parts}</>
+}
+
+// MESSAGE BUILDER
+
+function buildMessage(data: DashboardSummary): {
+  primary: React.ReactNode
+  full: React.ReactNode
+  canExpand: boolean
+} {
+  const {
+    low_stock,
+    out_of_stock,
+    fast_mover_low_stock_sku,
+    fast_mover_out_of_stock_sku,
+    inactive_sku_in_stock,
+    empty_inventory,
+  } = data
+
+  const vars: MessageVariables = {
+    outCount: out_of_stock,
+    lowCount: low_stock,
+    outSkus: fast_mover_out_of_stock_sku ?? undefined,
+    lowSkus: fast_mover_low_stock_sku ?? undefined,
+    inactiveSkus: inactive_sku_in_stock ?? undefined,
+  }
+
+  // Empty inventory
+  if (empty_inventory) {
+    const { primary, full } = DASHBOARD_MESSAGES.inventory.empty
+    const canExpand = shouldShowToggle(primary, full)
+    
+    return {
+      primary: <span>{canExpand ? primary : full}</span>,
+      full: <span>{full}</span>,
+      canExpand,
+    }
+  }
+
+  // Healthy inventory
+  if (low_stock === 0 && out_of_stock === 0) {
+    if (inactive_sku_in_stock?.length) {
+      const primaryTemplate = DASHBOARD_MESSAGES.inventory.healthyWithInactive.primary(vars)
+      const fullTemplate = DASHBOARD_MESSAGES.inventory.healthyWithInactive.full(vars)
+      const canExpand = shouldShowToggle(primaryTemplate, fullTemplate)
+
+      return {
+        primary: interpolateMessage(canExpand ? primaryTemplate : fullTemplate, vars),
+        full: interpolateMessage(fullTemplate, vars),
+        canExpand,
+      }
+    }
+
+    const { primary, full } = DASHBOARD_MESSAGES.inventory.healthy
+    return {
+      primary: <span>{primary}</span>,
+      full: <span>{full}</span>,
+      canExpand: false,
+    }
+  }
+
+  // Low stock only
+  if (low_stock > 0 && out_of_stock === 0) {
+    if (fast_mover_low_stock_sku?.length) {
+      const primaryTemplate = DASHBOARD_MESSAGES.inventory.lowStockOnly.withFastMovers.primary(vars)
+      const fullTemplate = DASHBOARD_MESSAGES.inventory.lowStockOnly.withFastMovers.full(vars)
+      const canExpand = shouldShowToggle(primaryTemplate, fullTemplate)
+
+      return {
+        primary: interpolateMessage(canExpand ? primaryTemplate : fullTemplate, vars),
+        full: interpolateMessage(fullTemplate, vars),
+        canExpand,
+      }
+    }
+
+    const primaryTemplate = DASHBOARD_MESSAGES.inventory.lowStockOnly.generic.primary(vars)
+    const fullTemplate = DASHBOARD_MESSAGES.inventory.lowStockOnly.generic.full(vars)
+    const canExpand = shouldShowToggle(primaryTemplate, fullTemplate)
+
+    return {
+      primary: interpolateMessage(canExpand ? primaryTemplate : fullTemplate, vars),
+      full: interpolateMessage(fullTemplate, vars),
+      canExpand,
+    }
+  }
+
+  // Out of stock only
+  if (out_of_stock > 0 && low_stock === 0) {
+    if (fast_mover_out_of_stock_sku?.length) {
+      const primaryTemplate =
+        DASHBOARD_MESSAGES.inventory.outOfStockOnly.withFastMovers.primary(vars)
+      const fullTemplate = DASHBOARD_MESSAGES.inventory.outOfStockOnly.withFastMovers.full(vars)
+      const canExpand = shouldShowToggle(primaryTemplate, fullTemplate)
+
+      return {
+        primary: interpolateMessage(canExpand ? primaryTemplate : fullTemplate, vars),
+        full: interpolateMessage(fullTemplate, vars),
+        canExpand,
+      }
+    }
+
+    const primaryTemplate = DASHBOARD_MESSAGES.inventory.outOfStockOnly.generic.primary(vars)
+    const fullTemplate = DASHBOARD_MESSAGES.inventory.outOfStockOnly.generic.full(vars)
+    const canExpand = shouldShowToggle(primaryTemplate, fullTemplate)
+
+    return {
+      primary: interpolateMessage(canExpand ? primaryTemplate : fullTemplate, vars),
+      full: interpolateMessage(fullTemplate, vars),
+      canExpand,
+    }
+  }
+
+  // Both low and out of stock
+  if (low_stock > 0 && out_of_stock > 0) {
+    const primaryTemplate = DASHBOARD_MESSAGES.inventory.bothStockIssues.primary(vars)
+    const fullTemplate = DASHBOARD_MESSAGES.inventory.bothStockIssues.full(vars)
+    const canExpand = shouldShowToggle(primaryTemplate, fullTemplate)
+
+    return {
+      primary: interpolateMessage(canExpand ? primaryTemplate : fullTemplate, vars),
+      full: interpolateMessage(fullTemplate, vars),
+      canExpand,
+    }
+  }
+
+  // Fallback
+  const { primary, full } = DASHBOARD_MESSAGES.inventory.fallback
+  return {
+    primary: <span>{primary}</span>,
+    full: <span>{full}</span>,
+    canExpand: false,
+  }
+}
+
+// MAIN COMPONENT
+
 export default function DashboardHeader({ data, selectedLocation, onTabChange }: Props) {
   const [expandedMessage, setExpandedMessage] = useState(false)
 
-  const {
-    first_name,
-    low_stock,
-    out_of_stock,
-    fast_mover_low_stock_sku,
-    fast_mover_out_of_stock_sku,
-    inactive_sku_in_stock,
-    empty_inventory,
-    locations,
-  } = data
+  const { first_name, locations } = data
 
   const greeting = useMemo(() => {
     const hour = new Date().getHours()
-    if (hour < 12) return "Good morning"
-    if (hour < 18) return "Good afternoon"
-    return "Good evening"
+    if (hour < 12) return DASHBOARD_MESSAGES.greetings.morning
+    if (hour < 18) return DASHBOARD_MESSAGES.greetings.afternoon
+    return DASHBOARD_MESSAGES.greetings.evening
   }, [])
 
-  // Build message component
-  const message = useMemo(() => {
-    // Empty inventory
-    if (empty_inventory) {
-      const primary = "Your inventory is currently empty."
-      const full =
-        "Your inventory is currently empty. Start by receiving new stock to get things moving."
-      return {
-        primary: <span>{primary}</span>,
-        full: <span>{full}</span>,
-        canExpand: shouldShowToggle(primary, full),
-      }
-    }
-
-    // Healthy inventory but inactive SKUs
-    if (low_stock === 0 && out_of_stock === 0) {
-      if (inactive_sku_in_stock?.length) {
-        const skus = renderSkuLinks(inactive_sku_in_stock)
-        const plural = inactive_sku_in_stock.length > 1
-        const primaryText = `${inactive_sku_in_stock.slice(0, 2).join(", ")} ${
-          plural ? "have" : "has"
-        } not moved in over 10 days.`
-        const fullText = `All SKUs are well stocked, but some items have not moved in over 10 days.`
-        const canExpand = shouldShowToggle(primaryText, fullText)
-        return {
-          primary: (
-            <span>
-              {skus} {plural ? "have" : "has"} not moved in over 10 days.
-            </span>
-          ),
-          full: (
-            <span>
-              All SKUs are well stocked, but {skus} {plural ? "have" : "has"} not moved in over 10
-              days. These items are tying up capital.
-            </span>
-          ),
-          canExpand,
-        }
-      }
-      const msg = <span>Your inventory looks healthy. All SKUs are well stocked.</span>
-      return { primary: msg, full: msg, canExpand: false }
-    }
-
-    // Low stock only
-    if (low_stock > 0 && out_of_stock === 0) {
-      const linkData = createCountLinkData(low_stock, "low")
-      if (fast_mover_low_stock_sku?.length) {
-        const skus = renderSkuLinks(fast_mover_low_stock_sku)
-        const plural = fast_mover_low_stock_sku.length > 1
-        return {
-          primary: (
-            <span>
-              {skus} {plural ? "are" : "is"} running low.
-            </span>
-          ),
-          full: (
-            <span>
-              Most SKUs are in good shape, but {skus} {plural ? "are" : "is"} moving out quickly and
-              running low. Consider restocking soon.
-            </span>
-          ),
-          canExpand: true,
-        }
-      }
-      return {
-        primary: (
-          <span>
-            <InlineLink href={linkData.href}>{linkData.text}</InlineLink> running low.
-          </span>
-        ),
-        full: (
-          <span>
-            <InlineLink href={linkData.href}>{linkData.text}</InlineLink>{" "}
-            {low_stock === 1 ? "is" : "are"} running low. Consider restocking soon.
-          </span>
-        ),
-        canExpand: true,
-      }
-    }
-
-    // Out of stock only
-    if (out_of_stock > 0 && low_stock === 0) {
-      const linkData = createCountLinkData(out_of_stock, "out")
-      if (fast_mover_out_of_stock_sku?.length) {
-        const skus = renderSkuLinks(fast_mover_out_of_stock_sku)
-        const plural = fast_mover_out_of_stock_sku.length > 1
-        return {
-          primary: (
-            <span>
-              <InlineLink href={linkData.href}>{linkData.text}</InlineLink> out of stock.
-            </span>
-          ),
-          full: (
-            <span>
-              <InlineLink href={linkData.href}>{linkData.text}</InlineLink>{" "}
-              {out_of_stock === 1 ? "is" : "are"} completely out of stock, including fast movers such
-              as {skus}. Replenish {plural ? "them" : "it"} immediately.
-            </span>
-          ),
-          canExpand: true,
-        }
-      }
-      return {
-        primary: (
-          <span>
-            <InlineLink href={linkData.href}>{linkData.text}</InlineLink> out of stock.
-          </span>
-        ),
-        full: (
-          <span>
-            <InlineLink href={linkData.href}>{linkData.text}</InlineLink>{" "}
-            {out_of_stock === 1 ? "is" : "are"} completely out of stock. Restocking should be your
-            top priority.
-          </span>
-        ),
-        canExpand: true,
-      }
-    }
-
-    // Both low and out of stock
-    if (low_stock > 0 && out_of_stock > 0) {
-      const outLink = createCountLinkData(out_of_stock, "out")
-      const lowLink = createCountLinkData(low_stock, "low")
-      return {
-        primary: (
-          <span>
-            <InlineLink href={outLink.href}>{outLink.text}</InlineLink> out of stock,{" "}
-            <InlineLink href={lowLink.href}>{lowLink.text}</InlineLink> running low.
-          </span>
-        ),
-        full: buildFullMessageComponent(
-          out_of_stock,
-          low_stock,
-          fast_mover_out_of_stock_sku,
-          fast_mover_low_stock_sku,
-          inactive_sku_in_stock
-        ),
-        canExpand: true,
-      }
-    }
-
-    const msg = <span>Monitoring inventory health...</span>
-    return { primary: msg, full: msg, canExpand: false }
-  }, [
-    low_stock,
-    out_of_stock,
-    fast_mover_low_stock_sku,
-    fast_mover_out_of_stock_sku,
-    inactive_sku_in_stock,
-    empty_inventory,
-  ])
+  const message = useMemo(() => buildMessage(data), [data])
 
   const displayedMessage = expandedMessage ? message.full : message.primary
 
@@ -273,7 +443,9 @@ export default function DashboardHeader({ data, selectedLocation, onTabChange }:
               onClick={() => setExpandedMessage(!expandedMessage)}
               className="inline-flex items-center gap-1.5 text-sm font-medium text-primary hover:text-primary/80 transition-colors cursor-pointer"
             >
-              {expandedMessage ? "Show less" : "See more"}
+              {expandedMessage
+                ? DASHBOARD_MESSAGES.actions.showLess
+                : DASHBOARD_MESSAGES.actions.showMore}
               <NavArrowDown
                 className={cn(
                   "h-4 w-4 transition-transform duration-200",
@@ -295,7 +467,7 @@ export default function DashboardHeader({ data, selectedLocation, onTabChange }:
                 "px-3 py-2 text-sm font-medium rounded-none border-b-2 border-transparent data-[state=active]:border-primary data-[state=active]:text-primary transition-colors"
               )}
             >
-              All Locations
+              {DASHBOARD_MESSAGES.tabs.allLocations}
             </TabsTrigger>
             {locations.map((loc) => (
               <TabsTrigger
@@ -315,49 +487,7 @@ export default function DashboardHeader({ data, selectedLocation, onTabChange }:
   )
 }
 
-// Helper: builds long message component
-function buildFullMessageComponent(
-  out_of_stock: number,
-  low_stock: number,
-  fast_mover_out_of_stock_sku: string[] | null,
-  fast_mover_low_stock_sku: string[] | null,
-  inactive_sku_in_stock: string[] | null
-): React.ReactNode {
-  const outLink = createCountLinkData(out_of_stock, "out")
-  const lowLink = createCountLinkData(low_stock, "low")
-
-  return (
-    <span>
-      <InlineLink href={outLink.href}>{outLink.text}</InlineLink>{" "}
-      {out_of_stock === 1 ? "is" : "are"} completely out of stock, and{" "}
-      <InlineLink href={lowLink.href}>{lowLink.text}</InlineLink>{" "}
-      {low_stock === 1 ? "is" : "are"} running low.
-      {fast_mover_out_of_stock_sku?.length ? (
-        <>
-          {" "}
-          {renderSkuLinks(fast_mover_out_of_stock_sku)}{" "}
-          {fast_mover_out_of_stock_sku.length > 1 ? "are" : "is"} among your fastest moving items
-          and currently out of stock.
-        </>
-      ) : fast_mover_low_stock_sku?.length ? (
-        <>
-          {" "}
-          {renderSkuLinks(fast_mover_low_stock_sku)}{" "}
-          {fast_mover_low_stock_sku.length > 1 ? "are" : "is"} fast moving and running low.
-        </>
-      ) : null}
-      {inactive_sku_in_stock?.length && (
-        <>
-          {" Additionally, "}
-          {renderSkuLinks(inactive_sku_in_stock)}{" "}
-          {inactive_sku_in_stock.length > 1 ? "have" : "has"} not moved in over 10 days.
-        </>
-      )}
-    </span>
-  )
-}
-
-// Skeleton
+// SKELETON
 DashboardHeader.Skeleton = function DashboardHeaderSkeleton() {
   return (
     <div className="flex flex-col gap-6 pb-6">
