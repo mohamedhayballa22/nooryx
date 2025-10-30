@@ -3,7 +3,7 @@
 import React from "react"
 import { BaseTransactionForm } from "./transaction-forms"
 import { receiveFormConfig } from "./transaction-forms/form-configs"
-import type { ReceiveFormValues, SkuContext } from "./transaction-forms/types"
+import type { LocationContext, ReceiveFormValues, SkuContext } from "./transaction-forms/types"
 
 type ReceiveFormProps = {
   open?: boolean
@@ -13,6 +13,7 @@ type ReceiveFormProps = {
   invalidateQueries?: string[]
   sizeClass?: string
   skuContext?: SkuContext
+  locationContext?: LocationContext
 }
 
 export function ReceiveForm(props: ReceiveFormProps) {

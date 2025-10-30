@@ -3,7 +3,7 @@
 import React from "react"
 import { BaseTransactionForm } from "./transaction-forms"
 import { unreserveFormConfig } from "./transaction-forms/form-configs"
-import type { SkuContext, UnreserveFormValues } from "./transaction-forms/types"
+import type { LocationContext, SkuContext, UnreserveFormValues } from "./transaction-forms/types"
 
 type UnreserveFormProps = {
   open?: boolean
@@ -13,6 +13,7 @@ type UnreserveFormProps = {
   invalidateQueries?: string[]
   sizeClass?: string
   skuContext?: SkuContext
+  locationContext?: LocationContext
 }
 
 export function UnreserveForm(props: UnreserveFormProps) {

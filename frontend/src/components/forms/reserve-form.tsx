@@ -3,7 +3,7 @@
 import React from "react"
 import { BaseTransactionForm } from "./transaction-forms"
 import { reserveFormConfig } from "./transaction-forms/form-configs"
-import type { ReserveFormValues, SkuContext } from "./transaction-forms/types"
+import type { LocationContext, ReserveFormValues, SkuContext } from "./transaction-forms/types"
 
 type ReserveFormProps = {
   open?: boolean
@@ -13,6 +13,7 @@ type ReserveFormProps = {
   invalidateQueries?: string[]
   sizeClass?: string
   skuContext?: SkuContext
+  locationContext?: LocationContext
 }
 
 export function ReserveForm(props: ReserveFormProps) {
