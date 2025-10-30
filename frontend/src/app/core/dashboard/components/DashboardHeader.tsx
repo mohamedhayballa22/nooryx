@@ -30,7 +30,7 @@ function formatMessageWithLinks(message: string) {
       regex: /\bSKU-\d+\b/g,
       replacer: (match: string) => {
         const sku = match
-        const href = `/core/inventory/${encodeURIComponent(sku)}`
+        const href = `/core/inventory?sku=${encodeURIComponent(sku)}`
         return `<a href="${href}" target="_blank" rel="noopener noreferrer" class="text-primary font-medium hover:underline hover:underline-offset-4 transition-colors">${match}</a>`
       },
     },
