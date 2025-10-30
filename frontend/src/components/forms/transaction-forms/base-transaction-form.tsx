@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner"
 import { useTxn } from "../hooks/use-txn"
 import { FormField } from "./form-fields"
-import type { FormConfig, FormValues } from "./types"
+import type { FormConfig, FormValues, SkuContext } from "./types"
 
 interface BaseTransactionFormProps<T extends FormValues> {
   config: FormConfig<T>
@@ -29,6 +29,8 @@ interface BaseTransactionFormProps<T extends FormValues> {
   onSuccess?: () => void
   invalidateQueries?: string[]
   sizeClass?: string
+  // SKU context for pre-filling
+  skuContext?: SkuContext
 }
 
 export function BaseTransactionForm<T extends FormValues>({
@@ -39,6 +41,7 @@ export function BaseTransactionForm<T extends FormValues>({
   onSuccess,
   invalidateQueries,
   sizeClass = "max-w-lg",
+  skuContext,
 }: BaseTransactionFormProps<T>) {
   const [localOpen, setLocalOpen] = useState(false)
   const isControlled = typeof open === "boolean"
@@ -48,8 +51,13 @@ export function BaseTransactionForm<T extends FormValues>({
     else setLocalOpen(v)
   }
 
+  // Use SKU-specific default values if context is provided
+  const defaultValues = skuContext && config.getDefaultValues
+    ? config.getDefaultValues(skuContext)
+    : config.defaultValues
+
   const methods = useForm<T>({
-    defaultValues: config.defaultValues as any,
+    defaultValues: defaultValues as any,
   })
 
   const { handleSubmit, reset } = methods
@@ -85,9 +93,22 @@ export function BaseTransactionForm<T extends FormValues>({
     return actionMap[action.toLowerCase()] || `${action.charAt(0).toUpperCase() + action.slice(1)}ing`
   }
 
+  // Get dynamic title and description
+  const title = config.getTitle ? config.getTitle(skuContext) : config.title
+  const description = config.getDescription 
+    ? config.getDescription(skuContext) 
+    : config.description
+
+  // Filter out SKU fields if context is provided
+  const fieldsToShow = skuContext
+    ? config.fields.filter(
+        (f) => f.name !== "sku_code" && f.name !== "sku_name"
+      )
+    : config.fields
+
   // Separate notes field from other fields
-  const notesField = config.fields.find((f) => f.name === "notes")
-  const otherFields = config.fields.filter((f) => f.name !== "notes")
+  const notesField = fieldsToShow.find((f) => f.name === "notes")
+  const otherFields = fieldsToShow.filter((f) => f.name !== "notes")
 
   // Group non-notes fields by grid column for layout
   const fullWidthFields = otherFields.filter(
@@ -100,9 +121,9 @@ export function BaseTransactionForm<T extends FormValues>({
       <DialogContent className={`${sizeClass} flex max-h-[90vh] flex-col p-0`}>
         <DialogHeader className="px-6 pt-6 pb-2">
           <DialogTitle>
-            <FieldLegend>{config.title}</FieldLegend>
+            <FieldLegend>{title}</FieldLegend>
           </DialogTitle>
-          <DialogDescription>{config.description}</DialogDescription>
+          <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
         <div className="scrollable-form flex-1 overflow-y-auto px-6">
@@ -146,7 +167,7 @@ export function BaseTransactionForm<T extends FormValues>({
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isPending}>
-                  {isPending ? `${getActionText(config.action)}...` : config.title.split(" ")[0]}
+                  {isPending ? `${getActionText(config.action)}...` : title.split(" ")[0]}
                 </Button>
               </DialogFooter>
             </form>

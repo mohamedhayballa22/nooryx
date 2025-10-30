@@ -3,7 +3,7 @@
 import React from "react"
 import { BaseTransactionForm } from "./transaction-forms"
 import { shipFormConfig } from "./transaction-forms/form-configs"
-import type { ShipFormValues } from "./transaction-forms/types"
+import type { ShipFormValues, SkuContext } from "./transaction-forms/types"
 
 type ShipFormProps = {
   open?: boolean
@@ -12,6 +12,7 @@ type ShipFormProps = {
   onSuccess?: () => void
   invalidateQueries?: string[]
   sizeClass?: string
+  skuContext?: SkuContext
 }
 
 export function ShipForm(props: ShipFormProps) {

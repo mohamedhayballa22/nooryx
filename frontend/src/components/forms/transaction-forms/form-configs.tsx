@@ -6,6 +6,7 @@ import type {
   ReserveFormValues,
   UnreserveFormValues,
   TransferFormValues,
+  SkuContext,
 } from "./types"
 import { validationRules } from "./validation-schemas"
 
@@ -13,6 +14,18 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
   action: "receive",
   title: "Receive Stock",
   description: "Record new inventory being received into a location.",
+  // Dynamic title based on SKU context
+  getTitle: (skuContext) => {
+    return skuContext 
+      ? `Receive ${skuContext.sku_name}` 
+      : "Receive Stock"
+  },
+  // Dynamic description based on SKU context
+  getDescription: (skuContext) => {
+    return skuContext
+      ? `Record new inventory of ${skuContext.sku_name} (${skuContext.sku_code}) being received.`
+      : "Record new inventory being received into a location."
+  },
   fields: [
     {
       name: "sku_code",
@@ -21,7 +34,7 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       type: "autocomplete",
       validation: validationRules.skuCode,
       description: "Learn more about SKUs",
-      learnMoreLink: "#", // TODO: Update with actual docs link
+      learnMoreLink: "#",
       gridColumn: "full",
     },
     {
@@ -55,12 +68,12 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
     },
     {
       name: "cost_price",
-      label: "Cost Price Per Unit (USD)", // TODO: Get currency from user's profile
+      label: "Cost Price Per Unit (USD)",
       required: true,
       type: "number",
       validation: validationRules.costPrice,
       description: "Learn more about valuation",
-      learnMoreLink: "#", // TODO: Update with actual docs link
+      learnMoreLink: "#",
       placeholder: "0.00",
       gridColumn: "half",
     },
@@ -79,6 +92,17 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
     qty: 0,
     cost_price: 0,
     notes: "",
+  },
+  // Dynamic default values when SKU context is provided
+  getDefaultValues: (skuContext) => {
+    return {
+      sku_code: skuContext?.sku_code || "",
+      sku_name: skuContext?.sku_name || "",
+      location: "",
+      qty: 0,
+      cost_price: 0,
+      notes: "",
+    }
   },
   transformPayload: (data) => {
     const { notes, ...rest } = data
@@ -105,6 +129,16 @@ export const shipFormConfig: FormConfig<ShipFormValues> = {
   action: "ship",
   title: "Ship Stock",
   description: "Record inventory being shipped out from a location.",
+  getTitle: (skuContext) => {
+    return skuContext 
+      ? `Ship ${skuContext.sku_name}` 
+      : "Ship Stock"
+  },
+  getDescription: (skuContext) => {
+    return skuContext
+      ? `Record ${skuContext.sku_name} (${skuContext.sku_code}) being shipped out.`
+      : "Record inventory being shipped out from a location."
+  },
   fields: [
     {
       name: "sku_code",
@@ -161,6 +195,15 @@ export const shipFormConfig: FormConfig<ShipFormValues> = {
     ship_from: "auto",
     notes: "",
   },
+  getDefaultValues: (skuContext) => {
+    return {
+      sku_code: skuContext?.sku_code || "",
+      location: "",
+      qty: 0,
+      ship_from: "auto" as "auto",
+      notes: "",
+    }
+  },
   transformPayload: (data) => {
     const { notes, ship_from, ...rest } = data
     const payload: any = {
@@ -190,6 +233,16 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
   action: "adjust",
   title: "Adjust Stock",
   description: "Make manual adjustments to inventory levels.",
+  getTitle: (skuContext) => {
+    return skuContext 
+      ? `Adjust ${skuContext.sku_name}` 
+      : "Adjust Stock"
+  },
+  getDescription: (skuContext) => {
+    return skuContext
+      ? `Make manual adjustments to ${skuContext.sku_name} (${skuContext.sku_code}) inventory levels.`
+      : "Make manual adjustments to inventory levels."
+  },
   fields: [
     {
       name: "sku_code",
@@ -242,6 +295,15 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
     reason: "",
     notes: "",
   },
+  getDefaultValues: (skuContext) => {
+    return {
+      sku_code: skuContext?.sku_code || "",
+      location: "",
+      qty: 0,
+      reason: "",
+      notes: "",
+    }
+  },
   transformPayload: (data) => {
     const { notes, reason, ...rest } = data
     const payload: any = {
@@ -268,6 +330,16 @@ export const reserveFormConfig: FormConfig<ReserveFormValues> = {
   action: "reserve",
   title: "Reserve Stock",
   description: "Reserve inventory for a specific order or customer.",
+  getTitle: (skuContext) => {
+    return skuContext 
+      ? `Reserve ${skuContext.sku_name}` 
+      : "Reserve Stock"
+  },
+  getDescription: (skuContext) => {
+    return skuContext
+      ? `Reserve ${skuContext.sku_name} (${skuContext.sku_code}) for a specific order or customer.`
+      : "Reserve inventory for a specific order or customer."
+  },
   fields: [
     {
       name: "sku_code",
@@ -327,6 +399,16 @@ export const reserveFormConfig: FormConfig<ReserveFormValues> = {
     customer: "",
     notes: "",
   },
+  getDefaultValues: (skuContext) => {
+    return {
+      sku_code: skuContext?.sku_code || "",
+      location: "",
+      qty: 0,
+      order_id: "",
+      customer: "",
+      notes: "",
+    }
+  },
   transformPayload: (data) => {
     const { notes, order_id, customer, ...rest } = data
     const payload: any = {
@@ -357,6 +439,16 @@ export const unreserveFormConfig: FormConfig<UnreserveFormValues> = {
   action: "unreserve",
   title: "Unreserve Stock",
   description: "Release previously reserved inventory back to available stock.",
+  getTitle: (skuContext) => {
+    return skuContext 
+      ? `Unreserve ${skuContext.sku_name}` 
+      : "Unreserve Stock"
+  },
+  getDescription: (skuContext) => {
+    return skuContext
+      ? `Release previously reserved ${skuContext.sku_name} (${skuContext.sku_code}) back to available stock.`
+      : "Release previously reserved inventory back to available stock."
+  },
   fields: [
     {
       name: "sku_code",
@@ -416,6 +508,16 @@ export const unreserveFormConfig: FormConfig<UnreserveFormValues> = {
     reason: "",
     notes: "",
   },
+  getDefaultValues: (skuContext) => {
+    return {
+      sku_code: skuContext?.sku_code || "",
+      location: "",
+      qty: 0,
+      order_id: "",
+      reason: "",
+      notes: "",
+    }
+  },
   transformPayload: (data) => {
     const { notes, order_id, reason, ...rest } = data
     const payload: any = {
@@ -446,6 +548,16 @@ export const transferFormConfig: FormConfig<TransferFormValues> = {
   action: "transfer",
   title: "Transfer Stock",
   description: "Move inventory from one location to another.",
+  getTitle: (skuContext) => {
+    return skuContext 
+      ? `Transfer ${skuContext.sku_name}` 
+      : "Transfer Stock"
+  },
+  getDescription: (skuContext) => {
+    return skuContext
+      ? `Move ${skuContext.sku_name} (${skuContext.sku_code}) from one location to another.`
+      : "Move inventory from one location to another."
+  },
   fields: [
     {
       name: "sku_code",
@@ -497,6 +609,15 @@ export const transferFormConfig: FormConfig<TransferFormValues> = {
     target_location: "",
     qty: 0,
     notes: "",
+  },
+  getDefaultValues: (skuContext) => {
+    return {
+      sku_code: skuContext?.sku_code || "",
+      location: "",
+      target_location: "",
+      qty: 0,
+      notes: "",
+    }
   },
   transformPayload: (data) => {
     const { notes, ...rest } = data

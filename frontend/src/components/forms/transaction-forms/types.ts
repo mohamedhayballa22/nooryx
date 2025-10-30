@@ -1,3 +1,4 @@
+import { UseFormReturn } from "react-hook-form"
 import type { TransactionPayload } from "@/lib/api/txn"
 
 export type TransactionAction = 
@@ -65,12 +66,23 @@ export interface FieldConfig {
   learnMoreLink?: string
 }
 
+// Context for SKU-specific forms
+export interface SkuContext {
+  sku_code: string
+  sku_name: string
+}
+
 export interface FormConfig<T extends FormValues = FormValues> {
   action: TransactionAction
   title: string
   description: string
+  // Dynamic title/description based on SKU context
+  getTitle?: (skuContext?: SkuContext) => string
+  getDescription?: (skuContext?: SkuContext) => string
   fields: FieldConfig[]
   defaultValues: T
+  // Dynamic default values based on SKU context
+  getDefaultValues?: (skuContext?: SkuContext) => T
   transformPayload: (data: T) => TransactionPayload
   successMessage: (data: T) => { title: string; description: string }
 }

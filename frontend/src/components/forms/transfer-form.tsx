@@ -3,7 +3,7 @@
 import React from "react"
 import { BaseTransactionForm } from "./transaction-forms"
 import { transferFormConfig } from "./transaction-forms/form-configs"
-import type { TransferFormValues } from "./transaction-forms/types"
+import type { SkuContext, TransferFormValues } from "./transaction-forms/types"
 
 type TransferFormProps = {
   open?: boolean
@@ -12,6 +12,7 @@ type TransferFormProps = {
   onSuccess?: () => void
   invalidateQueries?: string[]
   sizeClass?: string
+  skuContext?: SkuContext
 }
 
 export function TransferForm(props: TransferFormProps) {
