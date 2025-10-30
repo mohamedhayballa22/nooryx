@@ -17,7 +17,7 @@ export function useSkuTrend(
   period: string = "30d",
 ) {
   const query = useQuery({
-    queryKey: ["inventoryTrend", skuId, period, location],
+    queryKey: ["trend", skuId, period, location],
     queryFn: () => getInventoryTrend(skuId, period, location),
     enabled: !!skuId,
     staleTime: 5 * 60_000,

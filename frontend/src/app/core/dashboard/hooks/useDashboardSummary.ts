@@ -11,7 +11,7 @@ function getErrorStatus(error: unknown): number | undefined {
 
 export function useDashboardSummary() {
   const query = useQuery({
-    queryKey: ["reports", "summary"],
+    queryKey: ["inventory", "summary"],
     queryFn: getDashboardSummary,
     staleTime: 60_000,
     refetchOnWindowFocus: false,

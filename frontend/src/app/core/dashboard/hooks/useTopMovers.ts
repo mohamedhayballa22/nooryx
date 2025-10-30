@@ -11,7 +11,7 @@ function getErrorStatus(error: unknown): number | undefined {
 
 export function useTopMovers(location?: string, period: string = "7d") {
   const query = useQuery({
-    queryKey: ["reports", "top-movers", location, period],
+    queryKey: ["inventory", "top-movers", location, period],
     queryFn: () => getTopMovers(location, period),
     staleTime: 60_000,
     refetchOnWindowFocus: false,

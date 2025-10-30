@@ -11,7 +11,7 @@ function getErrorStatus(error: unknown): number | undefined {
 
 export function useTopInactives(location?: string, period: string = "7d") {
   const query = useQuery({
-    queryKey: ["reports", "top-inactives", location, period],
+    queryKey: ["inventory", "top-inactives", location, period],
     queryFn: () => getTopInactives(location, period),
     staleTime: 60_000,
     refetchOnWindowFocus: false,

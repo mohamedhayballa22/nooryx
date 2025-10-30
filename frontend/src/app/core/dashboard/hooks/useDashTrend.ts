@@ -16,7 +16,7 @@ export function useDashInventoryTrend(
   period: string = "30d",
 ) {
   const query = useQuery({
-    queryKey: ["dashboardInventoryTrend", period, location],
+    queryKey: ["inventory", "trend", period, location],
     queryFn: () => getDashInventoryTrend(period, location),
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,

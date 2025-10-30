@@ -11,7 +11,7 @@ function getErrorStatus(error: unknown): number | undefined {
 
 export function useDashbaordMetrics(location?: string) {
   const query = useQuery({
-    queryKey: ["reports", "metrics", location],
+    queryKey: ["inventory", "metrics", location],
     queryFn: () => getDashboardMetrics(location),
     staleTime: 60_000,
     refetchOnWindowFocus: false,
