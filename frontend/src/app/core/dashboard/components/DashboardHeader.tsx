@@ -52,7 +52,7 @@ const DASHBOARD_MESSAGES = {
       primary: (vars: MessageVariables) =>
         `{{skus}} ${vars.inactiveSkus!.length > 1 ? "have" : "has"} not moved in over 10 days.`,
       full: (vars: MessageVariables) =>
-        `All SKUs are well stocked, but {{skus}} ${vars.inactiveSkus!.length > 1 ? "have" : "has"} not moved in over 10 days. These items may be tying up capital.`,
+        `All SKUs are well stocked, but {{skus}} ${vars.inactiveSkus!.length > 1 ? "have" : "has"} not moved in over 10 days. ${vars.inactiveSkus!.length > 1 ? "These items" : "This item"} may be tying up capital.`,
     },
 
     lowStockOnly: {
@@ -63,22 +63,36 @@ const DASHBOARD_MESSAGES = {
           `Most SKUs are in good shape, but {{skus}} ${vars.lowSkus!.length > 1 ? "are" : "is"} moving out quickly and running low. Consider restocking soon.`,
       },
       generic: {
-        primary: (vars: MessageVariables) => `{{count}} running low.`,
+        primary: (vars: MessageVariables) => `{{lowCount}} running low.`,
         full: (vars: MessageVariables) =>
-          `{{count}} ${vars.lowCount === 1 ? "is" : "are"} running low. Consider restocking soon.`,
+          `{{lowCount}} ${vars.lowCount === 1 ? "is" : "are"} running low. Consider restocking soon.`,
       },
     },
 
     outOfStockOnly: {
       withFastMovers: {
         primary: (vars: MessageVariables) => `{{count}} out of stock.`,
-        full: (vars: MessageVariables) =>
-          `{{count}} ${vars.outCount === 1 ? "is" : "are"} completely out of stock, including fast movers such as {{skus}}. Consider replenishing ${vars.outSkus!.length > 1 ? "them" : "it"}.`,
+        full: (vars: MessageVariables) => {
+          const allAreFastMovers = vars.outCount === vars.outSkus!.length
+          
+          if (allAreFastMovers) {
+            // Don't list SKUs when all are fast movers
+            return `{{count}} ${vars.outCount === 1 ? "is" : "are"} out of stock. ${vars.outCount === 1 ? "This is a" : "All are"} fast-moving ${vars.outCount === 1 ? "item" : "items"}. Consider replenishing ${vars.outCount === 1 ? "it" : "them"}.`
+          }
+          
+          // Only list SKUs if there are 2 or fewer fast movers
+          if (vars.outSkus!.length <= 2) {
+            return `{{count}} ${vars.outCount === 1 ? "is" : "are"} out of stock, including fast movers such as {{skus}}. Consider replenishing ${vars.outSkus!.length > 1 ? "them" : "it"}.`
+          }
+          
+          // More than 2 fast movers in a partial subset - don't list them
+          return `{{count}} ${vars.outCount === 1 ? "is" : "are"} out of stock, including ${vars.outSkus!.length} fast-moving ${vars.outSkus!.length === 1 ? "item" : "items"}. Consider replenishing them.`
+        },
       },
       generic: {
         primary: (vars: MessageVariables) => `{{count}} out of stock.`,
         full: (vars: MessageVariables) =>
-          `{{count}} ${vars.outCount === 1 ? "is" : "are"} completely out of stock. Restocking should be your top priority.`,
+          `{{count}} ${vars.outCount === 1 ? "is" : "are"} out of stock. Consider restocking.`,
       },
     },
 
@@ -86,7 +100,7 @@ const DASHBOARD_MESSAGES = {
       primary: (vars: MessageVariables) =>
         `{{outCount}} out of stock, {{lowCount}} running low.`,
       full: (vars: MessageVariables) => {
-        let message = `{{outCount}} ${vars.outCount === 1 ? "is" : "are"} completely out of stock, and {{lowCount}} ${vars.lowCount === 1 ? "is" : "are"} running low.`
+        let message = `{{outCount}} ${vars.outCount === 1 ? "is" : "are"} out of stock, and {{lowCount}} ${vars.lowCount === 1 ? "is" : "are"} running low.`
 
         if (vars.outSkus?.length) {
           message += ` {{outSkus}} ${vars.outSkus.length > 1 ? "are" : "is"} among your fastest moving items and currently out of stock.`
