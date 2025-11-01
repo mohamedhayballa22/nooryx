@@ -1,4 +1,4 @@
-from datetime import datetime
+from datetime import datetime, timezone
 from sqlalchemy import select, func
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException
@@ -122,6 +122,6 @@ async def get_valuation_summary(
         currency=currency,
         method=valuation_method,
         method_full_name=method_map.get(valuation_method, valuation_method),
-        timestamp=datetime.utcnow().isoformat(),
+        timestamp=datetime.now(timezone.utc).isoformat(),
         locale="en-US",  # temporary hardcoded
     )
