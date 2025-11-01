@@ -123,7 +123,7 @@ export function useInventoryList() {
     queryFn: () => getInventoryList(queryParams),
     staleTime: 2 * 60_000, // 2 minutes
     refetchOnWindowFocus: false,
-    retry: 1,
+    retry: false,
   });
 
   const errorStatus = getErrorStatus(query.error);
