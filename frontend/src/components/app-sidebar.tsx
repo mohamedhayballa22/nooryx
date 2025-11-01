@@ -37,7 +37,7 @@ const mainItems = [
   { title: "Dashboard", url: "/core/dashboard", icon: HomeSimple },
   { title: "Inventory", url: "/core/inventory", icon: BoxIso },
   { title: "Audit Trail", url: "/core/audit-trail", icon: ClockRotateRight },
-  { title: "Valuation", url: "#", icon: Coins },
+  { title: "Valuation", url: "/core/valuation", icon: Coins },
   { title: "Alerts", url: "#", icon: BellNotification },
 ]
 
