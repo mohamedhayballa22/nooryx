@@ -12,6 +12,7 @@ import {
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import { Skeleton } from "@/components/ui/skeleton"
 import { PaginationControls } from "@/components/app-pagination"
+import { EmptyValuationTable } from "./empty-valuation-table"
 
 interface ValuationItem {
   sku_code: string
@@ -121,59 +122,65 @@ export function ValuationDataTable({
 
   return (
     <div className="space-y-4">
-      <div className="relative overflow-hidden rounded-xl border bg-card">
-        <div className="absolute inset-0 bg-gradient-to-br from-muted/20 via-transparent to-transparent pointer-events-none" />
-        <div className="relative">
-          <Table>
-            <TableHeader>
-              {table.getHeaderGroups().map((headerGroup) => (
-                <TableRow key={headerGroup.id}>
-                  {headerGroup.headers.map((header) => (
-                    <TableHead key={header.id} className="px-6">
-                      {header.isPlaceholder
-                        ? null
-                        : flexRender(header.column.columnDef.header, header.getContext())}
-                    </TableHead>
-                  ))}
-                </TableRow>
-              ))}
-            </TableHeader>
-            <TableBody>
-              {table.getRowModel().rows?.length ? (
-                table.getRowModel().rows.map((row) => (
-                  <TableRow key={row.id}>
-                    {row.getVisibleCells().map((cell) => (
-                      <TableCell key={cell.id} className="px-6">
-                        {flexRender(cell.column.columnDef.cell, cell.getContext())}
-                      </TableCell>
+      {data.length === 0 ? (
+        <EmptyValuationTable />
+      ) : (
+        <div className="relative overflow-hidden rounded-xl border bg-card">
+          <div className="absolute inset-0 bg-gradient-to-br from-muted/20 via-transparent to-transparent pointer-events-none" />
+          <div className="relative">
+            <Table>
+              <TableHeader>
+                {table.getHeaderGroups().map((headerGroup) => (
+                  <TableRow key={headerGroup.id}>
+                    {headerGroup.headers.map((header) => (
+                      <TableHead key={header.id} className="px-6">
+                        {header.isPlaceholder
+                          ? null
+                          : flexRender(header.column.columnDef.header, header.getContext())}
+                      </TableHead>
                     ))}
                   </TableRow>
-                ))
-              ) : (
-                <TableRow>
-                  <TableCell colSpan={columns.length} className="h-24 text-center px-6">
-                    No valuation data found.
-                  </TableCell>
-                </TableRow>
-              )}
-            </TableBody>
-          </Table>
+                ))}
+              </TableHeader>
+              <TableBody>
+                {table.getRowModel().rows?.length ? (
+                  table.getRowModel().rows.map((row) => (
+                    <TableRow key={row.id}>
+                      {row.getVisibleCells().map((cell) => (
+                        <TableCell key={cell.id} className="px-6">
+                          {flexRender(cell.column.columnDef.cell, cell.getContext())}
+                        </TableCell>
+                      ))}
+                    </TableRow>
+                  ))
+                ) : (
+                  <TableRow>
+                    <TableCell colSpan={columns.length} className="h-24 text-center px-6">
+                      No valuation data found.
+                    </TableCell>
+                  </TableRow>
+                )}
+              </TableBody>
+            </Table>
+          </div>
         </div>
-      </div>
+      )}
 
-      <PaginationControls
-        pageIndex={pagination.pageIndex}
-        pageSize={pagination.pageSize}
-        totalPages={totalPages}
-        totalItems={totalItems}
-        loading={false}
-        onPageChange={(newPage) =>
-          onPaginationChange({ ...pagination, pageIndex: newPage })
-        }
-        onPageSizeChange={(newSize) =>
-          onPaginationChange({ pageIndex: 0, pageSize: newSize })
-        }
-      />
+      {data.length > 0 && (
+        <PaginationControls
+          pageIndex={pagination.pageIndex}
+          pageSize={pagination.pageSize}
+          totalPages={totalPages}
+          totalItems={totalItems}
+          loading={false}
+          onPageChange={(newPage) =>
+            onPaginationChange({ ...pagination, pageIndex: newPage })
+          }
+          onPageSizeChange={(newSize) =>
+            onPaginationChange({ pageIndex: 0, pageSize: newSize })
+          }
+        />
+      )}
     </div>
   )
 }
