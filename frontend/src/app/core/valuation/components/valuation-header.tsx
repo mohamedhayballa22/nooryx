@@ -13,7 +13,7 @@ interface ValuationHeaderProps {
   method_full_name: string
   timestamp: string // ISO 8601 timestamp
   onRefresh?: () => void | Promise<void>
-  isLoading?: boolean
+  isRefreshing?: boolean
 }
 
 export function ValuationHeader({ 
@@ -23,7 +23,7 @@ export function ValuationHeader({
   method_full_name, 
   timestamp, 
   onRefresh,
-  isLoading = false 
+  isRefreshing = false 
 }: ValuationHeaderProps) {
   const locale = "en-US"
   const COOLDOWN_MS = 10000 // 10 seconds
@@ -94,7 +94,7 @@ export function ValuationHeader({
     return () => clearTimeout(timer)
   }, [isInCooldown])
 
-  const isButtonDisabled = isLoading || isInCooldown
+  const isButtonDisabled = isRefreshing || isInCooldown
 
   return (
     <div className="space-y-6">
@@ -112,7 +112,7 @@ export function ValuationHeader({
             disabled={isButtonDisabled}
             className="absolute right-4 top-4 z-10 h-7 w-7 text-muted-foreground hover:text-foreground"
           >
-            <RefreshCw className={`h-3.5 w-3.5 ${isLoading ? "animate-spin" : ""}`} />
+            <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
             <span className="sr-only">Refresh data</span>
           </Button>
         )}
@@ -137,11 +137,11 @@ export function ValuationHeader({
           {/* Metadata */}
           <div className="flex items-center gap-4 text-xs text-muted-foreground">
             <div className="relative flex h-2 w-2 items-center justify-center mt-0.5">
-              <div className={`absolute h-full w-full rounded-full ${isLoading ? "bg-yellow-500 animate-ping" : "bg-green-500 animate-ping"}`} />
-              <div className={`relative h-2 w-2 rounded-full ${isLoading ? "bg-yellow-500" : "bg-green-500"}`} />
+              <div className={`absolute h-full w-full rounded-full ${isRefreshing ? "bg-yellow-500 animate-ping" : "bg-green-500 animate-ping"}`} />
+              <div className={`relative h-2 w-2 rounded-full ${isRefreshing ? "bg-yellow-500" : "bg-green-500"}`} />
             </div>
-            <span>{isLoading ? "Updating..." : "Live data"}</span>
-            {!isLoading && (
+            <span>{isRefreshing ? "Updating..." : "Live data"}</span>
+            {!isRefreshing && (
               <>
                 <div className="h-3 w-px bg-border" />
                 <span>{getRelativeTime(timestamp, locale)}</span>

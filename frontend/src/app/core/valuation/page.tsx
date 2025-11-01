@@ -32,7 +32,7 @@ export default function Page() {
           <ValuationHeader 
             {...headerData} 
             onRefresh={handleRefresh}
-            isLoading={isRefetchingHeader}
+            isRefreshing={isRefetchingHeader}
           />
         )
       )}
