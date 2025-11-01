@@ -41,7 +41,7 @@ export function EmptyInventory() {
       <ReceiveForm
         open={isReceiveFormOpen}
         onOpenChange={setIsReceiveFormOpen} 
-        invalidateQueries={["inventory", "transactions", "trend"]}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
       />
     </>
   );

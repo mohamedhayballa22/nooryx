@@ -135,42 +135,42 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
       <ReceiveForm
         open={isReceiveFormOpen || activeForm === "receive"}
         onOpenChange={(open) => !open && (setIsReceiveFormOpen(false), setActiveForm(null))}
-        invalidateQueries={["inventory", "transactions", "trend"]}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
         skuContext={skuContext}
         locationContext={locationContext}
       />
       <ShipForm
         open={activeForm === "ship"}
         onOpenChange={(open) => !open && setActiveForm(null)}
-        invalidateQueries={["inventory", "transactions", "trend"]}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
         skuContext={skuContext}
         locationContext={locationContext}
       />
       <ReserveForm
         open={activeForm === "reserve"}
         onOpenChange={(open) => !open && setActiveForm(null)}
-        invalidateQueries={["inventory", "transactions", "trend"]}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
         skuContext={skuContext}
         locationContext={locationContext}
       />
       <UnreserveForm
         open={activeForm === "unreserve"}
         onOpenChange={(open) => !open && setActiveForm(null)}
-        invalidateQueries={["inventory", "transactions", "trend"]}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
         skuContext={skuContext}
         locationContext={locationContext}
       />
       <TransferForm
         open={activeForm === "transfer"}
         onOpenChange={(open) => !open && setActiveForm(null)}
-        invalidateQueries={["inventory", "transactions", "trend"]}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
         skuContext={skuContext}
         locationContext={locationContext}
       />
       <AdjustForm
         open={activeForm === "adjust"}
         onOpenChange={(open) => !open && setActiveForm(null)}
-        invalidateQueries={["inventory", "transactions", "trend"]}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
         skuContext={skuContext}
         locationContext={locationContext}
       />
