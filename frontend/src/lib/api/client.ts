@@ -141,7 +141,7 @@ export async function apiClient<T = any>(
     }
 
     throw new ApiError(
-      errorBody?.message || `HTTP error ${response.status}`,
+      errorBody?.error.detail || errorBody?.error.message || `HTTP error ${response.status}`,
       response.status,
       errorBody
     );
