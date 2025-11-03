@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException, status, Request
+from fastapi import APIRouter, BackgroundTasks, Depends, HTTPException, status, Request
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from fastapi_users import BaseUserManager
@@ -20,6 +20,7 @@ from app.core.auth.manager import UserManager
 from app.core.auth.users import get_user_db
 from app.core.auth.invitations import create_invitation_token, decode_invitation_token
 from uuid import UUID, uuid4
+from app.services.emails.invitation import send_invitation_email, validate_invitation_email
 
 
 router = APIRouter()
@@ -77,21 +78,44 @@ async def register_new_org(
     )
 
 
-# Issue invitation link
-@router.post("/invite", response_model=InvitationCreateResponse, status_code=status.HTTP_201_CREATED)
+@router.post("/invite", status_code=status.HTTP_204_NO_CONTENT)
 async def invite_user_to_org(
     payload: InvitationCreateRequest,
+    background_tasks: BackgroundTasks,
     session: AsyncSession = Depends(get_session),
     user = Depends(get_current_user),
 ):
-    """Generate a signed invitation link for a user to join the organization."""
+    """Send an invitation email to join the organization."""
     org = await session.scalar(select(Organization).where(Organization.org_id == user.org_id))
     if not org:
         raise HTTPException(status_code=400, detail="Invalid organization or permission denied.")
+    
+    # Validate email synchronously before queuing
+    normalized_email = validate_invitation_email(payload.email, user.email)
 
-    token, expires_at = create_invitation_token(user.org_id, org.name, payload.email)
+    # Check if the invited user already exists
+    existing_user = await session.scalar(
+        select(User.id)
+        .where(User.org_id == user.org_id, User.email == payload.email)
+        .limit(1)
+    )
 
-    return InvitationCreateResponse(token=token, expires_at=expires_at)
+    if existing_user:
+        raise HTTPException(status_code=400, detail="User is already a member in this organization.")
+    
+    token, expires_at = create_invitation_token(user.org_id, org.name, normalized_email)
+
+    # Queue email sending in background
+    background_tasks.add_task(
+        send_invitation_email,
+        to_email=normalized_email,
+        org_name=org.name,
+        inviter_name=user.first_name + " " + user.last_name,
+        token=token,
+        expires_at=expires_at,
+    )
+    
+    return None
 
 
 # Accept invitation (signup)
