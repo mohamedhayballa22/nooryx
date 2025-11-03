@@ -54,6 +54,13 @@ class Settings(BaseSettings):
     INVITATION_TOKEN_EXPIRE_HOURS: int = 72
     ALGORITHM: str = "HS256"
     REFRESH_TOKEN_EXPIRE_DAYS: int = 14
+    SMTP_HOST: str = "smtp.gmail.com"
+    SMTP_PORT: str = "587"
+    SMTP_USERNAME: str
+    SMTP_PASSWORD: str
+    FROM_EMAIL: str
+    FRONTEND_URL: str = "http://nooryx.com"
+    SUPPORT_EMAIL: str = "support@nooryx.com"
 
 
     @model_validator(mode="after")
