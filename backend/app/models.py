@@ -318,6 +318,7 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False, index=True)
     first_name = Column(String, nullable=False)
     last_name = Column(String, nullable=False)
+    role = Column(String, doc="Job title of the user")
 
     organization = relationship("Organization", back_populates="users")
 
