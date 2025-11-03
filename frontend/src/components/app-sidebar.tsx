@@ -14,6 +14,9 @@ import {
   SidebarMenu,
   SidebarMenuButton,
   SidebarMenuItem,
+  SidebarMenuSub,
+  SidebarMenuSubItem,
+  SidebarMenuSubButton,
   SidebarHeader,
   SidebarFooter,
 } from "@/components/ui/sidebar"
@@ -26,11 +29,19 @@ import {
   DropdownMenuItem,
 } from "@/components/ui/dropdown-menu"
 
+import {
+  Collapsible,
+  CollapsibleContent,
+  CollapsibleTrigger,
+} from "@/components/ui/collapsible"
+
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { 
   HomeSimple, BoxIso, ClockRotateRight, 
   BellNotification, Settings, HelpCircle,
-  NavArrowUp, LogOut, User, Coins
+  NavArrowUp, LogOut, User, Coins,
+  NavArrowDown, Globe, Package, Group,
+  Lock, CreditCard
  } from "iconoir-react"
 
 const mainItems = [
@@ -41,8 +52,15 @@ const mainItems = [
   { title: "Alerts", url: "#", icon: BellNotification },
 ]
 
+const settingsSubItems = [
+  { title: "General", url: "/core/settings/general", icon: Globe },
+  { title: "Operations", url: "/core/settings/operations", icon: Package },
+  { title: "Team & Access", url: "/core/settings/team", icon: Group },
+  { title: "Account & Security", url: "/core/settings/account", icon: Lock },
+  { title: "Billing & Plan", url: "/core/settings/billing", icon: CreditCard },
+]
+
 const systemItems = [
-  { title: "Settings", url: "/core/settings", icon: Settings },
   { title: "Help & Docs", url: "#", icon: HelpCircle },
 ]
 
@@ -60,19 +78,19 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       {/* Header */}
       <SidebarHeader className="h-14 border-b px-4 group-data-[collapsible=icon]:px-0">
-  <div className="flex h-full items-center gap-2 group-data-[collapsible=icon]:justify-center">
-    <Image
-      src="/mock-logo.svg"
-      alt="Nooryx logo"
-      width={24}
-      height={24}
-      className="flex-shrink-0 pt-1"
-    />
-    <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
-      Nooryx
-    </span>
-  </div>
-</SidebarHeader>
+        <div className="flex h-full items-center gap-2 group-data-[collapsible=icon]:justify-center">
+          <Image
+            src="/mock-logo.svg"
+            alt="Nooryx logo"
+            width={24}
+            height={24}
+            className="flex-shrink-0 pt-1"
+          />
+          <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
+            Nooryx
+          </span>
+        </div>
+      </SidebarHeader>
 
       {/* Main Menu */}
       <SidebarContent>
@@ -105,6 +123,34 @@ export function AppSidebar() {
           <SidebarGroupLabel>System</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
+              {/* Settings with Submenu */}
+              <Collapsible defaultOpen className="group/collapsible">
+                <SidebarMenuItem>
+                  <CollapsibleTrigger asChild>
+                    <SidebarMenuButton className="w-full">
+                      <Settings className="w-5 h-5" />
+                      <span className="ml-2">Settings</span>
+                      <NavArrowDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
+                    </SidebarMenuButton>
+                  </CollapsibleTrigger>
+                  <CollapsibleContent>
+                    <SidebarMenuSub>
+                      {settingsSubItems.map((subItem) => (
+                        <SidebarMenuSubItem key={subItem.title}>
+                          <SidebarMenuSubButton asChild>
+                            <Link href={subItem.url} className="flex items-center">
+                              <subItem.icon className="w-5 h-5" />
+                              <span className="ml-2">{subItem.title}</span>
+                            </Link>
+                          </SidebarMenuSubButton>
+                        </SidebarMenuSubItem>
+                      ))}
+                    </SidebarMenuSub>
+                  </CollapsibleContent>
+                </SidebarMenuItem>
+              </Collapsible>
+
+              {/* Other System Items */}
               {systemItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
