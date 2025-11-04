@@ -67,16 +67,16 @@ export function MetricCard({
       {(description || subtitle) && (
         <CardFooter className="flex-col items-start gap-1.5 text-sm">
           {description && (
-            <div className="line-clamp-1 flex gap-2 font-medium">
-              {description}
+            <div className="font-medium">
+              {description}{" "}
               {delta !== undefined && (
-                <>
+                <span className="inline-flex items-center align-middle">
                   {isPositive ? (
                     <TrendingUp className="size-4" />
                   ) : (
                     <TrendingDown className="size-4" />
                   )}
-                </>
+                </span>
               )}
             </div>
           )}
