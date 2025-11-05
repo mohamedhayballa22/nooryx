@@ -338,6 +338,7 @@ class Subscription(Base):
     org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False, unique=True)
     plan_name = Column(String, nullable=True)
     status = Column(String, nullable=False, default="inactive")
+    billing_frequency = Column(String, nullable=False, server_default="monthly", doc="monthly, yearly")
     current_period_start = Column(DateTime(timezone=True))
     current_period_end = Column(DateTime(timezone=True))
     created_at = Column(DateTime(timezone=True), server_default=func.now())
