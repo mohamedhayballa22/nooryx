@@ -393,9 +393,9 @@ class UserSettings(Base):
     __tablename__ = "user_settings"
 
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    locale = Column(String, default="en-US")
-    pagination = Column(Integer, default=25)
-    date_format = Column(String, default="system")
+    locale = Column(String, nullable=False, default="en-US", server_default="en-US")
+    pagination = Column(Integer, nullable=False, default=25, server_default="25")
+    date_format = Column(String, nullable=False, default="system", server_default="system")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
