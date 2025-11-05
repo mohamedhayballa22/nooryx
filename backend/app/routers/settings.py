@@ -1,20 +1,31 @@
-from fastapi import APIRouter, Depends, Request
+from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.core.auth.dependencies import get_current_user
 from app.core.auth.tenant_dependencies import get_tenant_session
-from app.models import User, Organization, RefreshToken
+from app.models import User, Organization, RefreshToken, UserSettings, OrganizationSettings
 from app.schemas.settings import UserAccountResponse
 from datetime import datetime, timezone
+from typing import Optional
+from pydantic import BaseModel
 import hashlib
 
 router = APIRouter()
 
 
+class SettingsUpdateRequest(BaseModel):
+    low_stock_threshold: Optional[int] = None
+    reorder_point: Optional[int] = None
+    locale: Optional[str] = None
+    pagination: Optional[int] = None
+    date_format: Optional[str] = None
+    role: Optional[str] = None
+
+
 @router.get("/account", response_model=UserAccountResponse)
 async def get_user_profile(
     request: Request,
-    current_user: User = Depends(get_current_user),
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """
@@ -23,7 +34,7 @@ async def get_user_profile(
     """
 
     # Fetch organization info
-    org_stmt = select(Organization).where(Organization.org_id == current_user.org_id)
+    org_stmt = select(Organization).where(Organization.org_id == user.org_id)
     organization = (await db.execute(org_stmt)).scalar_one()
 
     # Fetch active sessions for user
@@ -31,7 +42,7 @@ async def get_user_profile(
     sessions_stmt = (
         select(RefreshToken)
         .where(
-            RefreshToken.user_id == current_user.id,
+            RefreshToken.user_id == user.id,
             RefreshToken.revoked == 0,
             RefreshToken.expires_at > now,
         )
@@ -64,11 +75,11 @@ async def get_user_profile(
     # Build and return response
     return UserAccountResponse(
         user={
-            "first_name": current_user.first_name,
-            "last_name": current_user.last_name,
-            "email": current_user.email,
-            "role": current_user.role,
-            "created_at": current_user.created_at,
+            "first_name": user.first_name,
+            "last_name": user.last_name,
+            "email": user.email,
+            "role": user.role,
+            "created_at": user.created_at,
         },
         organization={
             "name": organization.name,
@@ -76,3 +87,127 @@ async def get_user_profile(
         },
         sessions=session_dicts,
     )
+
+
+@router.get("/")
+async def get_settings(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_tenant_session),
+):
+    """
+    Return combined settings for the current user.
+    Includes both user-specific and organization-wide settings,
+    merged into a single flat object.
+    """
+
+    # Fetch user-level settings
+    user_stmt = select(UserSettings).where(UserSettings.user_id == user.id)
+    user_settings = (await db.execute(user_stmt)).scalar_one_or_none()
+
+    # Fetch org-level settings
+    org_stmt = select(OrganizationSettings).where(
+        OrganizationSettings.org_id == user.org_id
+    )
+    org_settings = (await db.execute(org_stmt)).scalar_one_or_none()
+
+    # Default fallbacks (if no settings exist yet)
+    user_defaults = {
+        "locale": "en-US",
+        "pagination": 25,
+        "date_format": "system",
+    }
+    org_defaults = {
+        "low_stock_threshold": 10,
+        "reorder_point": 15,
+    }
+
+    combined_settings = {
+        **org_defaults,
+        **user_defaults,
+        **(org_settings.__dict__ if org_settings else {}),
+        **(user_settings.__dict__ if user_settings else {}),
+    }
+
+    # Remove SQLAlchemy internal fields
+    for field in ["_sa_instance_state", "user_id", "org_id", "created_at", "updated_at"]:
+        combined_settings.pop(field, None)
+
+    return combined_settings
+
+
+@router.patch("/", status_code=status.HTTP_204_NO_CONTENT)
+async def update_settings(
+    settings_update: SettingsUpdateRequest,
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_tenant_session),
+):
+    """
+    Update user or organization settings.
+    Creates settings records if they don't exist.
+    Only updates provided fields.
+    """
+    
+    # Check if any fields were provided
+    update_data = settings_update.model_dump(exclude_unset=True)
+    if not update_data:
+        return {"message": "No fields to update"}
+
+    # Organization-level settings
+    org_fields = {"low_stock_threshold", "reorder_point"}
+    org_updates = {k: v for k, v in update_data.items() if k in org_fields}
+    
+    # User-level settings
+    user_fields = {"locale", "pagination", "date_format"}
+    user_updates = {k: v for k, v in update_data.items() if k in user_fields}
+    
+    # User model field
+    if "role" in update_data:
+        user.role = update_data["role"]
+    
+    # Update or create OrganizationSettings
+    if org_updates:
+        org_stmt = select(OrganizationSettings).where(
+            OrganizationSettings.org_id == user.org_id
+        )
+        org_settings = (await db.execute(org_stmt)).scalar_one_or_none()
+        
+        if org_settings:
+            # Update existing
+            for key, value in org_updates.items():
+                setattr(org_settings, key, value)
+        else:
+            # Create new
+            org_settings = OrganizationSettings(
+                org_id=user.org_id,
+                **org_updates
+            )
+            db.add(org_settings)
+    
+    # Update or create UserSettings
+    if user_updates:
+        if settings_update.locale and settings_update.locale not in ["en-US", "en-GB", 
+                                                                     "fr-FR", "es-ES",
+                                                                     "de-DE", "pt-BR"]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid locale",
+            )
+        
+        user_stmt = select(UserSettings).where(UserSettings.user_id == user.id)
+        user_settings = (await db.execute(user_stmt)).scalar_one_or_none()
+        
+        if user_settings:
+            # Update existing
+            for key, value in user_updates.items():
+                setattr(user_settings, key, value)
+        else:
+            # Create new
+            user_settings = UserSettings(
+                user_id=user.id,
+                **user_updates
+            )
+            db.add(user_settings)
+    
+    await db.commit()
+    
+    return
