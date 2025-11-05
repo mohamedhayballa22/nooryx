@@ -32,6 +32,7 @@ const PAGINATION_OPTIONS = [
   { label: '10 items', value: '10' },
   { label: '25 items', value: '25' },
   { label: '50 items', value: '50' },
+  { label: '100 items', value: '100' },
 ]
 
 const DATE_FORMAT_OPTIONS = [
