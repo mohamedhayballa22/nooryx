@@ -3,7 +3,6 @@
 import { useState } from "react"
 import { EditPencil } from "iconoir-react"
 import { Input } from "@/components/ui/input"
-import { Label } from "@/components/ui/label"
 import {
   Settings,
   SettingsSection,
