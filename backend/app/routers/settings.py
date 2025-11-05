@@ -79,7 +79,7 @@ async def get_user_profile(
     )
 
 
-@router.get("/")
+@router.get("")
 async def get_settings(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_tenant_session),
@@ -118,7 +118,7 @@ async def get_settings(
     return combined_settings
 
 
-@router.patch("/", status_code=status.HTTP_204_NO_CONTENT)
+@router.patch("", status_code=status.HTTP_204_NO_CONTENT)
 async def update_settings(
     settings_update: SettingsUpdateRequest,
     user: User = Depends(get_current_user),
