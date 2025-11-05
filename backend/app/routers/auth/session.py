@@ -10,6 +10,7 @@ from datetime import datetime, timezone
 from sqlalchemy import select, update, delete
 from typing import List
 from app.core.logger_config import logger
+import hashlib
 
 router = APIRouter()
 
@@ -203,6 +204,7 @@ async def refresh(
 
 @router.post("/logout")
 async def logout(
+    request: Request,
     response: Response,
     user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session),
@@ -210,12 +212,17 @@ async def logout(
     """
     Logout the user and terminate all active sessions.
     
-    This endpoint revokes all refresh tokens for the current user and clears
-    authentication cookies. This effectively logs the user out from all devices.
+    This endpoint revokes the refresh token for the current user and clears
+    authentication cookies. This effectively logs the user out from their current session.
     """
+    current_token = request.cookies.get("refresh_token")
+    current_token_hash = (
+        hashlib.sha256(current_token.encode()).hexdigest() if current_token else None
+    )
+
     # Delete all refresh tokens for this user (cleanup instead of soft delete)
     await session.execute(
-        delete(RefreshToken).where(RefreshToken.user_id == user.id)
+        delete(RefreshToken).where(RefreshToken.token_hash == current_token_hash)
     )
     await session.commit()
 
