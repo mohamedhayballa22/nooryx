@@ -3,7 +3,7 @@
 import { ReactNode } from "react"
 import { Card, CardContent } from "@/components/ui/card"
 
-// ─── Row ──────────────────────────────────────────────
+// Row
 interface SettingRowProps {
   label: string
   description?: string
@@ -44,7 +44,7 @@ export function SettingRow({
   )
 }
 
-// ─── Sub-section (h2) ─────────────────────────────────
+// Sub-section (h2)
 interface SettingsSubSectionProps {
   title: string
   action?: ReactNode
@@ -55,8 +55,21 @@ export function SettingsSubSection({
   title,
   action,
   children,
-}: SettingsSubSectionProps) {
+  unstyled = false,
+}: SettingsSubSectionProps & { unstyled?: boolean }) {
   const rows = Array.isArray(children) ? children : [children]
+
+  if (unstyled) {
+    return (
+      <section className="space-y-4">
+        <div className="flex items-center justify-between">
+          <h3 className="text-lg font-semibold">{title}</h3>
+          {action && <div>{action}</div>}
+        </div>
+        <div>{children}</div>
+      </section>
+    )
+  }
 
   return (
     <section className="space-y-4">
@@ -68,8 +81,6 @@ export function SettingsSubSection({
         <CardContent className="p-4 divide-y divide-border">
           {rows.map((child, i) => {
             if (child && typeof child === "object" && "type" in child) {
-              // Check if it's a SettingRow component (or any custom component)
-              // by checking if type is a function (not a string like "div")
               if (typeof child.type === "function") {
                 return (
                   <child.type
@@ -89,7 +100,7 @@ export function SettingsSubSection({
   )
 }
 
-// ─── Section (h1) ─────────────────────────────────────
+// Section (h1)
 interface SettingsSectionProps {
   title?: string
   children: ReactNode
@@ -104,7 +115,7 @@ export function SettingsSection({ title, children }: SettingsSectionProps) {
   )
 }
 
-// ─── Shell (multiple top-level sections) ──────────────
+// Shell (multiple top-level sections)
 interface SettingsProps {
   children: ReactNode
 }
