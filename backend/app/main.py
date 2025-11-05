@@ -11,7 +11,7 @@ from app.core.config import settings
 from app.core.logger_config import logger
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
-from app.routers import actions, inventory, transactions, reports, search, valuation
+from app.routers import actions, inventory, transactions, reports, search, valuation, team, settings as settings_router
 from app.routers.auth import session, org
 from app.core.auth.users import fastapi_users, auth_backend
 
@@ -57,6 +57,8 @@ app.include_router(inventory.router, tags=["Inventory"])
 app.include_router(transactions.router, tags=["Transactions"])
 app.include_router(reports.router, tags=["Reports"])
 app.include_router(valuation.router, tags=["Valuation"])
+app.include_router(settings_router.router, tags=["Settings"], prefix="/settings")
+app.include_router(team.router, tags=["Team"], prefix="/team")
 app.include_router(
     org.router, 
     tags=["Org Registration"], 
