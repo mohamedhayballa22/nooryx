@@ -1,7 +1,8 @@
 "use client"
 
-import { Avatar, AvatarFallback } from "@/components/ui/avatar"
+import { Avatar } from "@/components/ui/avatar"
 import { Badge } from "@/components/ui/badge"
+import { cn } from "@/lib/utils"
 
 interface TeamMemberRowProps {
   firstName: string
@@ -20,27 +21,25 @@ export function TeamMemberRow({
   isFirst,
   isLast,
 }: TeamMemberRowProps) {
-  // Generate initials from first and last name
   const initials = `${firstName.charAt(0)}${lastName.charAt(0)}`.toUpperCase()
   const fullName = `${firstName} ${lastName}`
 
-  // Padding logic matching SettingRow
-  const paddingClass = 
-    isFirst && isLast 
-      ? "py-0" 
-      : isFirst 
-      ? "pt-0 pb-3" 
-      : isLast 
-      ? "pt-3 pb-0" 
+  const paddingClass =
+    isFirst && isLast
+      ? "py-0"
+      : isFirst
+      ? "pt-0 pb-3"
+      : isLast
+      ? "pt-3 pb-0"
       : "py-3"
 
   return (
-    <div className={`flex items-center justify-between ${paddingClass}`}>
+    <div className={cn("flex items-center justify-between", paddingClass)}>
       <div className="flex items-center gap-3">
         <Avatar className="h-10 w-10">
-          <AvatarFallback className="text-sm font-medium">
+          <div className="flex h-full w-full items-center justify-center text-sm font-medium">
             {initials}
-          </AvatarFallback>
+          </div>
         </Avatar>
         <div className="flex flex-col">
           <span className="text-sm font-medium">{fullName}</span>
@@ -48,6 +47,42 @@ export function TeamMemberRow({
         </div>
       </div>
       <Badge variant="secondary">{role}</Badge>
+    </div>
+  )
+}
+
+/**
+ * Skeleton version of TeamMemberRow
+ * visually matches layout and spacing but uses gray placeholders
+ */
+TeamMemberRow.Skeleton = function TeamMemberRowSkeleton({
+  isFirst,
+  isLast,
+}: {
+  isFirst?: boolean
+  isLast?: boolean
+}) {
+  const paddingClass =
+    isFirst && isLast
+      ? "py-0"
+      : isFirst
+      ? "pt-0 pb-3"
+      : isLast
+      ? "pt-3 pb-0"
+      : "py-3"
+
+  return (
+    <div className={cn("flex items-center justify-between", paddingClass)}>
+      <div className="flex items-center gap-3">
+        {/* Avatar placeholder */}
+        <div className="h-10 w-10 rounded-full bg-muted animate-pulse" />
+        <div className="flex flex-col gap-1">
+          <div className="h-4 w-32 rounded bg-muted animate-pulse" />
+          <div className="h-3 w-44 rounded bg-muted/80 animate-pulse" />
+        </div>
+      </div>
+      {/* Badge placeholder */}
+      <div className="h-6 w-16 rounded bg-muted animate-pulse" />
     </div>
   )
 }

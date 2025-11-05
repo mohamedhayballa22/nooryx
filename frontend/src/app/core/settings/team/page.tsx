@@ -6,36 +6,12 @@ import { InviteModal } from "./components/invite-modal"
 import { EmptyTeamState } from "./components/empty-team-state"
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
-
-const DUMMY_TEAM_MEMBERS = [
-    {
-      firstName: "Michael",
-      lastName: "Chen",
-      email: "michael.chen@company.com",
-      role: "Owner"
-    },
-    {
-      firstName: "Emma",
-      lastName: "Williams",
-      email: "emma.williams@company.com",
-      role: "Member"
-    },
-    {
-      firstName: "James",
-      lastName: "Rodriguez",
-      email: "james.r@company.com",
-    },
-    {
-      firstName: "Olivia",
-      lastName: "Taylor",
-      email: "olivia.taylor@company.com",
-      role: "Moderator"
-    }
-]
+import { useTeamMembers } from "./hooks/use-members"
 
 export default function TeamAccessPage() {
   const [isOpen, setIsOpen] = useState(false)
-  const hasMembers = DUMMY_TEAM_MEMBERS.length > 0
+  const { data, isLoading } = useTeamMembers()
+  const hasMembers = data && data.length > 0
 
   return (
     <Settings>
@@ -54,17 +30,29 @@ export default function TeamAccessPage() {
               </Button>
             ) : undefined
           }>
-          {!hasMembers ? (
-            <EmptyTeamState 
-            />
+          
+          {isLoading ? (
+            <div className="flex flex-col">
+              {[...Array(3)].map((_, i) => (
+                <TeamMemberRow.Skeleton 
+                  key={i} 
+                  isFirst={i === 0} 
+                  isLast={i === 2} 
+                />
+              ))}
+            </div>
+          ) : !hasMembers ? (
+            <EmptyTeamState />
           ) : (
-            DUMMY_TEAM_MEMBERS.map((member) => (
+            data.map((member, i) => (
               <TeamMemberRow
                 key={member.email}
-                firstName={member.firstName}
-                lastName={member.lastName}
+                firstName={member.first_name}
+                lastName={member.last_name}
                 email={member.email}
                 role={member.role ?? "Member"}
+                isFirst={i === 0}
+                isLast={i === data.length - 1}
               />
             ))
           )}
@@ -75,7 +63,9 @@ export default function TeamAccessPage() {
         {/* Access & Permissions Stub */}
         <SettingsSubSection title="Access & Permissions">
           <div>
-            <p className="text-sm text-muted-foreground">Access roles and permissions will be configurable soon.</p>
+            <p className="text-sm text-muted-foreground">
+              Access roles and permissions will be configurable soon.
+            </p>
           </div>
         </SettingsSubSection>
       </SettingsSection>
