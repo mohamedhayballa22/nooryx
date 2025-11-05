@@ -355,7 +355,7 @@ class RefreshToken(Base):
     __tablename__ = "refresh_tokens"
 
     id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), nullable=False, index=True)
+    user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     token_hash = Column(String(64), nullable=False, index=True, doc="SHA-256 hash of the refresh token.")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     last_used_at = Column(DateTime(timezone=True), nullable=True)
@@ -364,9 +364,14 @@ class RefreshToken(Base):
     device_info = Column(String, nullable=True)
     ip_address = Column(String, nullable=True)
 
-    user = relationship("User", back_populates="refresh_tokens")
+    user = relationship("User", backref="refresh_tokens")
 
     __table_args__ = (
+        ForeignKeyConstraint(
+            ['user_id'],
+            ['users.id'],
+            ondelete="CASCADE"
+        ),
         Index('ix_refresh_tokens_user_id', 'user_id'),
         Index('ix_refresh_tokens_token_hash', 'token_hash'),
     )
@@ -377,7 +382,7 @@ class OrganizationSettings(Base):
 
     org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), primary_key=True)
     low_stock_threshold = Column(Integer, nullable=False, default=10, server_default="10")
-    reorder_point = Column(Integer, nullable=False, default=5, server_default="5")
+    reorder_point = Column(Integer, nullable=False, default=15, server_default="15")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
