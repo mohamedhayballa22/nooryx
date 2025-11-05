@@ -6,20 +6,10 @@ from app.core.auth.tenant_dependencies import get_tenant_session
 from app.models import User, Organization, RefreshToken, UserSettings, OrganizationSettings
 from app.schemas.settings import UserAccountResponse
 from datetime import datetime, timezone
-from typing import Optional
-from pydantic import BaseModel
+from app.schemas.settings import SettingsUpdateRequest, ORG_SETTINGS_DEFAULTS, USER_SETTINGS_DEFAULTS, SUPPORTED_LOCALES
 import hashlib
 
 router = APIRouter()
-
-
-class SettingsUpdateRequest(BaseModel):
-    low_stock_threshold: Optional[int] = None
-    reorder_point: Optional[int] = None
-    locale: Optional[str] = None
-    pagination: Optional[int] = None
-    date_format: Optional[str] = None
-    role: Optional[str] = None
 
 
 @router.get("/account", response_model=UserAccountResponse)
@@ -110,27 +100,20 @@ async def get_settings(
     )
     org_settings = (await db.execute(org_stmt)).scalar_one_or_none()
 
-    # Default fallbacks (if no settings exist yet)
-    user_defaults = {
-        "locale": "en-US",
-        "pagination": 25,
-        "date_format": "system",
-    }
-    org_defaults = {
-        "low_stock_threshold": 10,
-        "reorder_point": 15,
-    }
-
-    combined_settings = {
-        **org_defaults,
-        **user_defaults,
-        **(org_settings.__dict__ if org_settings else {}),
-        **(user_settings.__dict__ if user_settings else {}),
-    }
-
-    # Remove SQLAlchemy internal fields
-    for field in ["_sa_instance_state", "user_id", "org_id", "created_at", "updated_at"]:
-        combined_settings.pop(field, None)
+    combined_settings = {**ORG_SETTINGS_DEFAULTS, **USER_SETTINGS_DEFAULTS}
+    
+    if org_settings:
+        combined_settings.update({
+            "low_stock_threshold": org_settings.low_stock_threshold,
+            "reorder_point": org_settings.reorder_point,
+        })
+    
+    if user_settings:
+        combined_settings.update({
+            "locale": user_settings.locale,
+            "pagination": user_settings.pagination,
+            "date_format": user_settings.date_format,
+        })
 
     return combined_settings
 
@@ -150,7 +133,7 @@ async def update_settings(
     # Check if any fields were provided
     update_data = settings_update.model_dump(exclude_unset=True)
     if not update_data:
-        return {"message": "No fields to update"}
+        return
 
     # Organization-level settings
     org_fields = {"low_stock_threshold", "reorder_point"}
@@ -159,20 +142,39 @@ async def update_settings(
     # User-level settings
     user_fields = {"locale", "pagination", "date_format"}
     user_updates = {k: v for k, v in update_data.items() if k in user_fields}
+
+    # Validate numeric fields
+    if "pagination" in user_updates and (user_updates["pagination"] < 1 or user_updates["pagination"] > 100):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Pagination must be between 1 and 100",
+        )
     
-    # User model field
+    if "low_stock_threshold" in org_updates and org_updates["low_stock_threshold"] < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Low stock threshold must be non-negative",
+        )
+
+    if "reorder_point" in org_updates and org_updates["reorder_point"] < 0:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Reorder point must be non-negative",
+        )
+    
+    # User job title field
     if "role" in update_data:
         user.role = update_data["role"]
     
     # Update or create OrganizationSettings
     if org_updates:
-        org_stmt = select(OrganizationSettings).where(
-            OrganizationSettings.org_id == user.org_id
-        )
-        org_settings = (await db.execute(org_stmt)).scalar_one_or_none()
-        
-        if org_settings:
-            # Update existing
+        if "locale" in user_updates and user_updates["locale"] not in [
+            "en-US", "en-GB", "fr-FR", "es-ES", "de-DE", "pt-BR"
+        ]:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Invalid locale",
+            )
             for key, value in org_updates.items():
                 setattr(org_settings, key, value)
         else:
@@ -185,9 +187,7 @@ async def update_settings(
     
     # Update or create UserSettings
     if user_updates:
-        if settings_update.locale and settings_update.locale not in ["en-US", "en-GB", 
-                                                                     "fr-FR", "es-ES",
-                                                                     "de-DE", "pt-BR"]:
+        if "locale" in user_updates and user_updates["locale"] not in SUPPORTED_LOCALES:
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
                 detail="Invalid locale",
