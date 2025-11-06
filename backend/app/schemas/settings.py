@@ -3,6 +3,13 @@ from datetime import datetime
 from typing import List, Optional
 
 
+class Subscription(BaseModel):
+    plan_name: str
+    status: str
+    billing_frequency: str
+    current_period_end: str
+
+
 class UserAccount(BaseModel):
     first_name: str
     last_name: str
@@ -28,6 +35,7 @@ class SessionInfo(BaseModel):
 class UserAccountResponse(BaseModel):
     user: UserAccount
     organization: Organization
+    subscription: Subscription
     sessions: List[SessionInfo]
 
 

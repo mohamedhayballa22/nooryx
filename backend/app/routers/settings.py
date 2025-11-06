@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, update
 from app.core.auth.dependencies import get_current_user
 from app.core.auth.tenant_dependencies import get_tenant_session
-from app.models import User, Organization, RefreshToken, UserSettings, OrganizationSettings
+from app.models import User, Organization, RefreshToken, UserSettings, OrganizationSettings, Subscription
 from app.schemas.settings import UserAccountResponse
 from datetime import datetime, timezone
 from app.schemas.settings import (
@@ -22,16 +22,25 @@ async def get_user_profile(
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """
-    Get the current user's profile information including organization details
-    and all active sessions, with the current session listed first.
+    Get the current user's profile information including organization details,
+    subscription information, and all active sessions.
     """
-
+    now = datetime.now(timezone.utc)
+    
     # Fetch organization info
     org_stmt = select(Organization).where(Organization.org_id == user.org_id)
     organization = (await db.execute(org_stmt)).scalar_one()
-
+    
+    # Fetch subscription info
+    subscription_stmt = select(
+        Subscription.plan_name,
+        Subscription.status,
+        Subscription.billing_frequency,
+        Subscription.current_period_end
+    ).where(Subscription.org_id == user.org_id)
+    subscription_data = (await db.execute(subscription_stmt)).first()
+    
     # Fetch active sessions for user
-    now = datetime.now(timezone.utc)
     sessions_stmt = (
         select(RefreshToken)
         .where(
@@ -42,13 +51,13 @@ async def get_user_profile(
         .order_by(RefreshToken.last_used_at.desc())
     )
     sessions = (await db.execute(sessions_stmt)).scalars().all()
-
+    
     # Compute current session hash
     current_token = request.cookies.get("refresh_token")
     current_token_hash = (
         hashlib.sha256(current_token.encode()).hexdigest() if current_token else None
     )
-
+    
     # Prepare sessions list with is_current flag
     session_dicts = [
         {
@@ -61,10 +70,20 @@ async def get_user_profile(
         }
         for session in sessions
     ]
-
+    
     # Ensure current session is listed first
     session_dicts.sort(key=lambda s: not s["is_current"])
-
+    
+    # Build subscription response (handle case where subscription might not exist)
+    subscription = None
+    if subscription_data:
+        subscription = {
+            "plan_name": subscription_data[0],
+            "status": subscription_data[1],
+            "billing_frequency": subscription_data[2],
+            "current_period_end": str(subscription_data[3]),
+        }
+    
     # Build and return response
     return UserAccountResponse(
         user={
@@ -78,6 +97,7 @@ async def get_user_profile(
             "name": organization.name,
             "created_at": organization.created_at,
         },
+        subscription=subscription,
         sessions=session_dicts,
     )
 
