@@ -43,6 +43,7 @@ import {
   NavArrowDown, Globe, Package, Group,
   Lock, CreditCard
  } from "iconoir-react"
+ import { useUserAccount } from "@/app/core/settings/account/hooks/use-account"
 
 const mainItems = [
   { title: "Dashboard", url: "/core/dashboard", icon: HomeSimple },
@@ -65,9 +66,11 @@ const systemItems = [
 ]
 
 export function AppSidebar() {
-  const userEmail = "mohamed.hayballa@nooryx.com"
-  const userName = "Mohamed Hayballa"
-  const initials = "MH"
+  const { data } = useUserAccount()
+  const initials = (data?.user.first_name?.charAt(0) || '') + (data?.user.last_name?.charAt(0) || '')
+  const userName = (data?.user.first_name || '') + " " + (data?.user.last_name || '')
+  const userEmail = data?.user.email
+
   const { logout } = useAuth();
 
   const handleLogout = async () => {

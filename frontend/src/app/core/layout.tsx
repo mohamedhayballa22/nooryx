@@ -9,11 +9,17 @@ import { useRouter } from "next/navigation";
 import { useEffect } from "react";
 import { Toaster } from "sonner";
 import { useTheme } from "next-themes";
+import { useUserSettings } from "@/hooks/use-user-settings";
+import { useUserAccount } from "./settings/account/hooks/use-account"
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
   const router = useRouter();
   const { theme } = useTheme();
+  
+  // Prefetch settings and account info as soon as the authenticated layout mounts
+  useUserSettings()
+  useUserAccount()
 
   useEffect(() => {
     if (!isLoading && !isAuthenticated) {
