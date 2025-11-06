@@ -5,6 +5,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
+import { useUserSettings } from "@/hooks/use-user-settings"
 
 interface ValuationHeaderProps {
   total_value: string
@@ -25,7 +26,8 @@ export function ValuationHeader({
   onRefresh,
   isRefreshing = false 
 }: ValuationHeaderProps) {
-  const locale = "en-US"
+  const { settings } = useUserSettings()
+  const locale = settings?.locale || navigator.language || "en-US"
   const COOLDOWN_MS = 10000 // 10 seconds
   
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0)
