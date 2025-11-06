@@ -254,11 +254,11 @@ async def _get_inventory_state(
     }
 
 
-def determine_stock_status(available: int) -> str:
+def determine_stock_status(available: int, low_stock_threshold: int = 10) -> str:
     """Determine stock status based on available quantity."""
     if available == 0:
         return "Out of Stock"
-    elif available < 10:
+    elif available < low_stock_threshold:
         return "Low Stock"
     else:
         return "In Stock"
@@ -277,7 +277,7 @@ async def get_fast_movers_with_stock_condition(
     Args:
         db: Database session
         available_min: Minimum total available quantity across all locations (inclusive)
-        available_max: Maximum total available quantity across all locations (inclusive)
+        available_max: Maximum total available quantity across all locations (non-inclusive)
         limit: Number of SKUs to return
 
     Returns:
@@ -290,7 +290,7 @@ async def get_fast_movers_with_stock_condition(
         .having(
             and_(
                 func.sum(State.available) >= available_min,
-                func.sum(State.available) <= available_max,
+                func.sum(State.available) < available_max,
             )
         )
     ).subquery()
