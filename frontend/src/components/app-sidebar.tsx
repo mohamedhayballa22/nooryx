@@ -44,6 +44,7 @@ import {
   Lock, CreditCard
  } from "iconoir-react"
  import { useUserAccount } from "@/app/core/settings/account/hooks/use-account"
+import { SignOutConfirmDialog } from "./signout-dialog";
 
 const mainItems = [
   { title: "Dashboard", url: "/core/dashboard", icon: HomeSimple },
@@ -70,12 +71,7 @@ export function AppSidebar() {
   const initials = (data?.user.first_name?.charAt(0) || '') + (data?.user.last_name?.charAt(0) || '')
   const userName = (data?.user.first_name || '') + " " + (data?.user.last_name || '')
   const userEmail = data?.user.email
-
-  const { logout } = useAuth();
-
-  const handleLogout = async () => {
-    await logout();
-  };
+  const [showSignOutDialog, setShowSignOutDialog] = React.useState(false)
 
   return (
     <Sidebar collapsible="icon">
@@ -196,18 +192,29 @@ export function AppSidebar() {
                   </div>
                 </SidebarMenuButton>
               </DropdownMenuTrigger>
+
               <DropdownMenuContent side="top" className="w-(--radix-popper-anchor-width)">
-                <DropdownMenuItem className="cursor-pointer">
-                  <User className="mr-2" />
-                  Account
+                <DropdownMenuItem className="cursor-pointer" asChild>
+                  <Link href="/core/settings/account">
+                    <User className="mr-2" />
+                    Account
+                  </Link>
                 </DropdownMenuItem>
                 <DropdownMenuSeparator />
-                <DropdownMenuItem className="cursor-pointer" onClick={handleLogout}>
+                <DropdownMenuItem
+                  className="cursor-pointer"
+                  onClick={() => setShowSignOutDialog(true)}
+                >
                   <LogOut className="mr-2" />
                   Sign out
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+
+            <SignOutConfirmDialog
+              open={showSignOutDialog}
+              onOpenChange={setShowSignOutDialog}
+            />
           </SidebarMenuItem>
         </SidebarMenu>
       </SidebarFooter>
