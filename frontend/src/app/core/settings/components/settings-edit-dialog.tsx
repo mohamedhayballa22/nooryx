@@ -101,7 +101,7 @@ export function SettingsEditDialog<T extends string | number = string>({
           </Button>
           {isDeleteMode ? (
             <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
-              Delete
+              End
             </Button>
           ) : (
             <Button onClick={handleSave} disabled={!hasChanges || isPending}>
