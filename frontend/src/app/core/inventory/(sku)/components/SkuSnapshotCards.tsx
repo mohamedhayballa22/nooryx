@@ -8,7 +8,7 @@ interface SkuSnapshotCardsProps {
 }
 
 export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
-  const { summary, locations, location, inventory_pct } = data
+  const { summary, locations, location, inventory_pct, status} = data
   const { available, reserved, on_hand } = summary
 
   const hasDelta = on_hand.delta_pct !== 0
@@ -31,6 +31,8 @@ export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
       ? `Out of sellable stock — restock required`
       : reserved > 0 && available < reserved
       ? `Inventory moving steadily`
+      : status === "Low Stock"
+      ? `Stock is low. Consider restocking`
       : `Good availability`
 
   const availableSubtitle = `Sellable stock not yet reserved.`
