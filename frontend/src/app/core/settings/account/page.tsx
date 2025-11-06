@@ -8,15 +8,17 @@ import {
   SettingsSection,
   SettingsSubSection,
   SettingRow,
+  SettingsSkeleton,
 } from "@/components/app-settings"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { useUserAccount } from "./hooks/use-account"
+import { useDeleteSession, useUserAccount } from "./hooks/use-account"
 import { UAParser } from 'ua-parser-js'
 import { SettingsEditDialog } from "../components/settings-edit-dialog"
 import { DeleteAccountDialog } from "../components/delete-account"
+import { toast } from "sonner"
 
 // Device Parser
 function parseDeviceInfo(ua: string | null) {
@@ -33,18 +35,25 @@ function parseDeviceInfo(ua: string | null) {
 }
 
 
-// Page
 export default function AccountSecurityPage() {
-  const { data, error } = useUserAccount()
+  const { data, error, isLoading } = useUserAccount()
   const [editRoleOpen, setEditRoleOpen] = useState(false)
   const [deleteSessionOpen, setDeleteSessionOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
 
-  const handleSessionDelete = () => {
-    // TODO: Implement session deletion API call
-    console.log("Deleting session:", selectedSession)
-  }
+  const { mutate } = useDeleteSession();
+
+  const handleSessionDelete = (sessionId: string) => {
+    mutate(sessionId, {
+      onSuccess: () => {
+        toast.success("Session ended successfully")
+      },
+      onError: () => {
+        toast.error("Failed to end session")
+      },
+    });
+  };
 
   const handleAccountDelete = () => {
     // TODO: Implement account deletion API call
@@ -56,7 +65,13 @@ export default function AccountSecurityPage() {
     setDeleteSessionOpen(true)
   }
 
-  if (error || !data) {
+  if (isLoading || !data) {
+    return (
+      <SettingsSkeleton />
+    )
+  }
+
+  if (error) {
     return (
       <Settings>
         <SettingsSection>
@@ -172,7 +187,7 @@ export default function AccountSecurityPage() {
                         </div>
                       </div>
 
-                      {/* ✅ Only show trash icon if this is NOT the current device */}
+                      {/* Only show trash icon if this is NOT the current device */}
                       {!isCurrent && (
                         <Button
                           variant="ghost"
@@ -244,7 +259,7 @@ export default function AccountSecurityPage() {
         onOpenChange={setDeleteSessionOpen}
         title="End session"
         description="Are you sure you want to end this session? You will be logged out on that device."
-        onDelete={handleSessionDelete}
+        onDelete={() => selectedSession && handleSessionDelete(selectedSession)}
       />
     </>
   )

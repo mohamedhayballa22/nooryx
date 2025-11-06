@@ -22,14 +22,30 @@ export interface SessionInfo {
   is_current: boolean;
 }
 
+export interface Subscription {
+  plan_name: string
+  status: string
+  billing_frequency: string
+  current_period_end: string
+}
+
 export interface UserAccountResponse {
   user: UserAccount;
   organization: Organization;
+  subscription: Subscription;
   sessions: SessionInfo[];
 }
 
 export async function getUserAccount(): Promise<UserAccountResponse> {
   return protectedApiClient<UserAccountResponse>("/settings/account", {
     method: "GET",
+  });
+}
+
+export async function deleteSession(
+  session_id: string
+): Promise<void> {
+  await protectedApiClient(`/auth/sessions/${session_id}`, {
+    method: "DELETE",
   });
 }

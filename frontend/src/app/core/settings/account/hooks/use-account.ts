@@ -1,5 +1,5 @@
-import { useQuery } from "@tanstack/react-query";
-import { getUserAccount } from "@/lib/api/settings/account";
+import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
+import { deleteSession, getUserAccount } from "@/lib/api/settings/account";
 import { ApiError } from "@/lib/api/client";
 
 function getErrorStatus(error: unknown): number | undefined {
@@ -27,4 +27,15 @@ export function useUserAccount() {
     hasData,
     errorStatus,
   };
+}
+
+export function useDeleteSession() {
+  const queryClient = useQueryClient();
+
+  return useMutation({
+    mutationFn: (session_id: string) => deleteSession(session_id),
+    onSuccess: () => {
+      queryClient.invalidateQueries({ queryKey: ["settings", "account"]});
+    },
+  });
 }
