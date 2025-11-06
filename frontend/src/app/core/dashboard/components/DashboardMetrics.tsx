@@ -65,7 +65,7 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
             ? `${stockouts} ${pluralizeSKU(stockouts)} ${stockouts === 1 ? "is" : "are"} at zero quantity.`
             : "All SKUs are in stock"
         }
-        subtitle="Critical items requiring immediate restock"
+        subtitle="Items requiring immediate restock"
       />
 
       <MetricCard
@@ -73,7 +73,7 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
         value={low_stock}
         description={
           low_stock > 0
-            ? `${low_stock} ${pluralizeSKU(low_stock)} ${low_stock === 1 ? "is" : "are"} below the reorder threshold.`
+            ? `${low_stock} ${pluralizeSKU(low_stock)} ${low_stock === 1 ? "is" : "are"} running low.`
             : "All SKUs are above the reorder threshold"
         }
         subtitle="SKUs below minimum stock levels"
