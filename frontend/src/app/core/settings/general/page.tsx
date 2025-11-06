@@ -18,6 +18,7 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select"
+import { useUserSettings } from "@/hooks/use-user-settings"
 
 const LOCALES = [
   { label: 'English (United States)', value: 'en-US' },
@@ -44,24 +45,11 @@ const DATE_FORMAT_OPTIONS = [
 ]
 
 export default function PreferencesPage() {
-  const [paginationSize, setPaginationSize] = useState("25")
-  const [dateFormat, setDateFormat] = useState("system")
-  const [locale, setLocale] = useState("en-US")
-
+  const { settings } = useUserSettings()
   // Dialog states
   const [editingPagination, setEditingPagination] = useState(false)
   const [editingDateFormat, setEditingDateFormat] = useState(false)
   const [editingLocale, setEditingLocale] = useState(false)
-
-  // Helper functions to get display labels
-  const getPaginationLabel = (value: string) => 
-    PAGINATION_OPTIONS.find(opt => opt.value === value)?.label || value
-
-  const getDateFormatLabel = (value: string) => 
-    DATE_FORMAT_OPTIONS.find(opt => opt.value === value)?.label || value
-
-  const getLocaleLabel = (value: string) => 
-    LOCALES.find(opt => opt.value === value)?.label || value
 
   return (
     <>
@@ -81,7 +69,7 @@ export default function PreferencesPage() {
               description="Number of items to display per page"
               control={
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">{getPaginationLabel(paginationSize)}</span>
+                  <span className="text-sm">{PAGINATION_OPTIONS.find(option => option.value === settings?.pagination?.toString())?.label}</span>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -98,7 +86,7 @@ export default function PreferencesPage() {
               description="How dates and times are displayed"
               control={
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">{getDateFormatLabel(dateFormat)}</span>
+                  <span className="text-sm">{DATE_FORMAT_OPTIONS.find(option => option.value === settings?.date_format)?.label}</span>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -115,7 +103,7 @@ export default function PreferencesPage() {
               description="Affects number formatting and thousand separators"
               control={
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">{getLocaleLabel(locale)}</span>
+                  <span className="text-sm">{LOCALES.find(option => option.value === settings?.locale)?.label}</span>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -133,12 +121,12 @@ export default function PreferencesPage() {
             <SettingRow
               label="Currency"
               description="Display currency for all amounts"
-              control={<span className="text-sm">USD ($)</span>}
+              control={<span className="text-sm">{settings?.currency}</span>}
             />
             <SettingRow
               label="Valuation method"
               description="Method used for cost basis calculations"
-              control={<span className="text-sm">FIFO</span>}
+              control={<span className="text-sm">{settings?.valuation_method}</span>}
             />
           </SettingsSubSection>
         </SettingsSection>
@@ -150,8 +138,8 @@ export default function PreferencesPage() {
         onOpenChange={setEditingPagination}
         title="Default pagination size"
         description="Number of items to display per page"
-        initialValue={paginationSize}
-        onSave={setPaginationSize}
+        initialValue={settings?.pagination?.toString()}
+        settingKey="pagination"
       >
         {(value, onChange) => (
           <div className="space-y-2">
@@ -176,8 +164,8 @@ export default function PreferencesPage() {
         onOpenChange={setEditingDateFormat}
         title="Date format"
         description="How dates and times are displayed"
-        initialValue={dateFormat}
-        onSave={setDateFormat}
+        initialValue={settings?.date_format}
+        settingKey="date_format"
       >
         {(value, onChange) => (
           <div className="space-y-2">
@@ -202,8 +190,8 @@ export default function PreferencesPage() {
         onOpenChange={setEditingLocale}
         title="Locale"
         description="Affects number formatting and thousand separators"
-        initialValue={locale}
-        onSave={setLocale}
+        initialValue={settings?.locale}
+        settingKey="locale"
       >
         {(value, onChange) => (
           <div className="space-y-2">
