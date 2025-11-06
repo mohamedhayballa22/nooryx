@@ -73,7 +73,6 @@ export function InviteModal({ isOpen, onOpenChange }: InviteModalProps) {
         },
         onError: (error: any) => {
           const errorMsg = error?.message || ""
-          console.log(errorMsg)
           
           let errorConfig: ErrorState
           

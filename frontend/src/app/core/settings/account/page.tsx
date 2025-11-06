@@ -35,16 +35,11 @@ function parseDeviceInfo(ua: string | null) {
 
 // Page
 export default function AccountSecurityPage() {
-  const { data, isLoading, error, errorStatus } = useUserAccount()
+  const { data, error } = useUserAccount()
   const [editRoleOpen, setEditRoleOpen] = useState(false)
   const [deleteSessionOpen, setDeleteSessionOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
-
-  const handleRoleSave = (newRole: string) => {
-    // TODO: Implement role update API call
-    console.log("Saving role:", newRole)
-  }
 
   const handleSessionDelete = () => {
     // TODO: Implement session deletion API call

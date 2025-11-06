@@ -28,7 +28,6 @@ export async function getUserSettings(): Promise<UserGeneralSettings> {
 export async function updateUserSettings(
   payload: UserGeneralSettingsUpdate
 ): Promise<void> {
-  console.log("updateUserSettings called: ", payload)
   await protectedApiClient("/settings", {
     method: "PATCH",
     body: JSON.stringify(payload),
