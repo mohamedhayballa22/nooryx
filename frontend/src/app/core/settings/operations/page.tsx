@@ -11,11 +11,10 @@ import {
 } from "@/components/app-settings"
 import { Button } from "@/components/ui/button"
 import { SettingsEditDialog } from "../components/settings-edit-dialog"
+import { useUserSettings } from "@/hooks/use-user-settings"
 
 export default function OperationsSettingsPage() {
-  const [lowStockThreshold, setLowStockThreshold] = useState("10")
-  const [reorderPoint, setReorderPoint] = useState("15")
-
+  const { settings } = useUserSettings()
   // Dialog states
   const [editingLowStock, setEditingLowStock] = useState(false)
   const [editingReorderPoint, setEditingReorderPoint] = useState(false)
@@ -30,7 +29,7 @@ export default function OperationsSettingsPage() {
               description="Below this quantity, an item will be marked as low in stock"
               control={
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">{lowStockThreshold}</span>
+                  <span className="text-sm">{settings?.low_stock_threshold}</span>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -47,7 +46,7 @@ export default function OperationsSettingsPage() {
               description="The minimum quantity before a restock alert is triggered for an item"
               control={
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">{reorderPoint}</span>
+                  <span className="text-sm">{settings?.reorder_point}</span>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -82,17 +81,17 @@ export default function OperationsSettingsPage() {
         onOpenChange={setEditingLowStock}
         title="Low stock threshold"
         description="Below this quantity, an item will be marked as low in stock"
-        initialValue={lowStockThreshold}
-        onSave={setLowStockThreshold}
+        initialValue={settings?.low_stock_threshold}
+        settingKey="low_stock_threshold"
       >
-        {(value, onChange) => (
+        {(value, setValue) => (
           <div>
             <Input
               id="low-stock"
               type="number"
               min="0"
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e) => setValue(Number(e.target.value))}
               placeholder="Enter quantity"
               className="mt-2"
             />
@@ -105,17 +104,17 @@ export default function OperationsSettingsPage() {
         onOpenChange={setEditingReorderPoint}
         title="Reorder Point (ROP)"
         description="The minimum quantity before a restock alert is triggered"
-        initialValue={reorderPoint}
-        onSave={setReorderPoint}
+        initialValue={settings?.reorder_point}
+        settingKey="reorder_point"
       >
-        {(value, onChange) => (
+        {(value, setValue) => (
           <div className="space-y-2">
             <Input
               id="reorder-point"
               type="number"
               min="0"
               value={value}
-              onChange={(e) => onChange(e.target.value)}
+              onChange={(e) => setValue(Number(e.target.value))}
               placeholder="Enter quantity"
               className="mt-2"
             />
