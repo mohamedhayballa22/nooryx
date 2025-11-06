@@ -10,63 +10,77 @@ import {
   DialogTitle,
 } from "@/components/ui/dialog"
 import { Button } from "@/components/ui/button"
+import { toast } from "sonner"
+import { useUpdateUserSettings } from "@/hooks/use-user-settings"
 
-interface SettingsEditDialogProps {
+interface SettingsEditDialogProps<T extends string | number> {
   open: boolean
   onOpenChange: (open: boolean) => void
   title: string
   description?: string
-  initialValue?: string
-  onSave?: (value: string) => void
+  initialValue?: T
+  settingKey?: string
   onDelete?: () => void
-  children?: (value: string, onChange: (value: string) => void) => ReactNode
+  children?: (value: T, onChange: (value: T) => void) => ReactNode
 }
 
-export function SettingsEditDialog({
+export function SettingsEditDialog<T extends string | number = string>({
   open,
   onOpenChange,
   title,
   description,
-  initialValue = "",
-  onSave,
+  initialValue,
+  settingKey,
   onDelete,
   children,
-}: SettingsEditDialogProps) {
-  const [value, setValue] = useState(initialValue)
+}: SettingsEditDialogProps<T>) {
+  const [value, setValue] = useState<T>(initialValue ?? ("" as T))
   const [hasChanges, setHasChanges] = useState(false)
 
-  // Determine if this is a delete dialog
+  const { mutateAsync: updateSettings, isPending } = useUpdateUserSettings()
+
   const isDeleteMode = !children && onDelete
 
-  // Reset value when dialog opens or initialValue changes
   useEffect(() => {
     if (open) {
-      setValue(initialValue)
+      setValue(initialValue ?? ("" as T))
       setHasChanges(false)
     }
   }, [open, initialValue])
 
-  // Track changes
   useEffect(() => {
     setHasChanges(value !== initialValue)
   }, [value, initialValue])
 
-  const handleSave = () => {
-    if (onSave) {
-      onSave(value)
+  const handleSave = async () => {
+    if (!settingKey) {
+      console.warn("No settingKey provided to SettingsEditDialog — nothing to update.")
+      onOpenChange(false)
+      return
     }
+
+    // Close dialog immediately (optimistic)
     onOpenChange(false)
+
+    // Show optimistic success toast
+    toast.success("Changes saved successfully.")
+
+    try {
+      await updateSettings({ [settingKey]: value })
+    } catch (err) {
+      // Revert on error
+      toast.error("Failed to save changes. Please try again.")
+      setValue(initialValue ?? ("" as T))
+    }
   }
 
   const handleDelete = () => {
-    if (onDelete) {
-      onDelete()
-    }
+    if (onDelete) onDelete()
     onOpenChange(false)
   }
 
   const handleCancel = () => {
-    setValue(initialValue)
+    setValue(initialValue ?? ("" as T))
     setHasChanges(false)
     onOpenChange(false)
   }
@@ -78,21 +92,19 @@ export function SettingsEditDialog({
           <DialogTitle>{title}</DialogTitle>
           {description && <DialogDescription>{description}</DialogDescription>}
         </DialogHeader>
-        {children && (
-          <div>
-            {children(value, setValue)}
-          </div>
-        )}
+
+        {children && <div>{children(value, setValue)}</div>}
+
         <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>
+          <Button variant="outline" onClick={handleCancel} disabled={isPending}>
             Cancel
           </Button>
           {isDeleteMode ? (
-            <Button variant="destructive" onClick={handleDelete}>
+            <Button variant="destructive" onClick={handleDelete} disabled={isPending}>
               Delete
             </Button>
           ) : (
-            <Button onClick={handleSave} disabled={!hasChanges}>
+            <Button onClick={handleSave} disabled={!hasChanges || isPending}>
               Save
             </Button>
           )}
