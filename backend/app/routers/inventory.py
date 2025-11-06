@@ -13,13 +13,13 @@ from app.schemas.inventory import (
     InventorySummary, 
     OnHandValue
 )
-from app.models import State, Location, Transaction, SKU
+from app.models import State, Location, Transaction, SKU, User
 from app.core.db import get_session
 from app.services.exceptions import TransactionBadRequest, NotFound
 from app.services.metrics import calculate_weekly_delta
 from app.core.auth.tenant_dependencies import get_tenant_session
 from app.core.auth.dependencies import get_current_user
-from app.models import User
+from app.services.settings import get_low_stock_threshold
 
 
 router = APIRouter()
@@ -49,6 +49,7 @@ async def get_inventory(
         regex="^(sku_code|name|location|available|status)$",
     ),
     order: Optional[str] = Query("asc", description="Sort order", regex="^(asc|desc)$"),
+    low_stock_threshold: int = Depends(get_low_stock_threshold),
 ):
     """
     Returns list of current inventory with stock status across all SKUs 
@@ -107,7 +108,7 @@ async def get_inventory(
     # Define the status case expression for reuse (based on aggregated available)
     status_expr = case(
         (aggregated_inventory.c.total_available == 0, "Out of Stock"),
-        (aggregated_inventory.c.total_available < 10, "Low Stock"),
+        (aggregated_inventory.c.total_available < low_stock_threshold, "Low Stock"),
         else_="In Stock",
     ).label("status")
 
@@ -144,11 +145,11 @@ async def get_inventory(
                 status_conditions.append(
                     and_(
                         aggregated_inventory.c.total_available > 0,
-                        aggregated_inventory.c.total_available < 10
+                        aggregated_inventory.c.total_available < low_stock_threshold
                     )
                 )
             elif status == StockStatus.IN_STOCK:
-                status_conditions.append(aggregated_inventory.c.total_available >= 10)
+                status_conditions.append(aggregated_inventory.c.total_available >= low_stock_threshold)
 
         if status_conditions:
             query = query.where(or_(*status_conditions))
@@ -193,6 +194,7 @@ async def get_sku_inventory(
     sku_code: str, 
     location: Optional[str] = Query(None, description="Location name (None = aggregate across all locations)"),
     db: AsyncSession = Depends(get_tenant_session),
+    low_stock_threshold: int = Depends(get_low_stock_threshold)
 ):
     """Get comprehensive inventory view for a SKU across all locations or for a specific location."""
 
@@ -284,7 +286,7 @@ async def get_sku_inventory(
     # Determine overall status
     if total_available == 0:
         status = "Out of Stock"
-    elif total_available < 10:
+    elif total_available < low_stock_threshold:
         status = "Low Stock"
     else:
         status = "In Stock"
