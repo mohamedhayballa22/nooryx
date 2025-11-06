@@ -80,7 +80,6 @@ async def calculate_weekly_delta_single_sku(
             day_subquery,
             Transaction.created_at == day_subquery.c.max_created_at,
         )
-        .where(and_(*filters))
         .order_by(
             func.abs(
                 func.extract(
@@ -183,12 +182,16 @@ async def calculate_weekly_delta_all_skus(
         if location_id is not None:
             filters.append(Transaction.location_id == location_id)
 
-        stmt = select(Transaction).where(and_(*filters))
+        stmt = (
+            select(Transaction)
+            .where(and_(*filters))
+            .order_by(Transaction.created_at.desc())
+            .limit(1)
+        )
         result = await db.execute(stmt)
-        txns_in_period = result.scalars().all()
+        most_recent_txn = result.scalar_one_or_none()
 
-        if txns_in_period:
-            most_recent_txn = max(txns_in_period, key=lambda t: t.created_at)
+        if most_recent_txn:
             target_timestamp = most_recent_txn.created_at
 
             last_week_on_hand = await _calculate_total_on_hand_at_timestamp(
@@ -227,7 +230,6 @@ async def calculate_weekly_delta_all_skus(
             day_subquery,
             Transaction.created_at == day_subquery.c.max_created_at,
         )
-        .where(and_(*filters))
         .order_by(
             func.abs(
                 func.extract(
@@ -261,7 +263,7 @@ async def calculate_weekly_delta_all_skus(
 
 async def _calculate_total_on_hand_at_timestamp(
     db: AsyncSession,
-    target_timestamp,
+    target_timestamp: datetime,
     location_id: str | None = None,
 ) -> int:
     """
