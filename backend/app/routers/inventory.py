@@ -56,7 +56,9 @@ async def get_inventory(
     (aggregated across locations). Efficiently aggregates inventory and 
     finds the most recent transaction per SKU.
 
-    Supports searching across SKU and location, filtering by stock status, and sorting by multiple fields.
+    Supports searching across SKU and location, filtering by stock status, 
+    and sorting by multiple fields. The stock status is determined using the 
+    configurable `low_stock_threshold`.
     """
     # Check if any inventory exists at all (only when no filters are applied)
     if not search and len(stock_status) == 3:
@@ -196,7 +198,11 @@ async def get_sku_inventory(
     db: AsyncSession = Depends(get_tenant_session),
     low_stock_threshold: int = Depends(get_low_stock_threshold)
 ):
-    """Get comprehensive inventory view for a SKU across all locations or for a specific location."""
+    """
+    Get comprehensive inventory view for a SKU across all locations or for a specific location.
+    
+    The overall stock status is determined using the configurable `low_stock_threshold`.
+    """
 
     # Check if SKU exists
     sku_exists_query = select(State.sku_code).where(State.sku_code == sku_code)

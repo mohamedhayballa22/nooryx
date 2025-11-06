@@ -155,6 +155,8 @@ async def get_top_movers(
 ):
     """
     Get top SKUs by outbound movement volume.
+
+    The stock status for each SKU is determined using the configurable `low_stock_threshold`.
     """
     result = await get_top_skus_by_criteria(
         db=db,
@@ -187,6 +189,8 @@ async def get_top_inactives(
 ):
     """
     Get top 5 SKUs with no outbound movement (inactive SKUs).
+
+    The stock status for each SKU is determined using the configurable `low_stock_threshold`.
     """
     result = await get_top_skus_by_criteria(
         db=db,
