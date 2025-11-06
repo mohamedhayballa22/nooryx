@@ -25,6 +25,7 @@ from app.services.movers import (
 )
 from app.core.auth.dependencies import get_current_user
 from app.core.auth.tenant_dependencies import get_tenant_session
+from app.services.settings import get_low_stock_threshold
 
 
 router = APIRouter(prefix="/reports")
@@ -32,7 +33,8 @@ router = APIRouter(prefix="/reports")
 @router.get("/metrics", response_model=DashboardMetricsResponse)
 async def get_dashboard_metrics(
     location: Optional[str] = Query(None, description="Location name (None = aggregate across all locations)"),
-    db: AsyncSession = Depends(get_tenant_session)
+    db: AsyncSession = Depends(get_tenant_session),
+    low_stock_threshold: int = Depends(get_low_stock_threshold)
 ):
     """Get aggregated inventory metrics across all SKUs for dashboard display."""
 
@@ -81,7 +83,7 @@ async def get_dashboard_metrics(
         total_on_hand = totals_row.total_on_hand or 0
 
     # Get stock status counts using centralized service
-    stockouts, low_stock = await get_stock_status_counts(db, location_id)
+    stockouts, low_stock = await get_stock_status_counts(db, location_id, low_stock_threshold=low_stock_threshold)
 
     # Calculate weekly delta (same logic as SKU endpoint, but aggregated)
     delta_pct = await calculate_weekly_delta(db, total_on_hand, sku_code=None, location_id=location_id)
@@ -98,12 +100,13 @@ async def get_dashboard_metrics(
 @router.get("/summary", response_model=DashboardSummaryResponse)
 async def get_dashboard_summary(
     db: AsyncSession = Depends(get_tenant_session),
-    user: User = Depends(get_current_user)
+    user: User = Depends(get_current_user),
+    low_stock_threshold: int = Depends(get_low_stock_threshold)
 ):
     """Get comprehensive dashboard summary including SKU movement analysis."""
     
     # Get stock status counts using centralized service
-    out_of_stock, low_stock = await get_stock_status_counts(db)
+    out_of_stock, low_stock = await get_stock_status_counts(db, low_stock_threshold=low_stock_threshold)
 
     # Check if inventory is empty (no transactions with qty != 0)
     empty_inventory_stmt = select(func.count(Transaction.id)).where(
@@ -118,9 +121,9 @@ async def get_dashboard_summary(
     locations_result = await db.execute(locations_stmt)
     locations = [loc for (loc,) in locations_result.all()]
 
-    # Fast movers with low stock (top 5 SKUs with highest outbound movement and total available < 10)
+    # Fast movers with low stock (top 5 SKUs with highest outbound movement and total available < low_stock_threshold)
     fast_mover_low_stock_sku = await get_fast_movers_with_stock_condition(
-        db, available_min=1, available_max=9, limit=5
+        db, available_min=1, available_max=low_stock_threshold, limit=5
     )
 
     # Fast movers out of stock (top 5 SKUs with highest outbound movement and total available = 0)
@@ -148,6 +151,7 @@ async def get_top_movers(
     location: Optional[str] = Query(None, description="Filter by location name"),
     period: str = Query("7d", description="Time period to analyze (e.g., '7d', '30d', '365 days')"),
     db: AsyncSession = Depends(get_tenant_session),
+    low_stock_threshold: int = Depends(get_low_stock_threshold)
 ):
     """
     Get top SKUs by outbound movement volume.
@@ -167,7 +171,7 @@ async def get_top_movers(
                 sku=data['sku_code'],
                 sku_name=data['sku_name'],
                 available=data['available'],
-                status=determine_stock_status(data['available'])
+                status=determine_stock_status(data['available'], low_stock_threshold)
             )
             for data in result['skus']
         ]
@@ -179,6 +183,7 @@ async def get_top_inactives(
     location: Optional[str] = Query(None, description="Filter by location name"),
     period: str = Query("7d", description="Time period to analyze (e.g., '7d', '30d', '365 days')"),
     db: AsyncSession = Depends(get_tenant_session),
+    low_stock_threshold: int = Depends(get_low_stock_threshold)
 ):
     """
     Get top 5 SKUs with no outbound movement (inactive SKUs).
@@ -198,7 +203,7 @@ async def get_top_inactives(
                 sku=data['sku_code'],
                 sku_name=data['sku_name'],
                 available=data['available'],
-                status=determine_stock_status(data['available'])
+                status=determine_stock_status(data['available'], low_stock_threshold)
             )
             for data in result['skus']
         ]
