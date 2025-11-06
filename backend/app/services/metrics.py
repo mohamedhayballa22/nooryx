@@ -5,25 +5,24 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.models import Transaction
 
 
-async def calculate_weekly_delta(
+async def calculate_weekly_delta_single_sku(
     db: AsyncSession,
     current_on_hand: int,
-    sku_code: str | None = None,
+    sku_code: str,
     location_id: str | None = None,
 ) -> float:
     """
-    Calculate percentage change in on-hand inventory from last week.
+    Calculate percentage change in on-hand inventory from last week for a specific SKU.
 
     Args:
         db: Database session
-        current_on_hand: Current inventory on hand
-        sku_code: SKU code identifier (None for global calculation across all SKUs)
+        current_on_hand: Current inventory on hand for this SKU
+        sku_code: SKU code identifier (required)
         location_id: Location UUID identifier (None for calculation across all locations)
 
     Returns:
         Percentage change from last week, rounded to 1 decimal place
     """
-
     # Handle special case where current stock is 0
     if current_on_hand == 0:
         one_week_ago = datetime.now() - timedelta(days=7)
@@ -32,9 +31,8 @@ async def calculate_weekly_delta(
         filters = [
             Transaction.created_at >= two_weeks_ago,
             Transaction.created_at <= one_week_ago,
+            Transaction.sku_code == sku_code,
         ]
-        if sku_code is not None:
-            filters.append(Transaction.sku_code == sku_code)
         if location_id is not None:
             filters.append(Transaction.location_id == location_id)
 
@@ -54,7 +52,7 @@ async def calculate_weekly_delta(
 
         return 0.0
 
-    # Normal weekly delta calculation ---
+    # Normal weekly delta calculation
     today = datetime.now()
     min_date = today - timedelta(days=11)
     max_date = today - timedelta(days=5)
@@ -62,14 +60,11 @@ async def calculate_weekly_delta(
     filters = [
         Transaction.created_at >= min_date,
         Transaction.created_at <= max_date,
+        Transaction.sku_code == sku_code,
     ]
-    if sku_code is not None:
-        filters.append(Transaction.sku_code == sku_code)
     if location_id is not None:
         filters.append(Transaction.location_id == location_id)
 
-    # Build subquery that keeps only the most recent transaction per day
-    # This ensures that when we pick the "closest to 7 days ago" record, it’s the newest within its day.
     day_subquery = (
         select(
             cast(Transaction.created_at, Date).label("txn_day"),
@@ -79,7 +74,6 @@ async def calculate_weekly_delta(
         .group_by(cast(Transaction.created_at, Date))
     ).subquery()
 
-    # Join to get back the full transaction rows, limited by filters
     joined_stmt = (
         select(Transaction)
         .join(
@@ -104,30 +98,23 @@ async def calculate_weekly_delta(
     if not ideal_txn:
         return 0.0
 
-    # Multi-location case
+    # Multi-location case for this SKU
     if location_id is None:
-        # The "ideal" txn is from the aggregated context (not restricted to one location)
         target_timestamp = ideal_txn.created_at
-
-        subquery_filters = [Transaction.created_at <= target_timestamp]
-        if sku_code is not None:
-            subquery_filters.append(Transaction.sku_code == sku_code)
 
         subquery = (
             select(
                 Transaction.location_id,
                 func.max(Transaction.created_at).label("max_created_at"),
             )
-            .where(and_(*subquery_filters))
+            .where(
+                and_(
+                    Transaction.created_at <= target_timestamp,
+                    Transaction.sku_code == sku_code,
+                )
+            )
             .group_by(Transaction.location_id)
         ).subquery()
-
-        join_conditions = [
-            Transaction.location_id == subquery.c.location_id,
-            Transaction.created_at == subquery.c.max_created_at,
-        ]
-        if sku_code is not None:
-            join_conditions.append(Transaction.sku_code == sku_code)
 
         stmt = (
             select(
@@ -142,7 +129,14 @@ async def calculate_weekly_delta(
                 )
             )
             .select_from(Transaction)
-            .join(subquery, and_(*join_conditions))
+            .join(
+                subquery,
+                and_(
+                    Transaction.location_id == subquery.c.location_id,
+                    Transaction.created_at == subquery.c.max_created_at,
+                    Transaction.sku_code == sku_code,
+                ),
+            )
         )
 
         result = await db.execute(stmt)
@@ -150,7 +144,6 @@ async def calculate_weekly_delta(
 
     # Single-location case
     else:
-        # The "ideal_txn" was chosen within that specific location already
         last_week_txn = ideal_txn
         last_week_on_hand = _calculate_on_hand_from_txn(last_week_txn)
 
@@ -160,6 +153,164 @@ async def calculate_weekly_delta(
     # Compute delta percentage
     delta_pct = ((current_on_hand - last_week_on_hand) / last_week_on_hand) * 100
     return round(delta_pct, 1)
+
+
+async def calculate_weekly_delta_all_skus(
+    db: AsyncSession,
+    current_on_hand: int,
+    location_id: str | None = None,
+) -> float:
+    """
+    Calculate percentage change in on-hand inventory from last week across ALL SKUs.
+
+    Args:
+        db: Database session
+        current_on_hand: Current total inventory on hand across all SKUs
+        location_id: Location UUID identifier (None for calculation across all locations)
+
+    Returns:
+        Percentage change from last week, rounded to 1 decimal place
+    """
+    # Handle special case where current stock is 0
+    if current_on_hand == 0:
+        one_week_ago = datetime.now() - timedelta(days=7)
+        two_weeks_ago = datetime.now() - timedelta(days=14)
+
+        filters = [
+            Transaction.created_at >= two_weeks_ago,
+            Transaction.created_at <= one_week_ago,
+        ]
+        if location_id is not None:
+            filters.append(Transaction.location_id == location_id)
+
+        stmt = select(Transaction).where(and_(*filters))
+        result = await db.execute(stmt)
+        txns_in_period = result.scalars().all()
+
+        if txns_in_period:
+            most_recent_txn = max(txns_in_period, key=lambda t: t.created_at)
+            target_timestamp = most_recent_txn.created_at
+
+            last_week_on_hand = await _calculate_total_on_hand_at_timestamp(
+                db, target_timestamp, location_id
+            )
+
+            if last_week_on_hand > 0:
+                return -100.0
+
+        return 0.0
+
+    # Normal weekly delta calculation
+    today = datetime.now()
+    min_date = today - timedelta(days=11)
+    max_date = today - timedelta(days=5)
+
+    filters = [
+        Transaction.created_at >= min_date,
+        Transaction.created_at <= max_date,
+    ]
+    if location_id is not None:
+        filters.append(Transaction.location_id == location_id)
+
+    day_subquery = (
+        select(
+            cast(Transaction.created_at, Date).label("txn_day"),
+            func.max(Transaction.created_at).label("max_created_at"),
+        )
+        .where(and_(*filters))
+        .group_by(cast(Transaction.created_at, Date))
+    ).subquery()
+
+    joined_stmt = (
+        select(Transaction)
+        .join(
+            day_subquery,
+            Transaction.created_at == day_subquery.c.max_created_at,
+        )
+        .where(and_(*filters))
+        .order_by(
+            func.abs(
+                func.extract(
+                    "epoch",
+                    Transaction.created_at - (today - timedelta(days=7)),
+                )
+            )
+        )
+        .limit(1)
+    )
+
+    result = await db.execute(joined_stmt)
+    ideal_txn = result.scalar_one_or_none()
+
+    if not ideal_txn:
+        return 0.0
+
+    target_timestamp = ideal_txn.created_at
+
+    last_week_on_hand = await _calculate_total_on_hand_at_timestamp(
+        db, target_timestamp, location_id
+    )
+
+    if last_week_on_hand == 0:
+        return 0.0
+
+    # Compute delta percentage
+    delta_pct = ((current_on_hand - last_week_on_hand) / last_week_on_hand) * 100
+    return round(delta_pct, 1)
+
+
+async def _calculate_total_on_hand_at_timestamp(
+    db: AsyncSession,
+    target_timestamp,
+    location_id: str | None = None,
+) -> int:
+    """
+    Calculate total on_hand across all SKUs at a specific timestamp.
+    
+    For each (location, SKU) combination, finds the most recent transaction
+    up to the target timestamp and calculates its on_hand value.
+    """
+    filters = [Transaction.created_at <= target_timestamp]
+    if location_id is not None:
+        filters.append(Transaction.location_id == location_id)
+
+    subquery = (
+        select(
+            Transaction.location_id,
+            Transaction.sku_code,
+            func.max(Transaction.created_at).label("max_created_at"),
+        )
+        .where(and_(*filters))
+        .group_by(Transaction.location_id, Transaction.sku_code)
+    ).subquery()
+
+    stmt = (
+        select(
+            func.sum(
+                case(
+                    (
+                        Transaction.action.in_(["reserve", "unreserve"]),
+                        Transaction.qty_before,
+                    ),
+                    else_=Transaction.qty_before + Transaction.qty,
+                )
+            )
+        )
+        .select_from(Transaction)
+        .join(
+            subquery,
+            and_(
+                Transaction.location_id == subquery.c.location_id,
+                Transaction.sku_code == subquery.c.sku_code,
+                Transaction.created_at == subquery.c.max_created_at,
+            ),
+        )
+    )
+
+    result = await db.execute(stmt)
+    total_on_hand = result.scalar() or 0
+    
+    return total_on_hand
 
 
 def _calculate_on_hand_from_txn(txn: Transaction) -> int:

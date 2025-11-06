@@ -16,7 +16,7 @@ from app.schemas.inventory import (
 from app.models import State, Location, Transaction, SKU, User
 from app.core.db import get_session
 from app.services.exceptions import TransactionBadRequest, NotFound
-from app.services.metrics import calculate_weekly_delta
+from app.services.metrics import calculate_weekly_delta_single_sku
 from app.core.auth.tenant_dependencies import get_tenant_session
 from app.core.auth.dependencies import get_current_user
 from app.services.settings import get_low_stock_threshold
@@ -298,7 +298,7 @@ async def get_sku_inventory(
         status = "In Stock"
 
     # Calculate delta (aggregated if no location, specific if location provided)
-    total_delta_pct = await calculate_weekly_delta(
+    total_delta_pct = await calculate_weekly_delta_single_sku(
         db, 
         total_on_hand, 
         sku_code=sku_code, 

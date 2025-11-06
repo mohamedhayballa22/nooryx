@@ -14,7 +14,7 @@ from app.schemas.report import (
 )
 from sqlalchemy.orm import selectinload
 from app.services.exceptions import TransactionBadRequest, NotFound
-from app.services.metrics import calculate_weekly_delta
+from app.services.metrics import calculate_weekly_delta_all_skus
 from app.services.stock_counts import get_stock_status_counts
 from app.services.trends import get_inventory_trend_points
 from app.services.movers import (
@@ -86,7 +86,7 @@ async def get_dashboard_metrics(
     stockouts, low_stock = await get_stock_status_counts(db, location_id, low_stock_threshold=low_stock_threshold)
 
     # Calculate weekly delta (same logic as SKU endpoint, but aggregated)
-    delta_pct = await calculate_weekly_delta(db, total_on_hand, sku_code=None, location_id=location_id)
+    delta_pct = await calculate_weekly_delta_all_skus(db, total_on_hand, location_id=location_id)
 
     return DashboardMetricsResponse(
         total_available=total_available,
