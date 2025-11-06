@@ -1,0 +1,36 @@
+import { protectedApiClient } from "../protected-client";
+
+export interface UserGeneralSettings {
+  low_stock_threshold: number;
+  reorder_point: number;
+  locale: string;
+  pagination: number;
+  date_format: string;
+  currency: string;
+  valuation_method: string;
+}
+
+export interface UserGeneralSettingsUpdate {
+  low_stock_threshold?: number;
+  reorder_point?: number;
+  locale?: string;
+  pagination?: number;
+  date_format?: string;
+  role?: string;
+}
+
+export async function getUserSettings(): Promise<UserGeneralSettings> {
+  return protectedApiClient<UserGeneralSettings>("/settings", {
+    method: "GET",
+  });
+}
+
+export async function updateUserSettings(
+  payload: UserGeneralSettingsUpdate
+): Promise<void> {
+  console.log("updateUserSettings called: ", payload)
+  await protectedApiClient("/settings", {
+    method: "PATCH",
+    body: JSON.stringify(payload),
+  });
+}
