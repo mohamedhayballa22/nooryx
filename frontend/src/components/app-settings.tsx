@@ -123,3 +123,89 @@ interface SettingsProps {
 export function Settings({ children }: SettingsProps) {
   return <div className="max-w-5xl space-y-10">{children}</div>
 }
+
+// Skeleton version
+export function SettingsSkeleton() {
+  return (
+    <div className="max-w-5xl space-y-10">
+      <div className="max-w-3xl space-y-6">
+        <div className="space-y-6">
+          {/* Sub-section 1 */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="h-7 w-32 bg-muted animate-pulse rounded" />
+            </div>
+            <Card className="rounded-md shadow-xs border bg-muted/30 py-0">
+              <CardContent className="p-4 divide-y divide-border">
+                {[...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between ${
+                      i === 0 ? "pt-0 pb-3" : i === 3 ? "pt-3 pb-0" : "py-3"
+                    }`}
+                  >
+                    <div className="flex flex-col space-y-2">
+                      <div className="h-4 w-28 bg-muted animate-pulse rounded" />
+                      <div className="h-3 w-48 bg-muted animate-pulse rounded" />
+                    </div>
+                    <div className="h-6 w-12 bg-muted animate-pulse rounded" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Sub-section 2 */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="h-7 w-40 bg-muted animate-pulse rounded" />
+            </div>
+            <Card className="rounded-md shadow-xs border bg-muted/30 py-0">
+              <CardContent className="p-4 divide-y divide-border">
+                {[...Array(5)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between ${
+                      i === 0 ? "pt-0 pb-3" : i === 4 ? "pt-3 pb-0" : "py-3"
+                    }`}
+                  >
+                    <div className="flex flex-col space-y-2">
+                      <div className="h-4 w-32 bg-muted animate-pulse rounded" />
+                      <div className="h-3 w-56 bg-muted animate-pulse rounded" />
+                    </div>
+                    <div className="h-6 w-12 bg-muted animate-pulse rounded" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </section>
+
+          {/* Sub-section 3 */}
+          <section className="space-y-4">
+            <div className="flex items-center justify-between">
+              <div className="h-7 w-36 bg-muted animate-pulse rounded" />
+            </div>
+            <Card className="rounded-md shadow-xs border bg-muted/30 py-0">
+              <CardContent className="p-4 divide-y divide-border">
+                {[...Array(4)].map((_, i) => (
+                  <div
+                    key={i}
+                    className={`flex items-center justify-between ${
+                      i === 0 ? "pt-0 pb-3" : i === 3 ? "pt-3 pb-0" : "py-3"
+                    }`}
+                  >
+                    <div className="flex flex-col space-y-2">
+                      <div className="h-4 w-24 bg-muted animate-pulse rounded" />
+                      <div className="h-3 w-44 bg-muted animate-pulse rounded" />
+                    </div>
+                    <div className="h-6 w-12 bg-muted animate-pulse rounded" />
+                  </div>
+                ))}
+              </CardContent>
+            </Card>
+          </section>
+        </div>
+      </div>
+    </div>
+  )
+}
