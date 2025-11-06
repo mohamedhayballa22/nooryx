@@ -43,6 +43,19 @@ class SettingsUpdateRequest(BaseModel):
     role: Optional[str] = None
 
 
+class SettingsResponse(BaseModel):
+    # Organization settings
+    low_stock_threshold: int
+    reorder_point: int
+    currency: str
+    valuation_method: str
+    
+    # User settings
+    locale: str
+    pagination: int
+    date_format: str
+
+
 USER_SETTINGS_DEFAULTS = {
     "locale": "en-US",
     "pagination": 25,

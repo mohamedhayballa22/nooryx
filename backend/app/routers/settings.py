@@ -1,12 +1,15 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, update
 from app.core.auth.dependencies import get_current_user
 from app.core.auth.tenant_dependencies import get_tenant_session
 from app.models import User, Organization, RefreshToken, UserSettings, OrganizationSettings
 from app.schemas.settings import UserAccountResponse
 from datetime import datetime, timezone
-from app.schemas.settings import SettingsUpdateRequest, ORG_SETTINGS_DEFAULTS, USER_SETTINGS_DEFAULTS, SUPPORTED_LOCALES
+from app.schemas.settings import (
+    SettingsUpdateRequest, ORG_SETTINGS_DEFAULTS, 
+    USER_SETTINGS_DEFAULTS, SUPPORTED_LOCALES,
+    SettingsResponse)
 import hashlib
 
 router = APIRouter()
@@ -79,7 +82,7 @@ async def get_user_profile(
     )
 
 
-@router.get("")
+@router.get("", response_model=SettingsResponse)
 async def get_settings(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_tenant_session),
@@ -100,6 +103,10 @@ async def get_settings(
     )
     org_settings = (await db.execute(org_stmt)).scalar_one_or_none()
 
+    # Fetch organization
+    org_query = select(Organization).where(Organization.org_id == user.org_id)
+    organization = (await db.execute(org_query)).scalar_one()
+
     combined_settings = {**ORG_SETTINGS_DEFAULTS, **USER_SETTINGS_DEFAULTS}
     
     if org_settings:
@@ -107,6 +114,11 @@ async def get_settings(
             "low_stock_threshold": org_settings.low_stock_threshold,
             "reorder_point": org_settings.reorder_point,
         })
+    
+    combined_settings.update({
+        "currency": organization.currency,
+        "valuation_method": organization.valuation_method,
+    })
     
     if user_settings:
         combined_settings.update({
@@ -129,7 +141,6 @@ async def update_settings(
     Creates settings records if they don't exist.
     Only updates provided fields.
     """
-    
     # Check if any fields were provided
     update_data = settings_update.model_dump(exclude_unset=True)
     if not update_data:
@@ -162,19 +173,29 @@ async def update_settings(
             detail="Reorder point must be non-negative",
         )
     
-    # User job title field
+    # Validate locale if present (applies to both user and org settings)
+    if "locale" in user_updates and user_updates["locale"] not in SUPPORTED_LOCALES:
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Unsupported locale",
+        )
+    
+    # Update user role field
     if "role" in update_data:
-        user.role = update_data["role"]
+        user_update_stmt = (
+            update(User)
+            .where(User.id == user.id)
+            .values(role=update_data["role"])
+        )
+        await db.execute(user_update_stmt)
     
     # Update or create OrganizationSettings
     if org_updates:
-        if "locale" in user_updates and user_updates["locale"] not in [
-            "en-US", "en-GB", "fr-FR", "es-ES", "de-DE", "pt-BR"
-        ]:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid locale",
-            )
+        org_stmt = select(OrganizationSettings).where(OrganizationSettings.org_id == user.org_id)
+        org_settings = (await db.execute(org_stmt)).scalar_one_or_none()
+        
+        if org_settings:
+            # Update existing
             for key, value in org_updates.items():
                 setattr(org_settings, key, value)
         else:
@@ -187,12 +208,6 @@ async def update_settings(
     
     # Update or create UserSettings
     if user_updates:
-        if "locale" in user_updates and user_updates["locale"] not in SUPPORTED_LOCALES:
-            raise HTTPException(
-                status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Invalid locale",
-            )
-        
         user_stmt = select(UserSettings).where(UserSettings.user_id == user.id)
         user_settings = (await db.execute(user_stmt)).scalar_one_or_none()
         
