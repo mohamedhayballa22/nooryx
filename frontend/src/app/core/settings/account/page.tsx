@@ -61,25 +61,13 @@ export default function AccountSecurityPage() {
     setDeleteSessionOpen(true)
   }
 
-  if (isLoading) {
-    return (
-      <Settings>
-        <SettingsSection>
-          <div className="flex items-center justify-center py-8">
-            <p className="text-muted-foreground">Loading account information...</p>
-          </div>
-        </SettingsSection>
-      </Settings>
-    )
-  }
-
   if (error || !data) {
     return (
       <Settings>
         <SettingsSection>
           <div className="flex items-center justify-center py-8">
             <p className="text-destructive">
-              Failed to load account information {errorStatus ? `(${errorStatus})` : ""}
+              Failed to load account information. Please try again later.
             </p>
           </div>
         </SettingsSection>
@@ -227,13 +215,13 @@ export default function AccountSecurityPage() {
             </div>
           </SettingsSubSection>
 
-{/* Delete Account Dialog */}
-<DeleteAccountDialog
-  open={deleteAccountOpen}
-  onOpenChange={setDeleteAccountOpen}
-  email={user.email}
-  onConfirm={handleAccountDelete}
-/>
+          {/* Delete Account Dialog */}
+          <DeleteAccountDialog
+            open={deleteAccountOpen}
+            onOpenChange={setDeleteAccountOpen}
+            email={user.email}
+            onConfirm={handleAccountDelete}
+          />
         </SettingsSection>
       </Settings>
 
@@ -244,7 +232,7 @@ export default function AccountSecurityPage() {
         title="Edit role"
         description="Update your job title or function"
         initialValue={user.role || ""}
-        onSave={handleRoleSave}
+        settingKey="role"
       >
         {(value, onChange) => (
           <Input
