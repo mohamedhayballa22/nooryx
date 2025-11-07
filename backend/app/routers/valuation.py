@@ -75,8 +75,8 @@ async def get_inventory_valuation(
     )
 
 
-@router.get("/", response_model=ValuationHeader)
-async def get_valuation_summary(
+@router.get("", response_model=ValuationHeader)
+async def get_valuation(
     user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
