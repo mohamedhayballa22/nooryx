@@ -26,6 +26,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyTrend } from "@/components/empty-trend"
 
 import type { InventoryTrend } from "@/lib/api/inventory"
+import { useFormatting } from "@/hooks/use-formatting"
 
 type PeriodKey = "7d" | "31d" | "180d" | "365d"
 
@@ -40,6 +41,7 @@ export default function TrendChart({
   period,
   onPeriodChange,
 }: TrendChartProps) {
+  const { formatDate, locale } = useFormatting()
   const periodLabelMap: Record<PeriodKey, string> = {
     "7d": "Last Week",
     "31d": "Last Month",
@@ -184,13 +186,17 @@ export default function TrendChart({
                 tickMargin={8}
                 tickFormatter={(value) => {
                   const date = new Date(value)
-                  return date.toLocaleDateString("en-US", {
+                  return date.toLocaleDateString(locale, {
                     month: "short",
                     day: "numeric",
                   })
                 }}
               />
-              <ChartTooltip cursor={false} content={<ChartTooltipContent />} />
+              <ChartTooltip cursor={false} content={
+                  <ChartTooltipContent
+                    labelFormatter={(label) => formatDate(label)}
+                  />
+              } />
               <defs>
                 <linearGradient id="fillOnHand" x1="0" y1="0" x2="0" y2="1">
                   <stop
