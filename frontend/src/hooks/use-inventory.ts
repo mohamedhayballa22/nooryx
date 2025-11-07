@@ -7,8 +7,8 @@ import { PaginationState } from "@tanstack/react-table";
 import { getInventoryList, InventoryListParams } from "@/lib/api/inventory";
 import { ApiError } from "@/lib/api/client";
 import { useDebounce } from "@/hooks/use-debounce";
+import { useUserSettings } from "@/hooks/use-user-settings";
 
-const INITIAL_PAGINATION: PaginationState = { pageIndex: 0, pageSize: 10 };
 const INITIAL_STATUS_FILTERS = ["In Stock", "Low Stock", "Out of Stock"];
 
 function getErrorStatus(error: unknown): number | undefined {
@@ -28,15 +28,19 @@ function areArraysEqual(a: string[], b: string[]): boolean {
 export function useInventoryList() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { settings } = useUserSettings();
   const isFirstRender = useRef(true);
+
+  // Get default page size from settings
+  const defaultPageSize = settings?.pagination || 10;
 
   // Initialize state from URL or defaults
   const [pagination, setPagination] = useState<PaginationState>(() => {
     const page = searchParams.get("page");
     const size = searchParams.get("size");
     return {
-      pageIndex: page ? Math.max(0, parseInt(page) - 1) : INITIAL_PAGINATION.pageIndex,
-      pageSize: size ? parseInt(size) : INITIAL_PAGINATION.pageSize,
+      pageIndex: page ? Math.max(0, parseInt(page) - 1) : 0,
+      pageSize: size ? parseInt(size) : defaultPageSize,
     };
   });
 
@@ -68,12 +72,12 @@ export function useInventoryList() {
     const params = new URLSearchParams();
 
     // Only add page if not first page
-    if (pagination.pageIndex !== INITIAL_PAGINATION.pageIndex) {
+    if (pagination.pageIndex !== 0) {
       params.set("page", (pagination.pageIndex + 1).toString());
     }
 
-    // Only add size if not default
-    if (pagination.pageSize !== INITIAL_PAGINATION.pageSize) {
+    // Only add size if not the user's preference
+    if (pagination.pageSize !== defaultPageSize) {
       params.set("size", pagination.pageSize.toString());
     }
 
@@ -105,6 +109,7 @@ export function useInventoryList() {
     sortOrder,
     statusFilters,
     router,
+    defaultPageSize,
   ]);
 
   // Build query params

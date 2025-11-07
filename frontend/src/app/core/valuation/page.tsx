@@ -6,11 +6,15 @@ import { ValuationDataTable } from "./components/valuation-skus-table"
 import { PaginationState } from "@tanstack/react-table"
 import { useSKUValuations } from "./hooks/use-sku-valuations"
 import { useTotalValuation } from "./hooks/use-total-valuation"
+import { useUserSettings } from "@/hooks/use-user-settings"
 
 export default function Page() {
+  const { settings } = useUserSettings()
+  const defaultPageSize = settings?.pagination || 10
+
   const [pagination, setPagination] = useState<PaginationState>({
     pageIndex: 0,
-    pageSize: 10,
+    pageSize: defaultPageSize,
   })
 
   const { data: headerData, isLoading: isLoadingHeader, refetch: refetchHeader, isRefetching: isRefetchingHeader} = useTotalValuation()

@@ -8,6 +8,7 @@ import { useAuditTrail } from "@/hooks/use-transactions"
 import { DataToolbar } from "@/components/data-toolbar";
 import { useDebounce } from "@/hooks/use-debounce";
 import { EmptyAuditTrail } from "@/components/empty-audit-trail";
+import { useUserSettings } from "@/hooks/use-user-settings";
 
 const INITIAL_ACTION_FILTERS = [
   "added",
@@ -18,9 +19,9 @@ const INITIAL_ACTION_FILTERS = [
   "unreserved",
 ];
 
-function parseUrlParams(searchParams: URLSearchParams) {
-  const page = parseInt(searchParams.get("page") || "1", 10) - 1; // Convert to 0-indexed
-  const size = parseInt(searchParams.get("size") || "10", 10);
+function parseUrlParams(searchParams: URLSearchParams, defaultPageSize: number) {
+  const page = parseInt(searchParams.get("page") || "1", 10) - 1;
+  const size = parseInt(searchParams.get("size") || String(defaultPageSize), 10);
   const search = searchParams.get("search") || "";
   const sortBy = searchParams.get("sort_by") || null;
   const sortOrder = (searchParams.get("order") || "asc") as "asc" | "desc";
@@ -39,9 +40,13 @@ function parseUrlParams(searchParams: URLSearchParams) {
 export default function AuditTrailPage() {
   const router = useRouter();
   const searchParams = useSearchParams();
+  const { settings } = useUserSettings();
   
-  // Initialize state from URL
-  const urlParams = parseUrlParams(searchParams);
+  // Get default page size from settings, fallback to 10
+  const defaultPageSize = settings?.pagination || 10;
+  
+  // Initialize state from URL (URL takes precedence over settings)
+  const urlParams = parseUrlParams(searchParams, defaultPageSize);
   
   const [pageIndex, setPageIndex] = React.useState(urlParams.page);
   const [pageSize, setPageSize] = React.useState(urlParams.size);
