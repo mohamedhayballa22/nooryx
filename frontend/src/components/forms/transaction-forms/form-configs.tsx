@@ -196,7 +196,7 @@ export const shipFormConfig: FormConfig<ShipFormValues> = {
       sku_code: skuContext?.sku_code || "",
       location: locationContext?.location || "",
       qty: 0,
-      ship_from: "auto" as "auto",
+      ship_from: "auto" as const,
       notes: "",
     }
   },
