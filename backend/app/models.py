@@ -393,7 +393,7 @@ class UserSettings(Base):
     __tablename__ = "user_settings"
 
     user_id = Column(UUID(as_uuid=True), ForeignKey("users.id", ondelete="CASCADE"), primary_key=True)
-    locale = Column(String, nullable=False, default="en-US", server_default="en-US")
+    locale = Column(String, nullable=False, default="system", server_default="system")
     pagination = Column(Integer, nullable=False, default=25, server_default="25")
     date_format = Column(String, nullable=False, default="system", server_default="system")
 

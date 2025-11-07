@@ -21,6 +21,7 @@ import {
 import { useUserSettings } from "@/hooks/use-user-settings"
 
 const LOCALES = [
+  { label: 'System Default', value: 'system' },
   { label: 'English (United States)', value: 'en-US' },
   { label: 'English (United Kingdom)', value: 'en-GB' },
   { label: 'Français (France)', value: 'fr-FR' },
@@ -40,8 +41,11 @@ const DATE_FORMAT_OPTIONS = [
   { label: 'System Default', value: 'system' },
   { label: 'DD/MM/YYYY, 24h', value: 'dd/mm/yyyy_24h' },
   { label: 'MM/DD/YYYY, 12h', value: 'mm/dd/yyyy_12h' },
-  { label: 'Jan 01, 2025 at 13:45 (24h)', value: 'long_24h' },
-  { label: 'Jan 01, 2025 at 1:45 PM (12h)', value: 'long_12h' },
+  { label: 'YYYY-MM-DD, 24h', value: 'yyyy-mm-dd_24h' },
+  { label: 'Jan 01, 2025 at 13:45 (24h)', value: 'long_mdy_24h' },
+  { label: 'Jan 01, 2025 at 1:45 PM (12h)', value: 'long_mdy_12h' },
+  { label: '01 Jan, 2025 at 13:45 (24h)', value: 'long_dmy_24h' },
+  { label: '01 Jan, 2025 at 1:45 PM (12h)', value: 'long_dmy_12h' },
 ]
 
 export default function PreferencesPage() {

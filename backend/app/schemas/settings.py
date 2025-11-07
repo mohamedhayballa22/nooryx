@@ -39,7 +39,7 @@ class UserAccountResponse(BaseModel):
     sessions: List[SessionInfo]
 
 
-SUPPORTED_LOCALES = {"en-US", "en-GB", "fr-FR", "es-ES", "de-DE", "pt-BR"}
+SUPPORTED_LOCALES = {"system", "en-US", "en-GB", "fr-FR", "es-ES", "de-DE", "pt-BR"}
 
 
 class SettingsUpdateRequest(BaseModel):
@@ -65,7 +65,7 @@ class SettingsResponse(BaseModel):
 
 
 USER_SETTINGS_DEFAULTS = {
-    "locale": "en-US",
+    "locale": "system",
     "pagination": 25,
     "date_format": "system",
 }
