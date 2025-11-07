@@ -19,7 +19,7 @@ export interface SKUValuationResponse {
 }
 
 export interface TotalValuation {
-  total_value: string;
+  total_value: number;
   currency: string;
   method: string;
   method_full_name: string;
