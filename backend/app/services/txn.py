@@ -207,7 +207,7 @@ class TransactionService:
             transfer_cost_display = self.currency_service.format_amount(
                 transfer_cost_minor,
                 currency
-            ) + " " + currency
+            )
             
             # 2. Create transfer_out transaction
             transfer_out_payload = TransferOutTxn(
@@ -218,7 +218,7 @@ class TransactionService:
                 txn_metadata={
                     **txn_payload.txn_metadata,
                     'target_location': txn_payload.target_location,
-                    'transfer_cost_per_unit': transfer_cost_display
+                    'transfer_cost_per_unit': float(transfer_cost_display)
                 }
             )
             
@@ -245,7 +245,7 @@ class TransactionService:
                 txn_metadata={
                     **txn_metadata,
                     'source_location': txn_payload.location,
-                    'transfer_cost_per_unit': transfer_cost_display
+                    'transfer_cost_per_unit': float(transfer_cost_display)
                 }
             )
             
