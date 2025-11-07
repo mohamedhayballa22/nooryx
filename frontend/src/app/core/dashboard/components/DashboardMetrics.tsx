@@ -35,17 +35,6 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
       aria-label="Dashboard Metrics"
     >
       <MetricCard
-        title="Total Units Available"
-        value={total_available}
-        description={
-          total_available > 0
-            ? "Sellable units currently available"
-            : "No sellable stock available"
-        }
-        subtitle="Includes all non-reserved stock"
-      />
-
-      <MetricCard
         title="Total Units On Hand"
         value={total_on_hand.value}
         delta={hasDelta ? total_on_hand.delta_pct : undefined}
@@ -55,6 +44,17 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
             : "No units on hand"
         }
         subtitle={onHandSubtitle}
+      />
+      
+      <MetricCard
+        title="Total Units Available"
+        value={total_available}
+        description={
+          total_available > 0
+            ? "Sellable units currently available"
+            : "No sellable stock available"
+        }
+        subtitle="Includes all non-reserved stock"
       />
 
       <MetricCard
