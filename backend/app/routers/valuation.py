@@ -118,7 +118,7 @@ async def get_valuation_summary(
     }
 
     return ValuationHeader(
-        total_value=str(total_value_major),
+        total_value=total_value_major,
         currency=currency,
         method=valuation_method,
         method_full_name=method_map.get(valuation_method, valuation_method),

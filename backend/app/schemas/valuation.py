@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict
 from decimal import Decimal
 
 
@@ -12,8 +12,12 @@ class InventoryValuationRow(BaseModel):
     
 
 class ValuationHeader(BaseModel):
-    total_value: str
+    total_value: Decimal
     currency: str
     method: str
     method_full_name: str
     timestamp: str
+
+    model_config = ConfigDict(
+        json_encoders={Decimal: float}
+    )
