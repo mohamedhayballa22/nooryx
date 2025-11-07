@@ -13,6 +13,7 @@ import {
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useMobile } from "@/hooks/use-mobile"
+import { useFormatting } from "@/hooks/use-formatting"
 import React from "react"
 
 import { TransactionItem } from "@/lib/api/inventory"
@@ -31,6 +32,7 @@ export function AuditTrail({
   snippet?: boolean
 }) {
   const isMobile = useMobile()
+  const { formatDate, formatCurrency, formatQuantity } = useFormatting()
 
   const actionIcons: Record<string, any> = {
     added: Plus,
@@ -40,6 +42,13 @@ export function AuditTrail({
     unreserved: LockSlash,
     "transferred in": Upload,
     "transferred out": Upload,
+  }
+
+  const formatMetadataValue = (key: string, value: any): string => {
+    if (key === "transfer_cost_per_unit" && typeof value === "number") {
+      return formatCurrency(value)
+    }
+    return String(value)
   }
 
   if (items.length === 0) {
@@ -66,14 +75,14 @@ export function AuditTrail({
         // Overview text base
         let overviewText = ""
         if (item.action === "transferred in") {
-          overviewText = `${item.quantity} ${itemWord} ${verb} transferred into ${item.location}`
+          overviewText = `${formatQuantity(item.quantity)} ${itemWord} ${verb} transferred into ${item.location}`
         } else if (item.action === "transferred out") {
-          overviewText = `${item.quantity} ${itemWord} ${verb} transferred out of ${item.location}`
+          overviewText = `${formatQuantity(item.quantity)} ${itemWord} ${verb} transferred out of ${item.location}`
         } else if (item.action === "adjusted") {
           const sign = item.qty_after > item.qty_before ? "+" : "-"
-          overviewText = `${sign}${item.quantity} ${itemWord} at ${item.location}`
+          overviewText = `${sign}${formatQuantity(item.quantity)} ${itemWord} at ${item.location}`
         } else {
-          overviewText = `${item.quantity} ${itemWord} ${verb} ${item.action} at ${item.location}`
+          overviewText = `${formatQuantity(item.quantity)} ${itemWord} ${verb} ${item.action} at ${item.location}`
         }
 
         const Icon = actionIcons[item.action] || OpenBook
@@ -81,10 +90,10 @@ export function AuditTrail({
         const quantityLine = (
           <div className="flex items-center gap-1 text-sm mt-1">
             <span>
-              Quantity at {item.location}: {item.qty_before}
+              Quantity at {item.location}: {formatQuantity(item.qty_before)}
             </span>
             <ArrowRight width={14} height={14} className="text-muted-foreground" />
-            <span>{item.qty_after}</span>
+            <span>{formatQuantity(item.qty_after)}</span>
           </div>
         )
 
@@ -103,7 +112,7 @@ export function AuditTrail({
                   {Object.entries(item.metadata).map(([key, value]) => (
                     <li key={key}>
                       <span className="font-semibold capitalize">{key.replace(/_/g, " ")}:</span>{" "}
-                      {String(value)}
+                      {formatMetadataValue(key, value)}
                     </li>
                   ))}
                 </ul>
@@ -144,7 +153,9 @@ export function AuditTrail({
                       <TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-7" />
                       <div className="flex flex-col">
                         <TimelineTitle className="mt-0.5">{headerText}</TimelineTitle>
-                        <TimelineDate className="text-xs text-muted-foreground pt-1">{item.date}</TimelineDate>
+                        <TimelineDate className="text-xs text-muted-foreground pt-1">
+                          {formatDate(item.date)}
+                        </TimelineDate>
                       </div>
                       <TimelineIndicator className="border border-primary/10 group-data-completed/timeline-item:border-primary group-data-completed/timeline-item:text-primary-foreground flex size-7 items-center justify-center group-data-[orientation=vertical]/timeline:-left-7">
                         <Icon
@@ -223,7 +234,7 @@ export function AuditTrail({
                       {Object.entries(item.metadata).map(([key, value]) => (
                         <li key={key}>
                           <span className="font-semibold capitalize">{key.replace(/_/g, " ")}:</span>{" "}
-                          {String(value)}
+                          {formatMetadataValue(key, value)}
                         </li>
                       ))}
                     </ul>
@@ -251,7 +262,7 @@ export function AuditTrail({
                 )}
               </Tabs>
 
-              <TimelineDate className="mt-2 mb-0">{item.date}</TimelineDate>
+              <TimelineDate className="mt-2 mb-0">{formatDate(item.date)}</TimelineDate>
             </TimelineContent>
           </TimelineItem>
         )
