@@ -17,4 +17,3 @@ class ValuationHeader(BaseModel):
     method: str
     method_full_name: str
     timestamp: str
-    locale: str

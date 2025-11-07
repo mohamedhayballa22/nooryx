@@ -24,7 +24,6 @@ export interface TotalValuation {
   method: string;
   method_full_name: string;
   timestamp: string;
-  locale: string;
 }
 
 export interface SKUValuationParams {

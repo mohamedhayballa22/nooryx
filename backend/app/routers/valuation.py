@@ -123,5 +123,4 @@ async def get_valuation_summary(
         method=valuation_method,
         method_full_name=method_map.get(valuation_method, valuation_method),
         timestamp=datetime.now(timezone.utc).isoformat(),
-        locale="en-US",  # temporary hardcoded
     )
