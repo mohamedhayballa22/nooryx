@@ -20,7 +20,7 @@ export function EmptyTrend() {
           No trend to show (yet)
         </EmptyTitle>
         <EmptyDescription className="text-base md:text-lg text-muted-foreground max-w-md mx-auto">
-          Once there's a few more changes in quantity, we'll plot it here.
+          Once there&apos;s a few more changes in quantity, we&apos;ll plot it here.
         </EmptyDescription>
       </EmptyHeader>
     </Empty>

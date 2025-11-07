@@ -24,10 +24,10 @@ export function EmptyInventory() {
             <PackageOpenIcon className="size-10" strokeWidth={1.5} />
           </EmptyMedia>
           <EmptyTitle className="text-3xl md:text-4xl font-bold tracking-tight">
-            Quiet warehouse, isn't it?
+            Quiet warehouse, isn&apos;t it?
           </EmptyTitle>
           <EmptyDescription className="text-base md:text-lg text-muted-foreground max-w-md mx-auto">
-            No boxes, no bins, just potential. Add some items and let's fill these shelves.
+            No boxes, no bins, just potential. Add some items and let&apos;s fill these shelves.
           </EmptyDescription>
         </EmptyHeader>
 

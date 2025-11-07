@@ -26,7 +26,7 @@ export default function NotFound() {
         className="relative z-10 text-center px-6 max-w-2xl"
       >
         <h2 className="text-4xl md:text-5xl font-bold mb-4">
-          You've wandered outside the warehouse!
+          You&apos;ve wandered outside the warehouse!
         </h2>
         <p className="text-muted-foreground mb-8 text-lg">
           We checked the shelves twice. Nothing here by that name.

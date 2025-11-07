@@ -158,7 +158,7 @@ export function InviteModal({ isOpen, onOpenChange }: InviteModalProps) {
               <div className="space-y-2">
                 <DialogTitle className="text-lg font-medium">Invitation Sent</DialogTitle>
                 <DialogDescription className="text-sm text-muted-foreground">
-                  We've sent an invitation to {email}. They'll receive it shortly.
+                  We&apos;ve sent an invitation to {email}. They&apos;ll receive it shortly.
                 </DialogDescription>
               </div>
 
