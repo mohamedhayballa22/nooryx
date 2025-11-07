@@ -1,11 +1,12 @@
 from pydantic import BaseModel
 from typing import Optional, Dict, Any, List
+from datetime import datetime
 
 
 class TransactionItem(BaseModel):
     """Represents a single, historical transaction record from the ledger."""
     id: str  # UUID as string
-    date: str
+    date: datetime
     actor: str
     action: str
     quantity: int

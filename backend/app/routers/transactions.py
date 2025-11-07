@@ -81,7 +81,7 @@ async def get_transactions(
     """
 
     # Check if ANY transactions exist at all (before filters)
-    has_filters = bool(search or len(action) != 6)
+    has_filters = bool(search or (action and len(action) != 6))
     
     if not has_filters:
         # Only check for existence when there are no filters
@@ -158,9 +158,7 @@ async def get_transactions(
         transformer=lambda rows: [
             TransactionItem(
                 id=str(row.Transaction.id),
-                date=row.Transaction.created_at.strftime(
-                    "%b %d, %Y at %I:%M %p"
-                ),
+                date=row.Transaction.created_at,
                 actor=f"{row.first_name} {row.last_name}" if row.first_name and row.last_name else "System",
                 action=_format_action(row.Transaction.action),
                 quantity=abs(row.Transaction.qty),
@@ -246,9 +244,7 @@ async def get_latest_transactions_by_sku(
     transactions = [
         TransactionItem(
             id=str(row.Transaction.id),
-            date=row.Transaction.created_at.strftime(
-                "%b %d, %Y at %I:%M %p"
-            ),
+            date=row.Transaction.created_at,
             actor=f"{row.first_name} {row.last_name}" if row.first_name and row.last_name else "System",
             action=_format_action(row.Transaction.action),
             quantity=abs(row.Transaction.qty),
@@ -331,9 +327,7 @@ async def get_latest_transactions(
     transactions = [
         TransactionItem(
             id=str(row.Transaction.id),
-            date=row.Transaction.created_at.strftime(
-                "%b %d, %Y at %I:%M %p"
-            ),
+            date=row.Transaction.created_at,
             actor=f"{row.first_name} {row.last_name}" if row.first_name and row.last_name else "System",
             action=_format_action(row.Transaction.action),
             quantity=abs(row.Transaction.qty),
@@ -355,4 +349,4 @@ async def get_latest_transactions(
         transactions=transactions,
     )
 
-    return JSONResponse(content=resp.model_dump(exclude={"sku_code"}))
+    return JSONResponse(content=resp.model_dump(mode='json', exclude={"sku_code"}))
