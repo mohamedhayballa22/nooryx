@@ -13,7 +13,7 @@ import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@
 import { Skeleton } from "@/components/ui/skeleton"
 import { PaginationControls } from "@/components/app-pagination"
 import { EmptyValuationTable } from "./empty-valuation-table"
-import { useUserSettings } from "@/hooks/use-user-settings"
+import { useFormatting } from "@/hooks/use-formatting"
 import { useMemo } from "react"
 
 interface ValuationItem {
@@ -40,28 +40,7 @@ export function ValuationDataTable({
   totalPages,
   totalItems,
 }: ValuationDataTableProps) {
-  const { settings } = useUserSettings()
-  const locale = settings?.locale || navigator.language || "en-US"
-
-  const quantityFormatter = useMemo(
-    () =>
-      new Intl.NumberFormat(locale, {
-        minimumFractionDigits: 0,
-        maximumFractionDigits: 0,
-      }),
-    [locale]
-  )
-
-  const getCurrencyFormatter = useMemo(
-    () => (currency: string) =>
-      new Intl.NumberFormat(locale, {
-        style: "currency",
-        currency: currency,
-        minimumFractionDigits: 2,
-        maximumFractionDigits: 2,
-      }),
-    [locale]
-  )
+  const { formatQuantity, formatCurrency } = useFormatting()
 
   const columns: ColumnDef<ValuationItem>[] = useMemo(
     () => [
@@ -84,7 +63,7 @@ export function ValuationDataTable({
         header: () => <div className="text-right">Total Quantity</div>,
         cell: ({ row }) => (
           <div className="text-right font-medium">
-            {quantityFormatter.format(row.getValue("total_qty"))}
+            {formatQuantity(row.getValue("total_qty"), 0)}
           </div>
         ),
       },
@@ -93,11 +72,9 @@ export function ValuationDataTable({
         header: () => <div className="text-right">Average Cost</div>,
         cell: ({ row }) => {
           const amount = parseFloat(row.getValue("avg_cost"))
-          const currency = row.original.currency
-          const currencyFormatter = getCurrencyFormatter(currency)
           return (
             <div className="text-right text-muted-foreground">
-              {currencyFormatter.format(amount)}
+              {formatCurrency(amount)}
             </div>
           )
         },
@@ -107,17 +84,15 @@ export function ValuationDataTable({
         header: () => <div className="text-right">Total Value</div>,
         cell: ({ row }) => {
           const amount = parseFloat(row.getValue("total_value"))
-          const currency = row.original.currency
-          const currencyFormatter = getCurrencyFormatter(currency)
           return (
             <div className="text-right font-semibold">
-              {currencyFormatter.format(amount)}
+              {formatCurrency(amount)}
             </div>
           )
         },
       },
     ],
-    [quantityFormatter, getCurrencyFormatter]
+    [formatQuantity, formatCurrency]
   )
 
   const handlePaginationChange: OnChangeFn<PaginationState> = (updaterOrValue) => {

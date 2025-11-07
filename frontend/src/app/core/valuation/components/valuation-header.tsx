@@ -5,10 +5,11 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
-import { useUserSettings } from "@/hooks/use-user-settings"
+import { useFormatting } from "@/hooks/use-formatting"
+import { formatDistanceToNow } from "date-fns"
 
 interface ValuationHeaderProps {
-  total_value: string
+  total_value: number
   currency: string
   method: string
   method_full_name: string
@@ -19,57 +20,21 @@ interface ValuationHeaderProps {
 
 export function ValuationHeader({ 
   total_value, 
-  currency, 
   method, 
   method_full_name, 
   timestamp, 
   onRefresh,
   isRefreshing = false 
 }: ValuationHeaderProps) {
-  const { settings } = useUserSettings()
-  const locale = settings?.locale || navigator.language || "en-US"
+  const adjustedTimestamp = Math.min(new Date(timestamp).getTime(), Date.now())
+  
+  const { formatCurrency } = useFormatting()
+  
   const COOLDOWN_MS = 10000 // 10 seconds
   
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0)
   const [isInCooldown, setIsInCooldown] = useState(false)
   
-  const formatCurrency = (value: string, currency: string, locale: string) => {
-    const num = Number.parseFloat(value)
-    return new Intl.NumberFormat(locale, {
-      style: "currency",
-      currency: currency,
-      minimumFractionDigits: 2,
-      maximumFractionDigits: 2,
-    }).format(num)
-  }
-
-  const getRelativeTime = (timestamp: string, locale: string) => {
-    const now = new Date()
-    const past = new Date(timestamp)
-    const diffInSeconds = Math.floor((now.getTime() - past.getTime()) / 1000)
-
-    if (diffInSeconds < 10) return "Updated just now"
-    if (diffInSeconds < 60) return `Updated ${diffInSeconds} seconds ago`
-
-    const diffInMinutes = Math.floor(diffInSeconds / 60)
-    if (diffInMinutes < 60) {
-      return `Updated ${diffInMinutes} ${diffInMinutes === 1 ? "minute" : "minutes"} ago`
-    }
-
-    const diffInHours = Math.floor(diffInMinutes / 60)
-    if (diffInHours < 24) {
-      return `Updated ${diffInHours} ${diffInHours === 1 ? "hour" : "hours"} ago`
-    }
-
-    const diffInDays = Math.floor(diffInHours / 24)
-    if (diffInDays < 7) {
-      return `Updated ${diffInDays} ${diffInDays === 1 ? "day" : "days"} ago`
-    }
-
-    // For older dates, show formatted date
-    return `Updated ${past.toLocaleDateString(locale, { month: "short", day: "numeric" })}`
-  }
-
   const handleRefreshClick = async () => {
     const now = Date.now()
     const timeSinceLastRefresh = now - lastRefreshTime
@@ -132,7 +97,7 @@ export function ValuationHeader({
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">Total Inventory Value</p>
             <p className="text-balance font-mono text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
-              {formatCurrency(total_value, currency, locale)}
+              {formatCurrency(total_value)}
             </p>
           </div>
 
@@ -146,7 +111,7 @@ export function ValuationHeader({
             {!isRefreshing && (
               <>
                 <div className="h-3 w-px bg-border" />
-                <span>{getRelativeTime(timestamp, locale)}</span>
+                <span>Updated {formatDistanceToNow(adjustedTimestamp, { addSuffix: true })}</span>
               </>
             )}
           </div>
