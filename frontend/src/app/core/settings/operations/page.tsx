@@ -36,10 +36,10 @@ export default function OperationsSettingsPage() {
   const handleAlertsToggle = async (checked: boolean) => {
     // Optimistic update - update UI immediately
     setAlertsEnabled(checked)
-    toast.success(checked ? "Alerts enabled" : "Alerts disabled")
     
     try {
       await updateSettings({ alerts: checked })
+      toast.success(checked ? "Alerts enabled" : "Alerts disabled")
     } catch (err) {
       // Rollback on error
       setAlertsEnabled(!checked)
@@ -91,7 +91,7 @@ export default function OperationsSettingsPage() {
             description="Turn on alerts for stock levels, reorder thresholds, and system updates"
             control={
               <Switch 
-                className="cursor-pointer size-sm"
+                className="cursor-pointer"
                 checked={alertsEnabled}
                 onCheckedChange={handleAlertsToggle}
               />

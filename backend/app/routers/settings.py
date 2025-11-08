@@ -194,6 +194,12 @@ async def update_settings(
             detail="Reorder point must be non-negative",
         )
     
+    if "alerts" in org_updates and not isinstance(org_updates["alerts"], bool):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="Alerts must be a boolean value",
+        )
+    
     # Validate locale if present (applies to both user and org settings)
     if "locale" in user_updates and user_updates["locale"] not in SUPPORTED_LOCALES:
         raise HTTPException(
