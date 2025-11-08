@@ -49,6 +49,7 @@ class SettingsUpdateRequest(BaseModel):
     pagination: Optional[int] = None
     date_format: Optional[str] = None
     role: Optional[str] = None
+    alerts: Optional[bool] = None
 
 
 class SettingsResponse(BaseModel):
@@ -57,6 +58,7 @@ class SettingsResponse(BaseModel):
     reorder_point: int
     currency: str
     valuation_method: str
+    alerts: bool
     
     # User settings
     locale: str
@@ -73,4 +75,5 @@ USER_SETTINGS_DEFAULTS = {
 ORG_SETTINGS_DEFAULTS = {
     "low_stock_threshold": 10,
     "reorder_point": 15,
+    "alerts": True,
 }

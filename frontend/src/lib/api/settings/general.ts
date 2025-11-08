@@ -8,6 +8,7 @@ export interface UserGeneralSettings {
   date_format: string;
   currency: string;
   valuation_method: string;
+  alerts: boolean;
 }
 
 export interface UserGeneralSettingsUpdate {
@@ -17,6 +18,7 @@ export interface UserGeneralSettingsUpdate {
   pagination?: number;
   date_format?: string;
   role?: string;
+  alerts?: boolean;
 }
 
 export async function getUserSettings(): Promise<UserGeneralSettings> {

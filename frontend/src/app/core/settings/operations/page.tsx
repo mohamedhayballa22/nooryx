@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useEffect, useState } from "react"
 import { EditPencil } from "iconoir-react"
 import { Input } from "@/components/ui/input"
 import {
@@ -11,13 +11,41 @@ import {
 } from "@/components/app-settings"
 import { Button } from "@/components/ui/button"
 import { SettingsEditDialog } from "../components/settings-edit-dialog"
-import { useUserSettings } from "@/hooks/use-user-settings"
+import { useUserSettings, useUpdateUserSettings } from "@/hooks/use-user-settings"
+import { Switch } from "@/components/ui/switch"
+import { toast } from "sonner"
 
 export default function OperationsSettingsPage() {
   const { settings } = useUserSettings()
+  const { mutateAsync: updateSettings } = useUpdateUserSettings()
+  
   // Dialog states
   const [editingLowStock, setEditingLowStock] = useState(false)
   const [editingReorderPoint, setEditingReorderPoint] = useState(false)
+  
+  // Local state for optimistic UI
+  const [alertsEnabled, setAlertsEnabled] = useState(settings?.alerts ?? true)
+
+  // Sync local state when settings change
+  useEffect(() => {
+    if (settings?.alerts !== undefined) {
+      setAlertsEnabled(settings.alerts)
+    }
+  }, [settings?.alerts])
+
+  const handleAlertsToggle = async (checked: boolean) => {
+    // Optimistic update - update UI immediately
+    setAlertsEnabled(checked)
+    toast.success(checked ? "Alerts enabled" : "Alerts disabled")
+    
+    try {
+      await updateSettings({ alerts: checked })
+    } catch (err) {
+      // Rollback on error
+      setAlertsEnabled(!checked)
+      toast.error("Failed to update alerts setting. Please try again.")
+    }
+  }
 
   return (
     <>
@@ -58,6 +86,17 @@ export default function OperationsSettingsPage() {
                 </div>
               }
             />
+          <SettingRow
+            label="Alerts"
+            description="Turn on alerts for stock levels, reorder thresholds, and system updates"
+            control={
+              <Switch 
+                className="cursor-pointer size-sm"
+                checked={alertsEnabled}
+                onCheckedChange={handleAlertsToggle}
+              />
+            }
+          />
           </SettingsSubSection>
 
           <SettingsSubSection title="Operational behavior">

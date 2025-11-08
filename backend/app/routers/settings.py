@@ -133,6 +133,7 @@ async def get_settings(
         combined_settings.update({
             "low_stock_threshold": org_settings.low_stock_threshold,
             "reorder_point": org_settings.reorder_point,
+            "alerts": org_settings.alerts,
         })
     
     combined_settings.update({
@@ -167,7 +168,7 @@ async def update_settings(
         return
 
     # Organization-level settings
-    org_fields = {"low_stock_threshold", "reorder_point"}
+    org_fields = {"low_stock_threshold", "reorder_point", "alerts"}
     org_updates = {k: v for k, v in update_data.items() if k in org_fields}
     
     # User-level settings
