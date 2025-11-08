@@ -1,9 +1,17 @@
 "use client"
 
 import { ColumnDef, FilterFn } from "@tanstack/react-table"
-
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
+import { Button } from "@/components/ui/button"
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip"
+import { HelpCircle } from "lucide-react"
+import Link from "next/link"
 
 import { DataTableRowActions } from "./data-table-row-actions"
 
@@ -44,7 +52,48 @@ export const columns: ColumnDef<Product>[] = [
   },
   {
     accessorKey: "status",
-    header: "Status",
+    header: () => (
+      <div className="flex items-center gap-1.5">
+        <span>Status</span>
+        <TooltipProvider delayDuration={200}>
+          <Tooltip>
+            <TooltipTrigger asChild>
+              <button
+                type="button"
+                className="inline-flex items-center justify-center rounded-full text-muted-foreground transition-colors hover:text-foreground focus-visible:outline-none focus-visible:ring-1 focus-visible:ring-ring"
+                aria-label="Stock status information"
+              >
+                <HelpCircle className="h-3.5 w-3.5 mt-0.5" />
+              </button>
+            </TooltipTrigger>
+            <TooltipContent
+              side="right"
+              align="center"
+              className="space-y-3 border bg-popover p-4 max-w-[280px] w-full"
+              sideOffset={8}
+            >
+              <div className="space-y-1.5">
+                <p className="text-sm font-medium leading-snug text-foreground">
+                  Stock status thresholds
+                </p>
+                <p className="text-xs leading-relaxed text-muted-foreground">
+                  Configure your inventory thresholds to automatically track when stock levels are running low. Set custom values that work for your business.
+                </p>
+              </div>
+              <Link href="/core/settings/operations" className="block">
+                <Button
+                  size="sm"
+                  className="h-7 w-full text-xs font-medium"
+                  variant="default"
+                >
+                  Configure thresholds
+                </Button>
+              </Link>
+            </TooltipContent>
+          </Tooltip>
+        </TooltipProvider>
+      </div>
+    ),
     cell: ({ row }) => {
       const status = row.getValue("status") as string
       return (
