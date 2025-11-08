@@ -1,5 +1,6 @@
 from sqlalchemy import (
     BigInteger,
+    Boolean,
     CheckConstraint,
     Column,
     Integer,
@@ -383,6 +384,7 @@ class OrganizationSettings(Base):
     org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), primary_key=True)
     low_stock_threshold = Column(Integer, nullable=False, default=10, server_default="10")
     reorder_point = Column(Integer, nullable=False, default=15, server_default="15")
+    alerts = Column(Boolean, nullable=False, default=True, server_default="true")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
