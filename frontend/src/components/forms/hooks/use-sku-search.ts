@@ -22,7 +22,12 @@ export function useSkuSearch(query: string) {
       data.map((sku) => ({
         value: sku.sku_code,
         label: sku.sku_code,
-        metadata: { sku_name: sku.sku_name },
+        metadata: {
+          sku_name: sku.sku_name,
+          ...(sku.alerts_enabled !== undefined && { alerts_enabled: sku.alerts_enabled }),
+          ...(sku.reorder_point !== undefined && { reorder_point: sku.reorder_point }),
+          ...(sku.low_stock_threshold !== undefined && { low_stock_threshold: sku.low_stock_threshold }),
+        },
       })),
   });
 
