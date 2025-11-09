@@ -63,7 +63,7 @@ export function FormField({ config }: FormFieldProps) {
     case "number":
       return <NumberField config={config} />
 
-    case "switch": // New case for switch type
+    case "switch":
       if (config.name === "alerts") {
         return <AlertsSectionField config={config} />
       }
