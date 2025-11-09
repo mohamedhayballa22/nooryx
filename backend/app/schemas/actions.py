@@ -21,6 +21,9 @@ class ReceiveTxn(BaseTxn):
     sku_name: str = Field(..., description="Product name for SKU creation if needed")
     action: Literal["receive"] = "receive"
     qty: int = Field(..., gt=0, description="Quantity to receive (positive)")
+    alerts: bool
+    reorder_point: Optional[int] = Field(None, gt=0)
+    low_stock_threshold: int = Field(..., gt=0)
     cost_price: Decimal = Field(..., gt=0, description="Cost price per unit received")
     
 
@@ -130,6 +133,9 @@ class TransferInTxn(BaseModel):
     sku_code: str
     sku_name: str | None = None
     qty: int = Field(gt=0, description="Quantity arriving at location (must be positive)")
+    alerts: bool
+    reorder_point: Optional[int] = Field(None, gt=0)
+    low_stock_threshold: int = Field(..., gt=0)
     
     location: str = Field(description="Destination location name")
     cost_price: Decimal | None = Field(
