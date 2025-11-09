@@ -59,6 +59,7 @@ export function BaseTransactionForm<T extends FormValues>({
 
   const methods = useForm<T>({
     defaultValues: defaultValues as any,
+    mode: "onChange",
   })
 
   const { handleSubmit, reset } = methods

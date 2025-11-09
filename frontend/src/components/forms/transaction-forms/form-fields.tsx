@@ -75,18 +75,17 @@ export function FormField({ config }: FormFieldProps) {
   }
 }
 
+
 function AlertsSectionField({ config }: FormFieldProps) {
-  const { control, watch, setValue, formState: { errors }, trigger } = useFormContext()
+  const { control, watch, setValue, formState: { errors, isSubmitted } } = useFormContext()
   const alertsEnabled = watch(config.name, true) // Default to true
 
   // Reset reorder_point value if alerts are disabled
   React.useEffect(() => {
     if (!alertsEnabled) {
-      setValue("reorder_point", 0)
+      setValue("reorder_point", 0, { shouldValidate: false })
     }
-    // Trigger validation when alertsEnabled changes to re-evaluate required fields
-    trigger(["reorder_point"])
-  }, [alertsEnabled, setValue, trigger])
+  }, [alertsEnabled, setValue])
 
   return (
     <>
