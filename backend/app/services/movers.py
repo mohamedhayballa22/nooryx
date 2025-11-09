@@ -43,7 +43,8 @@ async def get_top_skus_by_criteria(
         limit: Maximum number of SKUs to return
     
     Returns:
-        Dict containing 'location' (str or None) and 'skus' (list of dicts with keys: sku_code, sku_name, available)
+        Dict containing 'location' (str or None) and 'skus' (list of dicts with keys: 
+        sku_code, sku_name, available, low_stock_threshold)
     """
     # Parse period to cutoff date
     cutoff_date = _parse_period_to_cutoff(period)
@@ -155,7 +156,8 @@ async def _get_top_movers(
         {
             'sku_code': sku_code,
             'sku_name': state_map[sku_code]['sku_name'],
-            'available': state_map[sku_code]['available']
+            'available': state_map[sku_code]['available'],
+            'low_stock_threshold': state_map[sku_code]['low_stock_threshold']
         }
         for sku_code in top_sku_codes if sku_code in state_map
     ]
@@ -199,6 +201,7 @@ async def _get_inactive_skus(
                 'sku_code': sku_code,
                 'sku_name': state['sku_name'],
                 'available': state['available'],
+                'low_stock_threshold': state['low_stock_threshold'],
                 'last_activity': last_activity
             })
     
@@ -217,6 +220,7 @@ async def _get_inventory_state(
     location_id: Optional[str],
     sku_codes: Optional[List[str]] = None
 ) -> Dict[str, Dict[str, Any]]:
+    """Get inventory state including SKU-specific low stock thresholds."""
     if location_id:
         state_conditions = [State.location_id == location_id]
         if sku_codes:
@@ -226,6 +230,7 @@ async def _get_inventory_state(
             select(
                 State.sku_code,
                 SKU.name.label("sku_name"),
+                SKU.low_stock_threshold,
                 State.available
             )
             .join(SKU, State.sku_code == SKU.code)
@@ -236,10 +241,11 @@ async def _get_inventory_state(
             select(
                 State.sku_code,
                 SKU.name.label("sku_name"),
+                SKU.low_stock_threshold,
                 func.sum(State.available).label("available")
             )
             .join(SKU, State.sku_code == SKU.code)
-            .group_by(State.sku_code, SKU.name)
+            .group_by(State.sku_code, SKU.name, SKU.low_stock_threshold)
         )
         if sku_codes:
             state_stmt = state_stmt.where(State.sku_code.in_(sku_codes))
@@ -248,14 +254,15 @@ async def _get_inventory_state(
     return {
         row.sku_code: {
             'sku_name': row.sku_name,
-            'available': row.available
+            'available': row.available,
+            'low_stock_threshold': row.low_stock_threshold
         }
         for row in state_result.all()
     }
 
 
-def determine_stock_status(available: int, low_stock_threshold: int = 10) -> str:
-    """Determine stock status based on available quantity."""
+def determine_stock_status(available: int, low_stock_threshold: int) -> str:
+    """Determine stock status based on available quantity and SKU-specific threshold."""
     if available == 0:
         return "Out of Stock"
     elif available < low_stock_threshold:
@@ -267,8 +274,9 @@ def determine_stock_status(available: int, low_stock_threshold: int = 10) -> str
 async def get_fast_movers_with_stock_condition(
     db: AsyncSession,
     available_min: int,
-    available_max: int,
-    limit: int = 5
+    available_max: Optional[int] = None,
+    limit: int = 5,
+    check_low_stock: bool = False
 ) -> Optional[List[str]]:
     """
     Get top SKUs with highest outbound movement that meet stock availability criteria.
@@ -277,23 +285,38 @@ async def get_fast_movers_with_stock_condition(
     Args:
         db: Database session
         available_min: Minimum total available quantity across all locations (inclusive)
-        available_max: Maximum total available quantity across all locations (non-inclusive)
+        available_max: Maximum total available quantity across all locations (inclusive).
+                      If None and check_low_stock is True, uses SKU-specific thresholds.
         limit: Number of SKUs to return
+        check_low_stock: If True, filters for SKUs below their individual low_stock_threshold
 
     Returns:
         List of SKU codes or None if no results
     """
-    # Subquery: Get SKUs matching stock criteria (aggregated across all locations)
-    stock_condition_subquery = (
-        select(State.sku_code)
-        .group_by(State.sku_code)
-        .having(
-            and_(
-                func.sum(State.available) >= available_min,
-                func.sum(State.available) < available_max,
+    if check_low_stock:
+        # Subquery: Get SKUs where available is between available_min and their low_stock_threshold
+        stock_condition_subquery = (
+            select(State.sku_code)
+            .join(SKU, State.sku_code == SKU.code)
+            .group_by(State.sku_code, SKU.low_stock_threshold)
+            .having(
+                and_(
+                    func.sum(State.available) >= available_min,
+                    func.sum(State.available) < SKU.low_stock_threshold,
+                )
             )
-        )
-    ).subquery()
+        ).subquery()
+    else:
+        # Subquery: Get SKUs matching stock criteria (fixed range)
+        having_conditions = [func.sum(State.available) >= available_min]
+        if available_max is not None:
+            having_conditions.append(func.sum(State.available) <= available_max)
+        
+        stock_condition_subquery = (
+            select(State.sku_code)
+            .group_by(State.sku_code)
+            .having(and_(*having_conditions))
+        ).subquery()
 
     # Main query: Get top SKUs by total outbound movement
     stmt = (
