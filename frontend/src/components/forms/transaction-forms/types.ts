@@ -66,13 +66,16 @@ export interface FieldConfig {
   gridColumn?: "full" | "half"
   component?: React.ComponentType<any>
   learnMoreLink?: string
-  subFields?: FieldConfig[] // New property for nested fields
+  subFields?: FieldConfig[]
 }
 
 // Context for SKU-specific forms
 export interface SkuContext {
   sku_code: string
   sku_name: string
+  alerts?: boolean
+  low_stock_threshold?: number
+  reorder_point?: number
 }
 
 // Context for location-specific forms

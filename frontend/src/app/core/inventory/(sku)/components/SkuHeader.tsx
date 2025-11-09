@@ -30,13 +30,16 @@ interface Props {
 }
 
 export default function SkuHeader({ data, selectedLocation, onTabChange }: Props) {
-  const { sku_code, name, status, locations, location_names } = data
+  const { sku_code, name, alerts, low_stock_threshold, reorder_point, status, locations, location_names } = data
   const [isReceiveFormOpen, setIsReceiveFormOpen] = useState(false)
   const [activeForm, setActiveForm] = useState<string | null>(null)
 
   const skuContext = {
     sku_code: sku_code,
     sku_name: name,
+    alerts: alerts,
+    low_stock_threshold: low_stock_threshold,
+    reorder_point: reorder_point,
   }
 
   const locationContext = location_names.length === 1 ? { location: location_names[0] } : undefined
