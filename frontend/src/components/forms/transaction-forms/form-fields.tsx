@@ -64,7 +64,7 @@ export function FormField({ config }: FormFieldProps) {
       return <NumberField config={config} />
 
     case "switch": // New case for switch type
-      if (config.name === "alerts_enabled") {
+      if (config.name === "alerts") {
         return <AlertsSectionField config={config} />
       }
       return null
@@ -75,7 +75,6 @@ export function FormField({ config }: FormFieldProps) {
   }
 }
 
-// New component for Alerts section
 function AlertsSectionField({ config }: FormFieldProps) {
   const { control, watch, setValue, formState: { errors }, trigger } = useFormContext()
   const alertsEnabled = watch(config.name, true) // Default to true
@@ -316,8 +315,8 @@ function SkuCodeField({ config }: FormFieldProps) {
       setValue("sku_name", "")
     }
 
-    if (option?.metadata?.alerts_enabled !== undefined) {
-      setValue("alerts_enabled", option.metadata.alerts_enabled)
+    if (option?.metadata?.alerts !== undefined) {
+      setValue("alerts", option.metadata.alerts)
     }
     if (option?.metadata?.reorder_point !== undefined) {
       setValue("reorder_point", option.metadata.reorder_point)

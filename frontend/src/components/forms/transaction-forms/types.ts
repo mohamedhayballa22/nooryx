@@ -18,7 +18,7 @@ export interface BaseFormValues {
 export interface ReceiveFormValues extends BaseFormValues {
   sku_name: string
   cost_price: number
-  alerts_enabled: boolean
+  alerts: boolean
   reorder_point: number
   low_stock_threshold: number
 }

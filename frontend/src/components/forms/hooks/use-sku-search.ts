@@ -24,7 +24,7 @@ export function useSkuSearch(query: string) {
         label: sku.sku_code,
         metadata: {
           sku_name: sku.sku_name,
-          ...(sku.alerts_enabled !== undefined && { alerts_enabled: sku.alerts_enabled }),
+          ...(sku.alerts !== undefined && { alerts: sku.alerts }),
           ...(sku.reorder_point !== undefined && { reorder_point: sku.reorder_point }),
           ...(sku.low_stock_threshold !== undefined && { low_stock_threshold: sku.low_stock_threshold }),
         },
