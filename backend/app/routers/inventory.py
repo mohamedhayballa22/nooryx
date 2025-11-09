@@ -19,7 +19,6 @@ from app.services.exceptions import TransactionBadRequest, NotFound
 from app.services.metrics import calculate_weekly_delta_single_sku
 from app.core.auth.tenant_dependencies import get_tenant_session
 from app.core.auth.dependencies import get_current_user
-from app.services.settings import get_low_stock_threshold
 
 
 router = APIRouter()
@@ -49,7 +48,6 @@ async def get_inventory(
         regex="^(sku_code|name|location|available|status)$",
     ),
     order: Optional[str] = Query("asc", description="Sort order", regex="^(asc|desc)$"),
-    low_stock_threshold: int = Depends(get_low_stock_threshold),
 ):
     """
     Returns list of current inventory with stock status across all SKUs 
@@ -57,11 +55,11 @@ async def get_inventory(
     finds the most recent transaction per SKU.
 
     Supports searching across SKU and location, filtering by stock status, 
-    and sorting by multiple fields. The stock status is determined using the 
-    configurable `low_stock_threshold`.
+    and sorting by multiple fields. The stock status is determined using each
+    SKU's individual `low_stock_threshold`.
     """
     # Check if any inventory exists at all (only when no filters are applied)
-    if not search and len(stock_status) == 3:
+    if not search and stock_status and len(stock_status) == 3:
         inventory_count = await db.scalar(
             select(func.count()).select_from(State).where(State.org_id == user.org_id)
         )
@@ -107,10 +105,10 @@ async def get_inventory(
 
     aggregated_inventory = aggregated_inventory.subquery()
 
-    # Define the status case expression for reuse (based on aggregated available)
+    # Define the status case expression for reuse (based on SKU-specific threshold)
     status_expr = case(
         (aggregated_inventory.c.total_available == 0, "Out of Stock"),
-        (aggregated_inventory.c.total_available < low_stock_threshold, "Low Stock"),
+        (aggregated_inventory.c.total_available < SKU.low_stock_threshold, "Low Stock"),
         else_="In Stock",
     ).label("status")
 
@@ -119,6 +117,7 @@ async def get_inventory(
         select(
             aggregated_inventory.c.sku_code,
             SKU.name,
+            SKU.low_stock_threshold,
             aggregated_inventory.c.locations,
             aggregated_inventory.c.total_available,
             Transaction,
@@ -137,7 +136,7 @@ async def get_inventory(
         .options(selectinload(Transaction.location))
     )
 
-    # Apply stock_status filter at the database level
+    # Apply stock_status filter at the database level using SKU-specific thresholds
     if stock_status:
         status_conditions = []
         for status in stock_status:
@@ -147,11 +146,13 @@ async def get_inventory(
                 status_conditions.append(
                     and_(
                         aggregated_inventory.c.total_available > 0,
-                        aggregated_inventory.c.total_available < low_stock_threshold
+                        aggregated_inventory.c.total_available < SKU.low_stock_threshold
                     )
                 )
             elif status == StockStatus.IN_STOCK:
-                status_conditions.append(aggregated_inventory.c.total_available >= low_stock_threshold)
+                status_conditions.append(
+                    aggregated_inventory.c.total_available >= SKU.low_stock_threshold
+                )
 
         if status_conditions:
             query = query.where(or_(*status_conditions))
@@ -196,23 +197,26 @@ async def get_sku_inventory(
     sku_code: str, 
     location: Optional[str] = Query(None, description="Location name (None = aggregate across all locations)"),
     db: AsyncSession = Depends(get_tenant_session),
-    low_stock_threshold: int = Depends(get_low_stock_threshold)
+    user: User = Depends(get_current_user)
 ):
     """
     Get comprehensive inventory view for a SKU across all locations or for a specific location.
     
-    The overall stock status is determined using the configurable `low_stock_threshold`.
+    The overall stock status is determined using the SKU's individual `low_stock_threshold`.
     """
 
-    # Check if SKU exists
-    sku_exists_query = select(State.sku_code).where(State.sku_code == sku_code)
-
-    if location is not None:
-        sku_exists_query = sku_exists_query.join(State.location).where(Location.name == location)
-
-    sku_exists_result = await db.execute(sku_exists_query)
-    if sku_exists_result.scalar() is None:
+    # Check if SKU exists and get its threshold
+    sku_stmt = select(SKU).where(
+        SKU.code == sku_code,
+        SKU.org_id == user.org_id
+    )
+    sku_result = await db.execute(sku_stmt)
+    sku = sku_result.scalar_one_or_none()
+    
+    if not sku:
         raise NotFound
+    
+    low_stock_threshold = sku.low_stock_threshold
 
     # Build base query
     stmt = (
@@ -246,7 +250,7 @@ async def get_sku_inventory(
             )
         raise TransactionBadRequest(detail=f"SKU {sku_code} not found")
 
-    sku_name = states[0].sku.name
+    sku_name = sku.name
     
     # Get all location names for this SKU (always across all locations)
     location_names_stmt = (
@@ -289,7 +293,7 @@ async def get_sku_inventory(
     else:
         inventory_pct = round((total_on_hand / global_on_hand) * 100, 1)
 
-    # Determine overall status
+    # Determine overall status using SKU-specific threshold
     if total_available == 0:
         status = "Out of Stock"
     elif total_available < low_stock_threshold:
