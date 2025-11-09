@@ -101,11 +101,10 @@ export function BaseTransactionForm<T extends FormValues>({
     : config.description
 
   // Filter out SKU fields if context is provided
-  const fieldsToShow = skuContext
-    ? config.fields.filter(
-        (f) => f.name !== "sku_code" && f.name !== "sku_name"
-      )
-    : config.fields
+  const fieldsToFilter = skuContext ? Object.keys(skuContext) : []
+  const fieldsToShow = config.fields.filter(
+    (f) => !fieldsToFilter.includes(f.name)
+  )
 
   // Separate notes field from other fields
   const notesField = fieldsToShow.find((f) => f.name === "notes")
