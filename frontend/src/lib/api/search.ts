@@ -4,6 +4,9 @@ import { protectedApiClient } from "./protected-client";
 export interface SKUSearchResult {
   sku_code: string;
   sku_name: string;
+  alerts_enabled: boolean;
+  reorder_point: number;
+  low_stock_threshold: number;
 }
 
 // API Functions

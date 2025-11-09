@@ -32,7 +32,7 @@ async def search_skus(
     ).label("rank")
 
     stmt = (
-        select(SKU.code, SKU.name, rank)
+        select(SKU.code, SKU.name, SKU.alerts, SKU.reorder_point, SKU.low_stock_threshold, rank)
         .where(
             or_(
                 SKU.code.like(search_pattern),
@@ -46,7 +46,12 @@ async def search_skus(
     result = await db.execute(stmt)
     rows = result.all()
 
-    return [{"sku_code": row.code, "sku_name": row.name} for row in rows]
+    return [{
+        "sku_code": row.code, 
+        "sku_name": row.name, 
+        "alerts": row.alerts, 
+        "reorder_point": row.reorder_point, 
+        "low_stock_threshold": row.low_stock_threshold} for row in rows]
 
 
 
