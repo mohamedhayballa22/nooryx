@@ -32,7 +32,10 @@ async def search_sku(
     return [
             SKUSearchResult(
                 sku_code=row["sku_code"],
-                sku_name=row["sku_name"]
+                sku_name=row["sku_name"],
+                alerts_enabled=row["alerts"],
+                reorder_point=row["reorder_point"],
+                low_stock_threshold=row["low_stock_threshold"]
             )
             for row in results
         ]
