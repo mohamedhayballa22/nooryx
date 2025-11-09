@@ -394,7 +394,14 @@ class TransactionService:
         Returns:
             Persisted Transaction instance with cost_price in minor units
         """
-        txn_dict = txn_payload.model_dump(exclude={'location', 'sku_name', 'cost_price'})
+        txn_dict = txn_payload.model_dump(exclude={
+            'location', 
+            'sku_name', 
+            'cost_price',
+            'alerts',
+            'reorder_point',
+            'low_stock_threshold'
+            })
         
         # Normalize sku_code to uppercase
         txn_dict['sku_code'] = txn_dict['sku_code'].upper()
