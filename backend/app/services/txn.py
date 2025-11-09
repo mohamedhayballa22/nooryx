@@ -242,6 +242,9 @@ class TransactionService:
                 qty=abs(txn_payload.qty),
                 location=txn_payload.target_location,
                 cost_price=transfer_cost_decimal,
+                alerts=getattr(txn_payload, 'alerts', True),
+                reorder_point=getattr(txn_payload, 'reorder_point', 15),
+                low_stock_threshold=getattr(txn_payload, 'low_stock_threshold', 10),
                 txn_metadata={
                     **txn_metadata,
                     'source_location': txn_payload.location,
@@ -290,10 +293,18 @@ class TransactionService:
         if not sku:
             # Auto-create SKU for inbound transactions
             if txn_payload.action in ["receive", "transfer_in"]:
+                # Extract alert settings from payload if available (receive action)
+                alerts = getattr(txn_payload, 'alerts', True)
+                reorder_point = getattr(txn_payload, 'reorder_point', 15)
+                low_stock_threshold = getattr(txn_payload, 'low_stock_threshold', 10)
+                
                 sku = SKU(
                     code=txn_payload.sku_code.upper(),
                     name=txn_payload.sku_name,
                     org_id=self.org_id,
+                    alerts=alerts,
+                    reorder_point=reorder_point,
+                    low_stock_threshold=low_stock_threshold,
                 )
                 self.session.add(sku)
                 await self.session.flush()
