@@ -13,6 +13,9 @@ export interface InventorySummary {
 export interface InventorySnapshot {
   sku_code: string;
   name: string;
+  alerts: boolean;
+  reorder_point: number;
+  low_stock_threshold: number;
   status: string;
   location: string | null;
   locations: number;

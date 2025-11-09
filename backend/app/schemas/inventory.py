@@ -23,7 +23,10 @@ class InventorySummary(BaseModel):
 class SkuInventoryResponse(BaseModel):
     """A comprehensive view of a single SKU's current inventory state."""
     sku_code: str
-    name: str  # SKU name
+    name: str
+    alerts: bool
+    reorder_point: int
+    low_stock_threshold: int
     status: str
     location: Optional[str] = None
     locations: int

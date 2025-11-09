@@ -312,6 +312,9 @@ async def get_sku_inventory(
     return SkuInventoryResponse(
         sku_code=sku_code,
         name=sku_name,
+        alerts=sku.alerts,
+        reorder_point=sku.reorder_point,
+        low_stock_threshold=low_stock_threshold,
         status=status,
         location=location,
         locations=total_locations,
