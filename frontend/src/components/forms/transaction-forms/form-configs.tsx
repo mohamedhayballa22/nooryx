@@ -129,9 +129,9 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       location: locationContext?.location || "",
       qty: 0,
       cost_price: 0,
-      alerts: true,
-      reorder_point: 0,
-      low_stock_threshold: 0,
+      alerts: skuContext?.alerts ?? true,
+      reorder_point: skuContext?.reorder_point || 0,
+      low_stock_threshold: skuContext?.low_stock_threshold || 0,
       notes: "",
     }
   },
