@@ -24,6 +24,7 @@ import { useLocationSearch } from "../hooks/use-location-search"
 import { cn } from "@/lib/utils"
 import { NOTES_MAX_LENGTH } from "./validation-schemas"
 import type { FieldConfig } from "./types"
+import { Switch } from "@/components/ui/switch" // Import Switch component
 
 interface FormFieldProps {
   config: FieldConfig
@@ -62,10 +63,91 @@ export function FormField({ config }: FormFieldProps) {
     case "number":
       return <NumberField config={config} />
 
+    case "switch": // New case for switch type
+      if (config.name === "alerts_enabled") {
+        return <AlertsSectionField config={config} />
+      }
+      return null
+
     case "text":
     default:
       return <TextField config={config} />
   }
+}
+
+// New component for Alerts section
+function AlertsSectionField({ config }: FormFieldProps) {
+  const { control, watch, setValue, formState: { errors }, trigger } = useFormContext()
+  const alertsEnabled = watch(config.name, true) // Default to true
+
+  // Reset reorder_point value if alerts are disabled
+  React.useEffect(() => {
+    if (!alertsEnabled) {
+      setValue("reorder_point", 0)
+    }
+    // Trigger validation when alertsEnabled changes to re-evaluate required fields
+    trigger(["reorder_point"])
+  }, [alertsEnabled, setValue, trigger])
+
+  return (
+    <>
+      <div className={cn(
+        "grid gap-4 items-start",
+        alertsEnabled ? "grid-cols-2" : "grid-cols-1"
+      )}>
+        {/* Alerts toggle - spans full width when ROP isn't shown */}
+        <div className="space-y-0.5">
+          <FieldLabel className="text-base mb-2">
+            {config.label}
+          </FieldLabel>
+          <Controller
+            name={config.name}
+            control={control}
+            render={({ field }) => (
+              <Switch
+                checked={field.value}
+                onCheckedChange={field.onChange}
+                disabled={field.disabled}
+                className="mb-2"
+              />
+            )}
+          />
+          {config.description && (
+            <FieldDescription>{config.description}</FieldDescription>
+          )}
+        </div>
+
+        {/* Reorder Point (only when alerts enabled) */}
+        {alertsEnabled && config.subFields && (
+          <>
+            {config.subFields
+              .filter((subField) => subField.name === "reorder_point")
+              .map((subFieldConfig) => {
+                const adjustedSubFieldConfig = {
+                  ...subFieldConfig,
+                  required: alertsEnabled,
+                  validation: alertsEnabled 
+                    ? { ...subFieldConfig.validation, required: "Reorder Point is required" } 
+                    : subFieldConfig.validation
+                }
+                return <FormField key={subFieldConfig.name} config={adjustedSubFieldConfig} />
+              })}
+          </>
+        )}
+      </div>
+
+      {/* Low Stock Threshold - Always shown below */}
+      {config.subFields && (
+        <>
+          {config.subFields
+            .filter((subField) => subField.name === "low_stock_threshold")
+            .map((subFieldConfig) => (
+              <FormField key={subFieldConfig.name} config={subFieldConfig} />
+            ))}
+        </>
+      )}
+    </>
+  )
 }
 
 function TextField({ config }: FormFieldProps) {
@@ -232,6 +314,16 @@ function SkuCodeField({ config }: FormFieldProps) {
       setValue("sku_name", option.metadata.sku_name)
     } else {
       setValue("sku_name", "")
+    }
+
+    if (option?.metadata?.alerts_enabled !== undefined) {
+      setValue("alerts_enabled", option.metadata.alerts_enabled)
+    }
+    if (option?.metadata?.reorder_point !== undefined) {
+      setValue("reorder_point", option.metadata.reorder_point)
+    }
+    if (option?.metadata?.low_stock_threshold !== undefined) {
+      setValue("low_stock_threshold", option.metadata.low_stock_threshold)
     }
   }
 

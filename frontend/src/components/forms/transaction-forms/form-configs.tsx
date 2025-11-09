@@ -75,6 +75,35 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       gridColumn: "half",
     },
     {
+      name: "alerts_enabled",
+      label: "Alerts",
+      type: "switch",
+      description: "System sends alerts when SKU falls below configured quantity threshold.",
+      gridColumn: "full",
+      subFields: [ // Nested fields for alerts
+        {
+          name: "reorder_point",
+          label: "Reorder Point (ROP)",
+          required: true, // Required will be handled conditionally in AlertsSectionField
+          type: "number",
+          validation: validationRules.reorderPoint,
+          description: "Minimum quantity before a restock alert is triggered.",
+          placeholder: "0",
+          gridColumn: "half",
+        },
+        {
+          name: "low_stock_threshold",
+          label: "Low Stock Threshold",
+          required: true,
+          type: "number",
+          validation: validationRules.lowStockThreshold,
+          description: "Below this quantity, this SKU will be marked as low in stock.",
+          placeholder: "0",
+          gridColumn: "half",
+        },
+      ],
+    },
+    {
       name: "notes",
       label: "Notes",
       type: "textarea",
@@ -88,6 +117,9 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
     location: "",
     qty: 0,
     cost_price: 0,
+    alerts_enabled: true,
+    reorder_point: 0,
+    low_stock_threshold: 0,
     notes: "",
   },
   getDefaultValues: (skuContext, locationContext) => {
@@ -97,6 +129,9 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       location: locationContext?.location || "",
       qty: 0,
       cost_price: 0,
+      alerts_enabled: true,
+      reorder_point: 0,
+      low_stock_threshold: 0,
       notes: "",
     }
   },
@@ -106,6 +141,9 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       ...rest,
       sku_code: rest.sku_code.trim().toUpperCase(),
       location: rest.location.trim().toUpperCase(),
+      alerts_enabled: rest.alerts_enabled,
+      reorder_point: rest.reorder_point,
+      low_stock_threshold: rest.low_stock_threshold,
       action: "receive",
     }
 

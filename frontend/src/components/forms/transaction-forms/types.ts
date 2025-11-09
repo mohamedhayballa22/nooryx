@@ -18,6 +18,9 @@ export interface BaseFormValues {
 export interface ReceiveFormValues extends BaseFormValues {
   sku_name: string
   cost_price: number
+  alerts_enabled: boolean
+  reorder_point: number
+  low_stock_threshold: number
 }
 
 export interface ShipFormValues extends BaseFormValues {
@@ -56,13 +59,14 @@ export interface FieldConfig {
   label: string
   required?: boolean
   description?: string
-  type?: "text" | "number" | "textarea" | "select" | "autocomplete"
+  type?: "text" | "number" | "textarea" | "select" | "autocomplete" | "switch"
   options?: Array<{ value: string; label: string }>
   validation?: any
   placeholder?: string
   gridColumn?: "full" | "half"
   component?: React.ComponentType<any>
   learnMoreLink?: string
+  subFields?: FieldConfig[] // New property for nested fields
 }
 
 // Context for SKU-specific forms

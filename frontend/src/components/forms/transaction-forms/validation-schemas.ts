@@ -71,4 +71,18 @@ export const validationRules = {
   customer: {
     maxLength: { value: 100, message: "Customer cannot exceed 100 characters" },
   } as RegisterOptions,
+
+  reorderPoint: {
+    required: "Reorder Point is required",
+    valueAsNumber: true,
+    min: { value: 0, message: "Reorder Point cannot be negative" },
+    validate: (value: number) => Number.isInteger(value) || "Reorder Point must be a whole number",
+  } as RegisterOptions,
+
+  lowStockThreshold: {
+    required: "Low Stock Threshold is required",
+    valueAsNumber: true,
+    min: { value: 0, message: "Low Stock Threshold cannot be negative" },
+    validate: (value: number) => Number.isInteger(value) || "Low Stock Threshold must be a whole number",
+  } as RegisterOptions,
 }
