@@ -131,8 +131,6 @@ async def get_settings(
     
     if org_settings:
         combined_settings.update({
-            "low_stock_threshold": org_settings.low_stock_threshold,
-            "reorder_point": org_settings.reorder_point,
             "alerts": org_settings.alerts,
         })
     

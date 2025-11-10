@@ -54,8 +54,6 @@ class SettingsUpdateRequest(BaseModel):
 
 class SettingsResponse(BaseModel):
     # Organization settings
-    low_stock_threshold: int
-    reorder_point: int
     currency: str
     valuation_method: str
     alerts: bool
@@ -73,7 +71,5 @@ USER_SETTINGS_DEFAULTS = {
 }
 
 ORG_SETTINGS_DEFAULTS = {
-    "low_stock_threshold": 10,
-    "reorder_point": 15,
     "alerts": True,
 }
