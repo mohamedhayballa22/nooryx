@@ -72,20 +72,11 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
           <div className="flex items-center gap-2">
             <Button 
               variant="outline" 
-              size="icon"
-              onClick={() => setActiveForm("update-sku")}
-            >
-              <Settings className="h-4 w-4" />
-            </Button>
-
-            <Button 
-              variant="outline" 
               onClick={() => setIsReceiveFormOpen(true)}
             >
               <PlusIcon className="-ms-1 opacity-60" size={16} />
               Receive
             </Button>
-
             <DropdownMenu>
               <DropdownMenuTrigger asChild>
                 <Button variant="outline">
@@ -112,6 +103,13 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
                 </DropdownMenuItem>
               </DropdownMenuContent>
             </DropdownMenu>
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => setActiveForm("update-sku")}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
           </div>
         </div>
 
@@ -209,9 +207,9 @@ SkuHeader.Skeleton = function SkuHeaderSkeleton() {
           <Skeleton className="h-6 w-20 rounded-full" />
         </div>
         <div className="flex items-center gap-2">
+          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-10" />
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
         </div>
       </div>
 

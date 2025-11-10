@@ -137,20 +137,11 @@ export function DataTable<TData, TValue>({
             <div className="flex items-center gap-2">
               <Button 
                 variant="outline" 
-                size="icon"
-                onClick={() => setActiveForm("update-sku")}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
-
-              <Button 
-                variant="outline" 
                 onClick={() => setIsFormOpen(true)}
               >
                 <PlusIcon className="-ms-1 opacity-60" size={16} />
                 Receive
               </Button>
-
               <DropdownMenu>
                 <DropdownMenuTrigger asChild>
                   <Button variant="outline">
@@ -177,6 +168,13 @@ export function DataTable<TData, TValue>({
                   </DropdownMenuItem>
                 </DropdownMenuContent>
               </DropdownMenu>
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => setActiveForm("update-sku")}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
             </div>
           }
         />
