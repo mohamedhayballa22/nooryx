@@ -36,7 +36,7 @@ export const updateSkuFormConfig: UpdateSkuFormConfig = {
       subFields: [
         {
           name: "reorder_point",
-          label: "Reorder Point (ROP)",
+          label: "Reorder Point",
           required: true,
           type: "number",
           validation: validationRules.reorderPoint,

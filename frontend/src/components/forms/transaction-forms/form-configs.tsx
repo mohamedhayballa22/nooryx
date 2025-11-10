@@ -65,7 +65,7 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
     },
     {
       name: "cost_price",
-      label: "Cost Price Per Unit (USD)",
+      label: "Cost Price Per Unit", // Will be overridden by component to include user's currency
       required: true,
       type: "number",
       validation: validationRules.costPrice,
@@ -83,7 +83,7 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       subFields: [ // Nested fields for alerts
         {
           name: "reorder_point",
-          label: "Reorder Point (ROP)",
+          label: "Reorder Point",
           required: true, // Required will be handled conditionally in AlertsSectionField
           type: "number",
           validation: validationRules.reorderPoint,

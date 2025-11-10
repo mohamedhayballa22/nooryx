@@ -70,7 +70,7 @@ export default function OperationsSettingsPage() {
               }
             />
             <SettingRow
-              label="Reorder Point (ROP)"
+              label="Reorder Point"
               description="The minimum quantity before a restock alert is triggered for an item"
               control={
                 <div className="flex items-center gap-2">
@@ -141,7 +141,7 @@ export default function OperationsSettingsPage() {
       <SettingsEditDialog
         open={editingReorderPoint}
         onOpenChange={setEditingReorderPoint}
-        title="Reorder Point (ROP)"
+        title="Reorder Point"
         description="The minimum quantity before a restock alert is triggered"
         initialValue={settings?.reorder_point}
         settingKey="reorder_point"

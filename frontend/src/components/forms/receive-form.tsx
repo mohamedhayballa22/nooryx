@@ -3,7 +3,8 @@
 import React from "react"
 import { BaseTransactionForm } from "./transaction-forms"
 import { receiveFormConfig } from "./transaction-forms/form-configs"
-import type { LocationContext, ReceiveFormValues, SkuContext } from "./transaction-forms/types"
+import type { LocationContext, SkuContext, ReceiveFormValues } from "./transaction-forms/types"
+import { useUserSettings } from "@/hooks/use-user-settings"
 
 type ReceiveFormProps = {
   open?: boolean
@@ -17,9 +18,21 @@ type ReceiveFormProps = {
 }
 
 export function ReceiveForm(props: ReceiveFormProps) {
+  const { settings } = useUserSettings()
+  
+  // Create a modified config with the currency injected
+  const configWithCurrency = React.useMemo(() => ({
+    ...receiveFormConfig,
+    fields: receiveFormConfig.fields.map(field => 
+      field.name === 'cost_price' 
+        ? { ...field, label: `Cost Price Per Unit (${settings?.currency || 'N/A'})` }
+        : field
+    )
+  }), [settings?.currency])
+
   return (
     <BaseTransactionForm<ReceiveFormValues>
-      config={receiveFormConfig}
+      config={configWithCurrency}
       {...props}
     />
   )
