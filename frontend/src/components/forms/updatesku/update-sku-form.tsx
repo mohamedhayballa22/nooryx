@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo } from "react"
+import React, { useState, useEffect, useMemo, useRef } from "react"
 import { useForm, FormProvider, Controller } from "react-hook-form"
 import { updateSkuFormConfig } from "./form-config"
 import type { UpdateSkuFormValues } from "./types"
@@ -52,7 +52,14 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
   }
 
   const [currentSkuContext, setCurrentSkuContext] = useState<SkuContext | undefined>(initialSkuContext)
+  const [originalSkuContext, setOriginalSkuContext] = useState<SkuContext | undefined>(initialSkuContext)
   const [searchQuery, setSearchQuery] = useState("")
+  
+  // Store the original threshold values to restore when alerts is toggled back on
+  const preservedValuesRef = useRef<{
+    reorder_point: number
+    low_stock_threshold: number
+  } | null>(null)
 
   const methods = useForm<UpdateSkuFormValues>({
     defaultValues: updateSkuFormConfig.getDefaultValues(initialSkuContext),
@@ -61,18 +68,43 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
 
   const { watch, setValue, handleSubmit, formState: { errors }, reset } = methods
   const watchedSkuCode = watch("sku_code")
+  const watchedAlerts = watch("alerts")
+  const watchedReorderPoint = watch("reorder_point")
+  const watchedLowStockThreshold = watch("low_stock_threshold")
 
   const { data: skuOptions = [], isLoading: isLoadingSkus } = useSkuSearch(searchQuery)
   const { mutate: postTxn, isPending } = useTxn({ invalidateQueries })
 
-  // Initialize form with initial SKU context
+  // Initialize form with initial SKU context - run whenever initialSkuContext or show changes
   useEffect(() => {
-    if (initialSkuContext) {
+    if (show && initialSkuContext) {
       const defaultValues = updateSkuFormConfig.getDefaultValues(initialSkuContext)
       reset(defaultValues)
       setCurrentSkuContext(initialSkuContext)
+      setOriginalSkuContext(initialSkuContext)
+      preservedValuesRef.current = {
+        reorder_point: initialSkuContext.reorder_point ?? 0,
+        low_stock_threshold: initialSkuContext.low_stock_threshold ?? 0,
+      }
     }
-  }, [initialSkuContext, reset])
+  }, [initialSkuContext, reset, show])
+
+  // Watch for alerts toggle and restore preserved values when turned back on
+  useEffect(() => {
+    if (watchedAlerts && preservedValuesRef.current) {
+      // Only restore if the current values are different from preserved
+      // This prevents unnecessary updates on initial render
+      const currentReorderPoint = methods.getValues("reorder_point")
+      const currentLowStock = methods.getValues("low_stock_threshold")
+      
+      if (currentReorderPoint !== preservedValuesRef.current.reorder_point) {
+        setValue("reorder_point", preservedValuesRef.current.reorder_point, { shouldValidate: true })
+      }
+      if (currentLowStock !== preservedValuesRef.current.low_stock_threshold) {
+        setValue("low_stock_threshold", preservedValuesRef.current.low_stock_threshold, { shouldValidate: true })
+      }
+    }
+  }, [watchedAlerts, setValue, methods])
 
   const handleSkuChange = (val: string, option?: Option) => {
     const formattedVal = val.trim().toUpperCase()
@@ -91,11 +123,20 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
       setValue("reorder_point", newSkuContext.reorder_point ?? 0)
       setValue("low_stock_threshold", newSkuContext.low_stock_threshold ?? 0)
       setCurrentSkuContext(newSkuContext)
+      setOriginalSkuContext(newSkuContext)
+      
+      // Preserve the values from the newly selected SKU
+      preservedValuesRef.current = {
+        reorder_point: newSkuContext.reorder_point ?? 0,
+        low_stock_threshold: newSkuContext.low_stock_threshold ?? 0,
+      }
     } else {
       setValue("alerts", true)
       setValue("reorder_point", 0)
       setValue("low_stock_threshold", 0)
       setCurrentSkuContext(undefined)
+      setOriginalSkuContext(undefined)
+      preservedValuesRef.current = null
     }
   }
 
@@ -103,6 +144,28 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
     if (initialSkuContext) return true
     return Boolean(currentSkuContext && currentSkuContext.sku_code === watchedSkuCode)
   }, [initialSkuContext, currentSkuContext, watchedSkuCode])
+
+  const hasDataChanged = useMemo(() => {
+    if (!originalSkuContext) return false
+    
+    // Always check if alerts changed
+    if (watchedAlerts !== originalSkuContext.alerts) {
+      return true
+    }
+    
+    // Only check threshold values if alerts is currently enabled
+    if (watchedAlerts) {
+      return (
+        watchedReorderPoint !== originalSkuContext.reorder_point ||
+        watchedLowStockThreshold !== originalSkuContext.low_stock_threshold
+      )
+    }
+    
+    // If alerts is disabled and wasn't changed, no data has changed
+    return false
+  }, [originalSkuContext, watchedAlerts, watchedReorderPoint, watchedLowStockThreshold])
+
+  const isUpdateEnabled = isSkuValid && hasDataChanged
 
   const onValid = (data: UpdateSkuFormValues) => {
     if (!currentSkuContext) {
@@ -206,7 +269,7 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isPending || !isSkuValid}>
+                <Button type="submit" disabled={isPending || !isUpdateEnabled}>
                   {isPending ? "Updating..." : "Update"}
                 </Button>
               </DialogFooter>

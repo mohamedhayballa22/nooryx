@@ -7,7 +7,7 @@ export const updateSkuFormConfig: UpdateSkuFormConfig = {
   
   getTitle: (skuContext) => {
     return skuContext 
-      ? `Update ${skuContext.sku_name}` 
+      ? `Update ${skuContext.sku_code}` 
       : "Update SKU"
   },
   
