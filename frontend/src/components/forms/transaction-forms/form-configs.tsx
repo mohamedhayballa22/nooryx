@@ -141,10 +141,11 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       ...rest,
       sku_code: rest.sku_code.trim().toUpperCase(),
       location: rest.location.trim().toUpperCase(),
-      alerts: rest.alerts,
-      reorder_point: rest.reorder_point,
-      low_stock_threshold: rest.low_stock_threshold,
       action: "receive",
+    }
+
+    if (!payload.alerts) {
+      delete payload.reorder_point
     }
 
     if (notes && notes.trim() !== "") {
