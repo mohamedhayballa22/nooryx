@@ -1,9 +1,7 @@
-import type { FormConfig, SkuContext, LocationContext } from "../transaction-forms/types"
+import type { UpdateSkuFormConfig, UpdateSkuPayload } from "./types"
 import { validationRules } from "../transaction-forms/validation-schemas"
-import type { UpdateSkuFormValues } from "./types"
 
-export const updateSkuFormConfig: FormConfig<UpdateSkuFormValues> = {
-  action: "update_sku",
+export const updateSkuFormConfig: UpdateSkuFormConfig = {
   title: "Update SKU",
   description: "Update details for an existing SKU.",
   getTitle: (skuContext) => {
@@ -13,7 +11,7 @@ export const updateSkuFormConfig: FormConfig<UpdateSkuFormValues> = {
   },
   getDescription: (skuContext) => {
     return skuContext
-      ? `Update details for ${skuContext.sku_name} (${skuContext.sku_code}).`
+      ? `Update details for ${skuContext.sku_name}.`
       : "Update details for an existing SKU."
   },
   fields: [
@@ -62,7 +60,7 @@ export const updateSkuFormConfig: FormConfig<UpdateSkuFormValues> = {
     reorder_point: 0,
     low_stock_threshold: 0,
   },
-  getDefaultValues: (skuContext, locationContext) => {
+  getDefaultValues: (skuContext) => {
     return {
       sku_code: skuContext?.sku_code || "",
       alerts: skuContext?.alerts ?? true,
@@ -70,8 +68,8 @@ export const updateSkuFormConfig: FormConfig<UpdateSkuFormValues> = {
       low_stock_threshold: skuContext?.low_stock_threshold || 0,
     }
   },
-  transformPayload: (data) => {
-    const payload: any = {
+  transformPayload: (data): UpdateSkuPayload => {
+    const payload = {
       sku_code: data.sku_code.trim().toUpperCase(),
       alerts: data.alerts,
       reorder_point: data.reorder_point,

@@ -4,7 +4,7 @@ import React, { useState, useEffect, useMemo } from "react"
 import { useForm, FormProvider, Controller } from "react-hook-form"
 import { updateSkuFormConfig } from "./form-config"
 import type { UpdateSkuFormValues } from "./types"
-import type { SkuContext, LocationContext, FormConfig } from "../transaction-forms/types"
+import type { SkuContext } from "../transaction-forms/types"
 import { Option, SearchableAutocomplete } from "../searchable-autocomplete"
 import { Button } from "../../ui/button"
 import {
@@ -31,7 +31,7 @@ type UpdateSkuFormProps = {
 }
 
 export function UpdateSkuForm(props: UpdateSkuFormProps) {
-  const { open, onOpenChange, onSuccess, invalidateQueries, sizeClass = "max-w-lg", skuContext: initialSkuContext } = props
+  const { open, onOpenChange, invalidateQueries, sizeClass = "max-w-lg", skuContext: initialSkuContext } = props
 
   const [localOpen, setLocalOpen] = useState(false)
   const isControlled = typeof open === "boolean"
@@ -49,7 +49,7 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
     mode: "onChange",
   })
 
-  const { watch, setValue, handleSubmit, reset, formState: { errors } } = methods
+  const { watch, setValue, handleSubmit, formState: { errors } } = methods
   const watchedSkuCode = watch("sku_code")
 
   // Sku search for the autocomplete
@@ -112,26 +112,6 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
     const payload = updateSkuFormConfig.transformPayload(data);
     // Ensure the sku_code from currentSkuContext is used in the payload
     payload.sku_code = currentSkuContext.sku_code;
-
-    postTxn(payload, {
-      onSuccess: () => {
-        onSuccess?.()
-        reset()
-        setShow(false)
-
-        const message = updateSkuFormConfig.successMessage(data)
-        toast.success(message.title, {
-          description: message.description,
-        })
-      },
-    })
-  }
-
-  const getActionText = (action: string) => {
-    const actionMap: Record<string, string> = {
-      update_sku: "Updating SKU",
-    }
-    return actionMap[action.toLowerCase()] || `${action.charAt(0).toUpperCase() + action.slice(1)}ing`
   }
 
   // Get dynamic title and description
@@ -236,7 +216,7 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
                   Cancel
                 </Button>
                 <Button type="submit" disabled={isPending || !isSkuAutocompleteValid}>
-                  {isPending ? getActionText(updateSkuFormConfig.action) : title.split(" ")[0]}
+                  {isPending ? "Updating SKU..." : title.split(" ")[0]}
                 </Button>
               </DialogFooter>
             </form>
