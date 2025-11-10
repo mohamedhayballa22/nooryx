@@ -27,65 +27,71 @@ type UpdateSkuFormProps = {
   onSuccess?: () => void
   invalidateQueries?: string[]
   sizeClass?: string
-  skuContext?: SkuContext // Initial SKU context for pre-filling
+  skuContext?: SkuContext
 }
 
 export function UpdateSkuForm(props: UpdateSkuFormProps) {
-  const { open, onOpenChange, invalidateQueries, sizeClass = "max-w-lg", skuContext: initialSkuContext } = props
+  const { 
+    open, 
+    onOpenChange, 
+    invalidateQueries, 
+    sizeClass = "max-w-lg", 
+    skuContext: initialSkuContext,
+    onSuccess 
+  } = props
 
   const [localOpen, setLocalOpen] = useState(false)
   const isControlled = typeof open === "boolean"
-  const show = isControlled ? open! : localOpen
+  const show = isControlled ? open : localOpen
   const setShow = (v: boolean) => {
-    if (isControlled) onOpenChange?.(v)
-    else setLocalOpen(v)
+    if (isControlled) {
+      onOpenChange?.(v)
+    } else {
+      setLocalOpen(v)
+    }
   }
 
-  // State to hold the SKU context that will be used for title/description and payload
   const [currentSkuContext, setCurrentSkuContext] = useState<SkuContext | undefined>(initialSkuContext)
+  const [searchQuery, setSearchQuery] = useState("")
 
   const methods = useForm<UpdateSkuFormValues>({
-    defaultValues: updateSkuFormConfig.defaultValues,
+    defaultValues: updateSkuFormConfig.getDefaultValues(initialSkuContext),
     mode: "onChange",
   })
 
-  const { watch, setValue, handleSubmit, formState: { errors } } = methods
+  const { watch, setValue, handleSubmit, formState: { errors }, reset } = methods
   const watchedSkuCode = watch("sku_code")
 
-  // Sku search for the autocomplete
-  const [searchQuery, setSearchQuery] = useState("")
   const { data: skuOptions = [], isLoading: isLoadingSkus } = useSkuSearch(searchQuery)
+  const { mutate: postTxn, isPending } = useTxn({ invalidateQueries })
 
-  // Effect to handle initial skuContext and update form values
+  // Initialize form with initial SKU context
   useEffect(() => {
     if (initialSkuContext) {
-      setValue("sku_code", initialSkuContext.sku_code, { shouldValidate: true })
-      setValue("alerts", initialSkuContext.alerts ?? true)
-      setValue("reorder_point", initialSkuContext.reorder_point || 0)
-      setValue("low_stock_threshold", initialSkuContext.low_stock_threshold || 0)
-      setCurrentSkuContext(initialSkuContext) // Set the currentSkuContext
+      const defaultValues = updateSkuFormConfig.getDefaultValues(initialSkuContext)
+      reset(defaultValues)
+      setCurrentSkuContext(initialSkuContext)
     }
-  }, [initialSkuContext, setValue])
+  }, [initialSkuContext, reset])
 
-  // Handle SKU selection from autocomplete
   const handleSkuChange = (val: string, option?: Option) => {
     const formattedVal = val.trim().toUpperCase()
     setValue("sku_code", formattedVal, { shouldValidate: true })
 
     if (option?.metadata) {
-      // If a valid option is selected, update the form fields and currentSkuContext
-      setValue("alerts", option.metadata.alerts ?? true)
-      setValue("reorder_point", option.metadata.reorder_point || 0)
-      setValue("low_stock_threshold", option.metadata.low_stock_threshold || 0)
-      setCurrentSkuContext({
+      const newSkuContext: SkuContext = {
         sku_code: option.value,
         sku_name: option.label,
-        alerts: option.metadata.alerts,
-        reorder_point: option.metadata.reorder_point,
-        low_stock_threshold: option.metadata.low_stock_threshold,
-      })
+        alerts: option.metadata.alerts ?? true,
+        reorder_point: option.metadata.reorder_point ?? 0,
+        low_stock_threshold: option.metadata.low_stock_threshold ?? 0,
+      }
+      
+      setValue("alerts", newSkuContext.alerts ?? true)
+      setValue("reorder_point", newSkuContext.reorder_point ?? 0)
+      setValue("low_stock_threshold", newSkuContext.low_stock_threshold ?? 0)
+      setCurrentSkuContext(newSkuContext)
     } else {
-      // If no valid option selected (e.g., cleared or typed invalid), reset dependent fields and currentSkuContext
       setValue("alerts", true)
       setValue("reorder_point", 0)
       setValue("low_stock_threshold", 0)
@@ -93,47 +99,37 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
     }
   }
 
-  // Determine if the SKU autocomplete field is valid (i.e., a valid SKU has been selected)
-  const isSkuAutocompleteValid = useMemo(() => {
-    if (initialSkuContext) return true; // If initial context, SKU is considered valid
-    return !!currentSkuContext && currentSkuContext.sku_code === watchedSkuCode;
-  }, [initialSkuContext, currentSkuContext, watchedSkuCode]);
-
-  // Use the useTxn hook for submission
-  const { mutate: postTxn, isPending } = useTxn({ invalidateQueries })
+  const isSkuValid = useMemo(() => {
+    if (initialSkuContext) return true
+    return Boolean(currentSkuContext && currentSkuContext.sku_code === watchedSkuCode)
+  }, [initialSkuContext, currentSkuContext, watchedSkuCode])
 
   const onValid = (data: UpdateSkuFormValues) => {
-    // Ensure currentSkuContext is available for submission
     if (!currentSkuContext) {
-      toast.error("Error", { description: "Please select a valid SKU." });
-      return;
+      toast.error("Error", { description: "Please select a valid SKU." })
+      return
     }
 
-    const payload = updateSkuFormConfig.transformPayload(data);
+    const payload = updateSkuFormConfig.transformPayload(data)
+    const successMsg = updateSkuFormConfig.successMessage(data)
+
     // Ensure the sku_code from currentSkuContext is used in the payload
-    payload.sku_code = currentSkuContext.sku_code;
+    payload.sku_code = currentSkuContext.sku_code
+
+    // TODO: Handle posting the update
   }
 
-  // Get dynamic title and description
-  const title = updateSkuFormConfig.getTitle ? updateSkuFormConfig.getTitle(currentSkuContext) : updateSkuFormConfig.title
-  const description = updateSkuFormConfig.getDescription
-    ? updateSkuFormConfig.getDescription(currentSkuContext)
-    : updateSkuFormConfig.description
+  const title = updateSkuFormConfig.getTitle(currentSkuContext)
+  const description = updateSkuFormConfig.getDescription(currentSkuContext)
 
-  // Filter out SKU fields if initialSkuContext is provided or if we are handling it separately
   const fieldsToRender = useMemo(() => {
-    let fields = updateSkuFormConfig.fields;
-    // Filter out the sku_code field as it's handled separately
-    fields = fields.filter(field => field.name !== "sku_code");
-    return fields;
-  }, [initialSkuContext]);
+    return updateSkuFormConfig.fields.filter(field => field.name !== "sku_code")
+  }, [])
 
-  // Group non-notes fields by grid column for layout
   const fullWidthFields = fieldsToRender.filter(
     (f) => f.gridColumn === "full" || !f.gridColumn
-  );
-  const halfWidthFields = fieldsToRender.filter((f) => f.gridColumn === "half");
-
+  )
+  const halfWidthFields = fieldsToRender.filter((f) => f.gridColumn === "half")
 
   return (
     <Dialog open={show} onOpenChange={setShow}>
@@ -152,12 +148,13 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
               className="mt-5 space-y-6 pb-6"
               noValidate
             >
-              {/* Render SKU Code autocomplete only if no initialSkuContext */}
               {!initialSkuContext && (
                 <Field>
                   <FieldLabel>SKU Code *</FieldLabel>
                   {errors.sku_code && (
-                    <p className="text-xs text-red-500 mt-1">{errors.sku_code.message as string}</p>
+                    <p className="text-xs text-red-500 mt-1">
+                      {errors.sku_code.message}
+                    </p>
                   )}
                   <FieldContent>
                     <Controller
@@ -173,7 +170,7 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
                           isLoading={isLoadingSkus}
                           placeholder="Type to search SKU..."
                           transformInput={(val) => val.toUpperCase()}
-                          allowCreate={false} // Do not allow creating new SKUs
+                          allowCreate={false}
                         />
                       )}
                     />
@@ -182,23 +179,17 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
                 </Field>
               )}
 
-              {/* Render other fields if a valid SKU is selected/provided */}
-              {(isSkuAutocompleteValid || initialSkuContext) && (
+              {isSkuValid && (
                 <FieldSet>
                   <FieldGroup>
-                    {/* Render full-width fields first */}
                     {fullWidthFields.map((fieldConfig) => (
                       <FormField key={fieldConfig.name} config={fieldConfig} />
                     ))}
 
-                    {/* Render half-width fields in a grid */}
                     {halfWidthFields.length > 0 && (
                       <div className="grid grid-cols-2 gap-4">
                         {halfWidthFields.map((fieldConfig) => (
-                          <FormField
-                            key={fieldConfig.name}
-                            config={fieldConfig}
-                          />
+                          <FormField key={fieldConfig.name} config={fieldConfig} />
                         ))}
                       </div>
                     )}
@@ -215,8 +206,8 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
                 >
                   Cancel
                 </Button>
-                <Button type="submit" disabled={isPending || !isSkuAutocompleteValid}>
-                  {isPending ? "Updating SKU..." : title.split(" ")[0]}
+                <Button type="submit" disabled={isPending || !isSkuValid}>
+                  {isPending ? "Updating..." : "Update"}
                 </Button>
               </DialogFooter>
             </form>

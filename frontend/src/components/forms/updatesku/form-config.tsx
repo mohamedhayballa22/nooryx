@@ -4,16 +4,19 @@ import { validationRules } from "../transaction-forms/validation-schemas"
 export const updateSkuFormConfig: UpdateSkuFormConfig = {
   title: "Update SKU",
   description: "Update details for an existing SKU.",
+  
   getTitle: (skuContext) => {
     return skuContext 
       ? `Update ${skuContext.sku_name}` 
       : "Update SKU"
   },
+  
   getDescription: (skuContext) => {
     return skuContext
       ? `Update details for ${skuContext.sku_name}.`
       : "Update details for an existing SKU."
   },
+  
   fields: [
     {
       name: "sku_code",
@@ -54,29 +57,37 @@ export const updateSkuFormConfig: UpdateSkuFormConfig = {
       ],
     },
   ],
+  
   defaultValues: {
     sku_code: "",
     alerts: true,
     reorder_point: 0,
     low_stock_threshold: 0,
   },
+  
   getDefaultValues: (skuContext) => {
     return {
-      sku_code: skuContext?.sku_code || "",
+      sku_code: skuContext?.sku_code ?? "",
       alerts: skuContext?.alerts ?? true,
-      reorder_point: skuContext?.reorder_point || 0,
-      low_stock_threshold: skuContext?.low_stock_threshold || 0,
+      reorder_point: skuContext?.reorder_point ?? 0,
+      low_stock_threshold: skuContext?.low_stock_threshold ?? 0,
     }
   },
+  
   transformPayload: (data): UpdateSkuPayload => {
-    const payload = {
+    const payload: UpdateSkuPayload = {
       sku_code: data.sku_code.trim().toUpperCase(),
       alerts: data.alerts,
-      reorder_point: data.reorder_point,
       low_stock_threshold: data.low_stock_threshold,
     }
+    
+    if (data.alerts) {
+      payload.reorder_point = data.reorder_point
+    }
+
     return payload
   },
+  
   successMessage: (data) => ({
     title: "SKU updated successfully",
     description: `${data.sku_code} details have been updated.`,
