@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { PlusIcon } from "lucide-react"
+import { PlusIcon, Settings } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -21,6 +21,7 @@ import { ReserveForm } from "@/components/forms/reserve-form"
 import { ShipForm } from "@/components/forms/ship-form"
 import { UnreserveForm } from "@/components/forms/unreserve-form"
 import { TransferForm } from "@/components/forms/transfer-form"
+import { UpdateSkuForm } from "@/components/forms/updatesku/update-sku-form"
 import type { InventorySnapshot } from "@/lib/api/inventory"
 
 interface Props {
@@ -69,6 +70,14 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
           </div>
 
           <div className="flex items-center gap-2">
+            <Button 
+              variant="outline" 
+              size="icon"
+              onClick={() => setActiveForm("update-sku")}
+            >
+              <Settings className="h-4 w-4" />
+            </Button>
+
             <Button 
               variant="outline" 
               onClick={() => setIsReceiveFormOpen(true)}
@@ -135,6 +144,12 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
       </div>
 
       {/* Forms */}
+      <UpdateSkuForm
+        open={activeForm === "update-sku"}
+        onOpenChange={(open) => !open && setActiveForm(null)}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
+        skuContext={skuContext}
+      />
       <ReceiveForm
         open={isReceiveFormOpen || activeForm === "receive"}
         onOpenChange={(open) => !open && (setIsReceiveFormOpen(false), setActiveForm(null))}
@@ -194,6 +209,7 @@ SkuHeader.Skeleton = function SkuHeaderSkeleton() {
           <Skeleton className="h-6 w-20 rounded-full" />
         </div>
         <div className="flex items-center gap-2">
+          <Skeleton className="h-10 w-10" />
           <Skeleton className="h-10 w-24" />
           <Skeleton className="h-10 w-24" />
         </div>

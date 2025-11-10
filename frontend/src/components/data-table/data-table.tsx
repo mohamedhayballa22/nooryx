@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DataToolbar } from "@/components/data-toolbar"
 import { PaginationControls } from "@/components/app-pagination"
 import { Button } from "@/components/ui/button"
-import { PlusIcon } from "lucide-react"
+import { PlusIcon, Settings } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -33,6 +33,7 @@ import { ReserveForm } from "@/components/forms/reserve-form"
 import { ShipForm } from "@/components/forms/ship-form"
 import { UnreserveForm } from "@/components/forms/unreserve-form"
 import { TransferForm } from "@/components/forms/transfer-form"
+import { UpdateSkuForm } from "@/components/forms/updatesku/update-sku-form"
 import { NavArrowDownSolid } from "iconoir-react"
 
 interface DataTableProps<TData, TValue> {
@@ -134,6 +135,14 @@ export function DataTable<TData, TValue>({
           showViewToggle
           actions={
             <div className="flex items-center gap-2">
+              <Button 
+                variant="outline" 
+                size="icon"
+                onClick={() => setActiveForm("update-sku")}
+              >
+                <Settings className="h-4 w-4" />
+              </Button>
+
               <Button 
                 variant="outline" 
                 onClick={() => setIsFormOpen(true)}
@@ -244,6 +253,11 @@ export function DataTable<TData, TValue>({
       </div>
 
       {/* Forms */}
+      <UpdateSkuForm
+        open={activeForm === "update-sku"}
+        onOpenChange={(open) => !open && setActiveForm(null)}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
+      />
       <ReceiveForm
         open={isFormOpen || activeForm === "receive"}
         onOpenChange={(open) => !open && (setIsFormOpen(false), setActiveForm(null))}
