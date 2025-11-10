@@ -107,9 +107,12 @@ export function BaseTransactionForm<T extends FormValues>({
     (f) => !fieldsToFilter.includes(f.name)
   )
 
-  // Separate notes field from other fields
+  // Separate notes and alerts fields from other fields
   const notesField = fieldsToShow.find((f) => f.name === "notes")
-  const otherFields = fieldsToShow.filter((f) => f.name !== "notes")
+  const alertsField = fieldsToShow.find((f) => f.name === "alerts")
+  const otherFields = fieldsToShow.filter(
+    (f) => f.name !== "notes" && f.name !== "alerts"
+  )
 
   // Group non-notes fields by grid column for layout
   const fullWidthFields = otherFields.filter(
@@ -152,6 +155,9 @@ export function BaseTransactionForm<T extends FormValues>({
                       ))}
                     </div>
                   )}
+
+                  {/* Render alerts field before notes */}
+                  {alertsField && <FormField config={alertsField} />}
 
                   {/* Always render notes field last if it exists */}
                   {notesField && <FormField config={notesField} />}
