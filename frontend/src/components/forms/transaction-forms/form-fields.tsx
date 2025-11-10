@@ -98,18 +98,20 @@ function AlertsSectionField({ config }: FormFieldProps) {
           <FieldLabel className="text-base mb-2">
             {config.label}
           </FieldLabel>
-          <Controller
-            name={config.name}
-            control={control}
-            render={({ field }) => (
-              <Switch
-                checked={field.value}
-                onCheckedChange={field.onChange}
-                disabled={field.disabled}
-                className="mb-2"
-              />
-            )}
-          />
+          <FieldContent>
+            <Controller
+              name={config.name}
+              control={control}
+              render={({ field }) => (
+                <Switch
+                  checked={field.value}
+                  onCheckedChange={field.onChange}
+                  disabled={field.disabled}
+                  className="mb-2"
+                />
+              )}
+            />
+          </FieldContent>
           {config.description && (
             <FieldDescription>{config.description}</FieldDescription>
           )}

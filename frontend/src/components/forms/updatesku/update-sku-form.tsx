@@ -176,6 +176,9 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
               {!initialSkuContext && (
                 <Field>
                   <FieldLabel>SKU Code *</FieldLabel>
+                  {errors.sku_code && (
+                    <p className="text-xs text-red-500 mt-1">{errors.sku_code.message as string}</p>
+                  )}
                   <FieldContent>
                     <Controller
                       name="sku_code"
@@ -195,9 +198,6 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
                       )}
                     />
                   </FieldContent>
-                  {errors.sku_code && (
-                    <p className="text-xs text-red-500 mt-1">{errors.sku_code.message as string}</p>
-                  )}
                   <FieldDescription>Search for an existing SKU to update.</FieldDescription>
                 </Field>
               )}
