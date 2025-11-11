@@ -165,7 +165,7 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
     return false
   }, [originalSkuContext, watchedAlerts, watchedReorderPoint, watchedLowStockThreshold])
 
-  const isUpdateEnabled = isSkuValid && hasDataChanged
+  const isUpdateEnabled = isSkuValid && hasDataChanged && Object.keys(errors).length === 0
 
   const onValid = (data: UpdateSkuFormValues) => {
     if (!currentSkuContext) {
