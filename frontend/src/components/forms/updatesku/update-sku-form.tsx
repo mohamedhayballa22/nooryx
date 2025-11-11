@@ -6,7 +6,7 @@ import { updateSkuFormConfig } from "./form-config"
 import type { UpdateSkuFormValues } from "./types"
 import type { SkuContext } from "../transaction-forms/types"
 import { Option, SearchableAutocomplete } from "../searchable-autocomplete"
-import { Button } from "../../ui/button"
+import { Button } from "@/components/ui/button"
 import {
   Dialog,
   DialogContent,
@@ -14,18 +14,19 @@ import {
   DialogTitle,
   DialogDescription,
   DialogFooter,
-} from "../../ui/dialog"
-import { Field, FieldContent, FieldDescription, FieldLabel, FieldLegend, FieldGroup, FieldSet } from "../../ui/field"
+} from "@/components/ui/dialog"
+import { Field, FieldContent, FieldDescription, FieldLabel, FieldLegend, FieldGroup, FieldSet } from "@/components/ui/field"
 import { toast } from "sonner"
 import { FormField } from "../transaction-forms/form-fields"
 import { useSkuSearch } from "../hooks/use-sku-search"
-import { useTxn } from "../hooks/use-txn"
+
+import { useUpdateSKU } from "../hooks/use-sku-update"
 
 type UpdateSkuFormProps = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onSuccess?: () => void
-  invalidateQueries?: string[]
+
   sizeClass?: string
   skuContext?: SkuContext
 }
@@ -34,10 +35,9 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
   const { 
     open, 
     onOpenChange, 
-    invalidateQueries, 
     sizeClass = "max-w-lg", 
     skuContext: initialSkuContext,
-    onSuccess 
+    onSuccess
   } = props
 
   const [localOpen, setLocalOpen] = useState(false)
@@ -54,6 +54,7 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
   const [currentSkuContext, setCurrentSkuContext] = useState<SkuContext | undefined>(initialSkuContext)
   const [originalSkuContext, setOriginalSkuContext] = useState<SkuContext | undefined>(initialSkuContext)
   const [searchQuery, setSearchQuery] = useState("")
+  const { mutateAsync: updateSKU, isPending } = useUpdateSKU()
   
   // Store the original threshold values to restore when alerts is toggled back on
   const preservedValuesRef = useRef<{
@@ -73,7 +74,7 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
   const watchedLowStockThreshold = watch("low_stock_threshold")
 
   const { data: skuOptions = [], isLoading: isLoadingSkus } = useSkuSearch(searchQuery)
-  const { mutate: postTxn, isPending } = useTxn({ invalidateQueries })
+
 
   // Initialize form with initial SKU context - run whenever initialSkuContext or show changes
   useEffect(() => {
@@ -179,7 +180,17 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
     // Ensure the sku_code from currentSkuContext is used in the payload
     payload.sku_code = currentSkuContext.sku_code
 
-    // TODO: Handle posting the update
+    updateSKU(payload)
+      .then(() => {
+        toast.success(successMsg.title, { description: successMsg.description })
+        onSuccess?.()
+        setShow(false)
+      })
+      .catch(() => {
+        toast.error("Update failed", {
+          description: "Could not update the SKU. Please try again.",
+        })
+      })
   }
 
   const title = updateSkuFormConfig.getTitle(currentSkuContext)
@@ -210,6 +221,7 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
               onSubmit={handleSubmit(onValid)}
               className="mt-5 space-y-6 pb-6"
               noValidate
+              id="update-sku-form"
             >
               {!initialSkuContext && (
                 <Field>
@@ -259,23 +271,27 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
                   </FieldGroup>
                 </FieldSet>
               )}
-
-              <DialogFooter className="flex items-center justify-end gap-2">
-                <Button
-                  variant="outline"
-                  type="button"
-                  onClick={() => setShow(false)}
-                  disabled={isPending}
-                >
-                  Cancel
-                </Button>
-                <Button type="submit" disabled={isPending || !isUpdateEnabled}>
-                  {isPending ? "Updating..." : "Update"}
-                </Button>
-              </DialogFooter>
             </form>
           </FormProvider>
         </div>
+
+        <DialogFooter className="px-6 pb-6 flex items-center justify-end gap-2">
+          <Button
+            variant="outline"
+            type="button"
+            onClick={() => setShow(false)}
+            disabled={isPending}
+          >
+            Cancel
+          </Button>
+          <Button 
+            type="button"
+            disabled={isPending || !isUpdateEnabled}
+            onClick={() => handleSubmit(onValid)()}
+          >
+            {isPending ? "Updating..." : "Update"}
+          </Button>
+        </DialogFooter>
       </DialogContent>
     </Dialog>
   )
