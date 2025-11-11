@@ -522,6 +522,7 @@ export const unreserveFormConfig: FormConfig<UnreserveFormValues> = {
     {
       name: "reason",
       label: "Reason",
+      required: true,
       type: "text",
       validation: validationRules.reason,
       placeholder: "e.g., Order cancelled",
