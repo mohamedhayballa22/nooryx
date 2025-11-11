@@ -30,7 +30,7 @@ class SKU(Base):
     name = Column(String, nullable=False, doc="Human-readable product name.")
     alerts = Column(Boolean, nullable=False, default=True, server_default="true")
     low_stock_threshold = Column(Integer, nullable=False, default=10, server_default="10")
-    reorder_point = Column(Integer, nullable=False, default=15, server_default="15")
+    reorder_point = Column(Integer, nullable=False, default=5, server_default="5")
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 

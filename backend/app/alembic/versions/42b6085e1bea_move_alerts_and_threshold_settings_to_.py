@@ -24,7 +24,7 @@ def upgrade() -> None:
     op.drop_column('org_settings', 'reorder_point')
     op.add_column('skus', sa.Column('alerts', sa.Boolean(), server_default='true', nullable=False))
     op.add_column('skus', sa.Column('low_stock_threshold', sa.Integer(), server_default='10', nullable=False))
-    op.add_column('skus', sa.Column('reorder_point', sa.Integer(), server_default='15', nullable=False))
+    op.add_column('skus', sa.Column('reorder_point', sa.Integer(), server_default='5', nullable=False))
     # ### end Alembic commands ###
 
 
