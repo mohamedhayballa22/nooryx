@@ -49,7 +49,10 @@ export const updateSkuFormConfig: UpdateSkuFormConfig = {
           label: "Low Stock Threshold",
           required: true,
           type: "number",
-          validation: validationRules.lowStockThreshold,
+          validation: {
+            ...validationRules.lowStockThreshold,
+            ...validationRules.lowStockThresholdCrossField,
+          },
           description: "Below this quantity, this SKU will be marked as low in stock.",
           placeholder: "0",
           gridColumn: "half",

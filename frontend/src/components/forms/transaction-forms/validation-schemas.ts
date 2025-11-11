@@ -85,4 +85,9 @@ export const validationRules = {
     min: { value: 1, message: "Low Stock Threshold must be greater than 0" },
     validate: (value: number) => Number.isInteger(value) || "Low Stock Threshold must be a whole number",
   } as RegisterOptions,
+
+  lowStockThresholdCrossField: (getValues: () => any) => ({
+    validate: (value: number) =>
+      value > getValues().reorder_point || "Low stock threshold must be greater than the reorder point",
+  } as RegisterOptions),
 }
