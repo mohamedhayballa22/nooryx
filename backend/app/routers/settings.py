@@ -4,12 +4,13 @@ from sqlalchemy import select, update
 from app.core.auth.dependencies import get_current_user
 from app.core.auth.tenant_dependencies import get_tenant_session
 from app.models import User, Organization, RefreshToken, UserSettings, OrganizationSettings, Subscription
-from app.schemas.settings import UserAccountResponse
 from datetime import datetime, timezone
 from app.schemas.settings import (
     SettingsUpdateRequest, ORG_SETTINGS_DEFAULTS, 
     USER_SETTINGS_DEFAULTS, SUPPORTED_LOCALES,
-    SettingsResponse)
+    SettingsResponse, SKUThresholdsUpdateRequest,
+    UserAccountResponse)
+from app.models import SKU
 import hashlib
 
 router = APIRouter()
@@ -250,4 +251,36 @@ async def update_settings(
     
     await db.commit()
     
+    return
+
+
+@router.patch("/{sku_code}", status_code=status.HTTP_204_NO_CONTENT)
+async def update_stock_optimized(
+    sku_code: str,
+    update_data: SKUThresholdsUpdateRequest,
+    db: AsyncSession = Depends(get_tenant_session),
+):
+    """ Update the stock thresholds and alerts for a specific SKU. """
+    
+    update_data_dict = update_data.model_dump(exclude_unset=True)
+    
+    if not update_data_dict:
+        return
+        
+    update_stmt = (
+        update(SKU)
+        .where(SKU.code == sku_code)
+        .values(update_data_dict)
+    )
+    
+    result = await db.execute(update_stmt)
+    
+    await db.commit()
+
+    if result.rowcount == 0:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND,
+            detail=f"SKU '{sku_code}' not found.",
+        )
+        
     return
