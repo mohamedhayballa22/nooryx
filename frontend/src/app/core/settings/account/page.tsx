@@ -181,9 +181,11 @@ export default function AccountSecurityPage() {
                                 : "Never used"}{" "}
                             {sess.ip_address && `— IP ${sess.ip_address}`}
                           </span>
-                          <span className="text-sm text-muted-foreground">
-                            Expires {format(new Date(sess.expires_at), "PPP")}
-                          </span>
+                          {!isCurrent && (
+                            <span className="text-sm text-muted-foreground">
+                              Expires {format(new Date(sess.expires_at), "PPP")}
+                            </span>
+                          )}
                         </div>
                       </div>
 
