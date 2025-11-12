@@ -171,6 +171,7 @@ export function DataTable<TData, TValue>({
               <Button 
                 variant="outline" 
                 size="icon"
+                aria-label="Update SKU settings"
                 onClick={() => setActiveForm("update-sku")}
               >
                 <Settings className="h-4 w-4" />
@@ -254,7 +255,6 @@ export function DataTable<TData, TValue>({
       <UpdateSkuForm
         open={activeForm === "update-sku"}
         onOpenChange={(open) => !open && setActiveForm(null)}
-        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
       />
       <ReceiveForm
         open={isFormOpen || activeForm === "receive"}
