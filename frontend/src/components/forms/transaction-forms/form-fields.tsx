@@ -31,15 +31,6 @@ interface FormFieldProps {
 }
 
 export function FormField({ config }: FormFieldProps) {
-  const {
-    register,
-    control,
-    setValue,
-    watch,
-    formState: { errors },
-  } = useFormContext()
-
-  const error = errors[config.name]
 
   switch (config.type) {
     case "autocomplete":
@@ -77,7 +68,7 @@ export function FormField({ config }: FormFieldProps) {
 
 
 function AlertsSectionField({ config }: FormFieldProps) {
-  const { control, watch, setValue, formState: { errors, isSubmitted } } = useFormContext()
+  const { control, watch, setValue } = useFormContext()
   const alertsEnabled = watch(config.name, true) // Default to true
 
   // Reset reorder_point value if alerts are disabled
