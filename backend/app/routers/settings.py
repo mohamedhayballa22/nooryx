@@ -275,12 +275,12 @@ async def update_stock_optimized(
     
     result = await db.execute(update_stmt)
     
-    await db.commit()
-
     if result.rowcount == 0:
         raise HTTPException(
             status_code=status.HTTP_404_NOT_FOUND,
             detail=f"SKU '{sku_code}' not found.",
         )
+    
+    await db.commit()
         
     return
