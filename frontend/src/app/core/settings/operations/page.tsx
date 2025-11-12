@@ -53,11 +53,11 @@ export default function OperationsSettingsPage() {
         <SettingsSection>
           <SettingsSubSection title="Stock management">
             <SettingRow
-              label="Low stock threshold"
+              label="Default Low stock threshold"
               description="Below this quantity, an item will be marked as low in stock"
               control={
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">{settings?.low_stock_threshold}</span>
+                  <span className="text-sm">{settings?.default_low_stock_threshold}</span>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -70,11 +70,11 @@ export default function OperationsSettingsPage() {
               }
             />
             <SettingRow
-              label="Reorder Point"
+              label="Default Reorder Point"
               description="The minimum quantity before a restock alert is triggered for an item"
               control={
                 <div className="flex items-center gap-2">
-                  <span className="text-sm">{settings?.reorder_point}</span>
+                  <span className="text-sm">{settings?.default_reorder_point}</span>
                   <Button 
                     variant="ghost" 
                     size="sm" 
@@ -118,10 +118,10 @@ export default function OperationsSettingsPage() {
       <SettingsEditDialog
         open={editingLowStock}
         onOpenChange={setEditingLowStock}
-        title="Low stock threshold"
+        title="Default Low stock threshold"
         description="Below this quantity, an item will be marked as low in stock"
-        initialValue={settings?.low_stock_threshold}
-        settingKey="low_stock_threshold"
+        initialValue={settings?.default_low_stock_threshold}
+        settingKey="default_low_stock_threshold"
       >
         {(value, setValue) => (
           <div>
@@ -141,10 +141,10 @@ export default function OperationsSettingsPage() {
       <SettingsEditDialog
         open={editingReorderPoint}
         onOpenChange={setEditingReorderPoint}
-        title="Reorder Point"
+        title="Default Reorder Point"
         description="The minimum quantity before a restock alert is triggered"
-        initialValue={settings?.reorder_point}
-        settingKey="reorder_point"
+        initialValue={settings?.default_reorder_point}
+        settingKey="default_reorder_point"
       >
         {(value, setValue) => (
           <div className="space-y-2">

@@ -1,8 +1,8 @@
 import { protectedApiClient } from "../protected-client";
 
 export interface UserGeneralSettings {
-  low_stock_threshold: number;
-  reorder_point: number;
+  default_low_stock_threshold: number;
+  default_reorder_point: number;
   locale: string;
   pagination: number;
   date_format: string;
@@ -12,8 +12,8 @@ export interface UserGeneralSettings {
 }
 
 export interface UserGeneralSettingsUpdate {
-  low_stock_threshold?: number;
-  reorder_point?: number;
+  default_low_stock_threshold?: number;
+  default_reorder_point?: number;
   locale?: string;
   pagination?: number;
   date_format?: string;

@@ -133,6 +133,8 @@ async def get_settings(
     if org_settings:
         combined_settings.update({
             "alerts": org_settings.alerts,
+            "default_reorder_point": org_settings.default_reorder_point,
+            "default_low_stock_threshold": org_settings.default_low_stock_threshold,
         })
     
     combined_settings.update({
@@ -161,44 +163,21 @@ async def update_settings(
     Creates settings records if they don't exist.
     Only updates provided fields.
     """
+    print(f"Update settings: {settings_update}")
+
     # Check if any fields were provided
     update_data = settings_update.model_dump(exclude_unset=True)
     if not update_data:
         return
 
     # Organization-level settings
-    org_fields = {"low_stock_threshold", "reorder_point", "alerts"}
+    org_fields = {"default_low_stock_threshold", "default_reorder_point", "alerts"}
     org_updates = {k: v for k, v in update_data.items() if k in org_fields}
     
     # User-level settings
     user_fields = {"locale", "pagination", "date_format"}
     user_updates = {k: v for k, v in update_data.items() if k in user_fields}
 
-    # Validate numeric fields
-    if "pagination" in user_updates and (user_updates["pagination"] < 1 or user_updates["pagination"] > 100):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Pagination must be between 1 and 100",
-        )
-    
-    if "low_stock_threshold" in org_updates and org_updates["low_stock_threshold"] < 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Low stock threshold must be non-negative",
-        )
-
-    if "reorder_point" in org_updates and org_updates["reorder_point"] < 0:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Reorder point must be non-negative",
-        )
-    
-    if "alerts" in org_updates and not isinstance(org_updates["alerts"], bool):
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Alerts must be a boolean value",
-        )
-    
     # Validate locale if present (applies to both user and org settings)
     if "locale" in user_updates and user_updates["locale"] not in SUPPORTED_LOCALES:
         raise HTTPException(
