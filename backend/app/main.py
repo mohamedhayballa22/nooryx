@@ -55,28 +55,28 @@ app.add_middleware(
 )
 
 # Include Routers
-app.include_router(actions.router, tags=["Stock Actions"],)
-app.include_router(search.router, tags=["Search"], prefix="/search")
-app.include_router(inventory.router, tags=["Inventory"])
-app.include_router(transactions.router, tags=["Transactions"])
-app.include_router(reports.router, tags=["Reports"])
-app.include_router(valuation.router, tags=["Valuation"])
-app.include_router(settings_router.router, tags=["Settings"], prefix="/settings")
-app.include_router(billing.router, tags=["Billing"])
-app.include_router(team.router, tags=["Team"], prefix="/team")
+app.include_router(actions.router, tags=["Stock Actions"], prefix="/api")
+app.include_router(search.router, tags=["Search"], prefix="/api/search")
+app.include_router(inventory.router, tags=["Inventory"], prefix="/api")
+app.include_router(transactions.router, tags=["Transactions"], prefix="/api")
+app.include_router(reports.router, tags=["Reports"], prefix="/api/reports")
+app.include_router(valuation.router, tags=["Valuation"], prefix="/api/valuation")
+app.include_router(settings_router.router, tags=["Settings"], prefix="/api/settings")
+app.include_router(billing.router, tags=["Billing"], prefix="/api/billing")
+app.include_router(team.router, tags=["Team"], prefix="/api/team")
 app.include_router(
     org.router, 
     tags=["Org Registration"], 
-    prefix="/auth"
+    prefix="/api/auth"
 )
 app.include_router(
     session.router, 
-    prefix="/auth/sessions", 
+    prefix="/api/auth/sessions", 
     tags=["Session Management"]
 )
 app.include_router(
     fastapi_users.get_auth_router(auth_backend),
-    prefix="/auth/jwt",
+    prefix="/api/auth/jwt",
     tags=["Auth"]
 )
 

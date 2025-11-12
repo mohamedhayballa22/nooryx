@@ -14,7 +14,7 @@ from fastapi_pagination.ext.sqlalchemy import apaginate
 from fastapi_pagination import Page
 from app.services.currency_service import CurrencyService
 
-router = APIRouter(prefix="/valuation")
+router = APIRouter()
 
 @router.get("/skus", response_model=Page[InventoryValuationRow])
 async def get_inventory_valuation(

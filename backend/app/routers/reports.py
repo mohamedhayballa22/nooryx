@@ -27,7 +27,7 @@ from app.core.auth.dependencies import get_current_user
 from app.core.auth.tenant_dependencies import get_tenant_session
 
 
-router = APIRouter(prefix="/reports")
+router = APIRouter()
 
 @router.get("/metrics", response_model=DashboardMetricsResponse)
 async def get_dashboard_metrics(

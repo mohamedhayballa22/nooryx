@@ -7,7 +7,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from pydantic import BaseModel
 
 
-router = APIRouter(prefix="/billing")
+router = APIRouter()
 
 
 @router.post("/cancel", status_code=status.HTTP_204_NO_CONTENT)
