@@ -22,7 +22,7 @@ import { SearchableAutocomplete, Option } from "../searchable-autocomplete"
 import { useSkuSearch } from "../hooks/use-sku-search"
 import { useLocationSearch } from "../hooks/use-location-search"
 import { cn } from "@/lib/utils"
-import { NOTES_MAX_LENGTH, validationRules } from "./validation-schemas"
+import { NOTES_MAX_LENGTH } from "./validation-schemas"
 import type { FieldConfig } from "./types"
 import { Switch } from "@/components/ui/switch"
 
@@ -77,7 +77,7 @@ export function FormField({ config }: FormFieldProps) {
 
 
 function AlertsSectionField({ config }: FormFieldProps) {
-  const { control, watch, setValue, getValues, formState: { errors, isSubmitted } } = useFormContext()
+  const { control, watch, setValue, formState: { errors, isSubmitted } } = useFormContext()
   const alertsEnabled = watch(config.name, true) // Default to true
 
   // Reset reorder_point value if alerts are disabled
@@ -140,17 +140,10 @@ function AlertsSectionField({ config }: FormFieldProps) {
       {config.subFields && (
         <>
           {config.subFields
-            .filter(subField => subField.name === "low_stock_threshold")
-            .map(subFieldConfig => {
-              const adjustedSubFieldConfig = {
-                ...subFieldConfig,
-                validation: {
-                  ...subFieldConfig.validation,
-                  ...validationRules.lowStockThresholdCrossField(getValues),
-                },
-              }
-              return <FormField key={subFieldConfig.name} config={adjustedSubFieldConfig} />
-            })}
+            .filter((subField) => subField.name === "low_stock_threshold")
+            .map((subFieldConfig) => (
+              <FormField key={subFieldConfig.name} config={subFieldConfig} />
+            ))}
         </>
       )}
     </>

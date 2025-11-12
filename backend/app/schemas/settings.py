@@ -80,18 +80,6 @@ class SKUThresholdsUpdateRequest(BaseModel):
     reorder_point: Optional[int] = Field(None, ge=0)
     alerts: Optional[bool] = None
 
-    @model_validator(mode='after')
-    def validate_thresholds_order(self):
-        if (
-            self.low_stock_threshold is not None
-            and self.reorder_point is not None
-            and self.reorder_point > self.low_stock_threshold
-        ):
-            raise ValueError(
-                "Reorder point cannot be greater than the low stock threshold."
-            )
-        return self
-
     model_config = {
         "validate_assignment": True,
         "extra": "forbid",
