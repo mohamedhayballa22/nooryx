@@ -53,11 +53,7 @@ function redirectToLogin() {
     
     // Only redirect if we're in a protected route and not already on login
     if (isProtectedRoute && !isLoginPage) {
-      import('next/navigation').then(({ useRouter }) => {
-        window.location.href = '/login';
-      }).catch(() => {
-        window.location.href = '/login';
-      });
+      window.location.href = '/login';
     }
   }
 }
