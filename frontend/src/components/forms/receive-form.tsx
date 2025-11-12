@@ -19,20 +19,41 @@ type ReceiveFormProps = {
 
 export function ReceiveForm(props: ReceiveFormProps) {
   const { settings } = useUserSettings()
-  
-  // Create a modified config with the currency injected
-  const configWithCurrency = React.useMemo(() => ({
-    ...receiveFormConfig,
-    fields: receiveFormConfig.fields.map(field => 
-      field.name === 'cost_price' 
-        ? { ...field, label: `Cost Price Per Unit${settings?.currency ? ` (${settings.currency})` : ''}` }
+
+  const configWithDefaults = React.useMemo(() => {
+    const newDefaultValues = { ...receiveFormConfig.defaultValues }
+
+    if (!props.skuContext) {
+      newDefaultValues.alerts =
+        settings?.alerts ?? newDefaultValues.alerts
+      newDefaultValues.low_stock_threshold =
+        settings?.default_low_stock_threshold ??
+        newDefaultValues.low_stock_threshold
+      newDefaultValues.reorder_point =
+        settings?.default_reorder_point ?? newDefaultValues.reorder_point
+    }
+
+    const fields = receiveFormConfig.fields.map((field) =>
+      field.name === "cost_price"
+        ? {
+            ...field,
+            label: `Cost Price Per Unit${
+              settings?.currency ? ` (${settings.currency})` : ""
+            }`,
+          }
         : field
     )
-  }), [settings?.currency])
+
+    return {
+      ...receiveFormConfig,
+      fields,
+      defaultValues: newDefaultValues,
+    }
+  }, [settings, props.skuContext])
 
   return (
     <BaseTransactionForm<ReceiveFormValues>
-      config={configWithCurrency}
+      config={configWithDefaults}
       {...props}
     />
   )
