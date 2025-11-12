@@ -1,6 +1,6 @@
 import { protectedApiClient } from "../protected-client";
 
-export interface updateSKUPayload {
+export interface UpdateSKUPayload {
   sku_code: string;
   alerts?: boolean;
   reorder_point?: number;
@@ -8,7 +8,7 @@ export interface updateSKUPayload {
 }
 
 export async function updateSKU(
-  payload: updateSKUPayload
+  payload: UpdateSKUPayload
 ): Promise<void> {
   const { sku_code, ...updateData } = payload; 
 
