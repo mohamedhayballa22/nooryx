@@ -10,6 +10,9 @@ export function useUpdateSKU() {
       queryClient.invalidateQueries({
         queryKey: ["inventory"],
       })
+      queryClient.invalidateQueries({
+        queryKey: ["search", "skus"],
+      })
     },
   })
 }

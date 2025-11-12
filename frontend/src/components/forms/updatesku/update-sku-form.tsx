@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useState, useEffect, useMemo, useRef } from "react"
+import React, { useState, useEffect, useMemo, useRef, useCallback } from "react"
 import { useForm, FormProvider, Controller } from "react-hook-form"
 import { updateSkuFormConfig } from "./form-config"
 import type { UpdateSkuFormValues } from "./types"
@@ -19,16 +19,19 @@ import { Field, FieldContent, FieldDescription, FieldLabel, FieldLegend, FieldGr
 import { toast } from "sonner"
 import { FormField } from "../transaction-forms/form-fields"
 import { useSkuSearch } from "../hooks/use-sku-search"
-
 import { useUpdateSKU } from "../hooks/use-sku-update"
 
 type UpdateSkuFormProps = {
   open?: boolean
   onOpenChange?: (open: boolean) => void
   onSuccess?: () => void
-
   sizeClass?: string
   skuContext?: SkuContext
+}
+
+type PreservedThresholds = {
+  reorder_point: number
+  low_stock_threshold: number
 }
 
 export function UpdateSkuForm(props: UpdateSkuFormProps) {
@@ -43,31 +46,20 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
   const [localOpen, setLocalOpen] = useState(false)
   const isControlled = typeof open === "boolean"
   const show = isControlled ? open : localOpen
-  const setShow = (v: boolean) => {
-    if (isControlled) {
-      onOpenChange?.(v)
-    } else {
-      setLocalOpen(v)
-    }
-  }
-
+  
   const [currentSkuContext, setCurrentSkuContext] = useState<SkuContext | undefined>(initialSkuContext)
   const [originalSkuContext, setOriginalSkuContext] = useState<SkuContext | undefined>(initialSkuContext)
   const [searchQuery, setSearchQuery] = useState("")
-  const { mutateAsync: updateSKU, isPending } = useUpdateSKU()
   
-  // Store the original threshold values to restore when alerts is toggled back on
-  const preservedValuesRef = useRef<{
-    reorder_point: number
-    low_stock_threshold: number
-  } | null>(null)
+  const { mutateAsync: updateSKU, isPending } = useUpdateSKU()
+  const preservedValuesRef = useRef<PreservedThresholds | null>(null)
 
   const methods = useForm<UpdateSkuFormValues>({
     defaultValues: updateSkuFormConfig.getDefaultValues(initialSkuContext),
     mode: "onChange",
   })
 
-  const { watch, setValue, handleSubmit, formState: { errors }, reset } = methods
+  const { watch, setValue, handleSubmit, formState: { errors }, reset, getValues } = methods
   const watchedSkuCode = watch("sku_code")
   const watchedAlerts = watch("alerts")
   const watchedReorderPoint = watch("reorder_point")
@@ -75,39 +67,49 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
 
   const { data: skuOptions = [], isLoading: isLoadingSkus } = useSkuSearch(searchQuery)
 
-
-  // Initialize form with initial SKU context - run whenever initialSkuContext or show changes
-  useEffect(() => {
-    if (show && initialSkuContext) {
-      const defaultValues = updateSkuFormConfig.getDefaultValues(initialSkuContext)
-      reset(defaultValues)
-      setCurrentSkuContext(initialSkuContext)
-      setOriginalSkuContext(initialSkuContext)
-      preservedValuesRef.current = {
-        reorder_point: initialSkuContext.reorder_point ?? 0,
-        low_stock_threshold: initialSkuContext.low_stock_threshold ?? 0,
-      }
+  const setShow = useCallback((v: boolean) => {
+    if (isControlled) {
+      onOpenChange?.(v)
+    } else {
+      setLocalOpen(v)
     }
-  }, [initialSkuContext, reset, show])
+  }, [isControlled, onOpenChange])
 
-  // Watch for alerts toggle and restore preserved values when turned back on
+  const resetFormState = useCallback(() => {
+    const defaultValues = updateSkuFormConfig.getDefaultValues(initialSkuContext)
+    reset(defaultValues)
+    setSearchQuery("")
+    setCurrentSkuContext(initialSkuContext)
+    setOriginalSkuContext(initialSkuContext)
+    preservedValuesRef.current = initialSkuContext ? {
+      reorder_point: initialSkuContext.reorder_point ?? 0,
+      low_stock_threshold: initialSkuContext.low_stock_threshold ?? 0,
+    } : null
+  }, [initialSkuContext, reset])
+
+  // Initialize form when dialog opens
   useEffect(() => {
-    if (watchedAlerts && preservedValuesRef.current) {
-      // Only restore if the current values are different from preserved
-      // This prevents unnecessary updates on initial render
-      const currentReorderPoint = methods.getValues("reorder_point")
-      const currentLowStock = methods.getValues("low_stock_threshold")
-      
-      if (currentReorderPoint !== preservedValuesRef.current.reorder_point) {
-        setValue("reorder_point", preservedValuesRef.current.reorder_point, { shouldValidate: true })
-      }
-      if (currentLowStock !== preservedValuesRef.current.low_stock_threshold) {
-        setValue("low_stock_threshold", preservedValuesRef.current.low_stock_threshold, { shouldValidate: true })
-      }
+    if (show) {
+      resetFormState()
     }
-  }, [watchedAlerts, setValue, methods])
+  }, [show, resetFormState])
 
-  const handleSkuChange = (val: string, option?: Option) => {
+  // Restore preserved threshold values when alerts is toggled back on
+  useEffect(() => {
+    if (!watchedAlerts || !preservedValuesRef.current) return
+
+    const currentReorderPoint = getValues("reorder_point")
+    const currentLowStock = getValues("low_stock_threshold")
+    
+    if (currentReorderPoint !== preservedValuesRef.current.reorder_point) {
+      setValue("reorder_point", preservedValuesRef.current.reorder_point, { shouldValidate: true })
+    }
+    if (currentLowStock !== preservedValuesRef.current.low_stock_threshold) {
+      setValue("low_stock_threshold", preservedValuesRef.current.low_stock_threshold, { shouldValidate: true })
+    }
+  }, [watchedAlerts, setValue, getValues])
+
+  const handleSkuChange = useCallback((val: string, option?: Option) => {
     const formattedVal = val.trim().toUpperCase()
     setValue("sku_code", formattedVal, { shouldValidate: true })
 
@@ -126,7 +128,6 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
       setCurrentSkuContext(newSkuContext)
       setOriginalSkuContext(newSkuContext)
       
-      // Preserve the values from the newly selected SKU
       preservedValuesRef.current = {
         reorder_point: newSkuContext.reorder_point ?? 0,
         low_stock_threshold: newSkuContext.low_stock_threshold ?? 0,
@@ -139,7 +140,7 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
       setOriginalSkuContext(undefined)
       preservedValuesRef.current = null
     }
-  }
+  }, [setValue])
 
   const isSkuValid = useMemo(() => {
     if (initialSkuContext) return true
@@ -149,12 +150,8 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
   const hasDataChanged = useMemo(() => {
     if (!originalSkuContext) return false
     
-    // Always check if alerts changed
-    if (watchedAlerts !== originalSkuContext.alerts) {
-      return true
-    }
+    if (watchedAlerts !== originalSkuContext.alerts) return true
     
-    // Only check threshold values if alerts is currently enabled
     if (watchedAlerts) {
       return (
         watchedReorderPoint !== originalSkuContext.reorder_point ||
@@ -162,27 +159,26 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
       )
     }
     
-    // If alerts is disabled and wasn't changed, no data has changed
     return false
   }, [originalSkuContext, watchedAlerts, watchedReorderPoint, watchedLowStockThreshold])
 
   const isUpdateEnabled = isSkuValid && hasDataChanged && Object.keys(errors).length === 0
 
-  const onValid = (data: UpdateSkuFormValues) => {
+  const onValid = useCallback((data: UpdateSkuFormValues) => {
     if (!currentSkuContext) {
       toast.error("Error", { description: "Please select a valid SKU." })
       return
     }
 
     const payload = updateSkuFormConfig.transformPayload(data)
-    const successMsg = updateSkuFormConfig.successMessage(data)
-
-    // Ensure the sku_code from currentSkuContext is used in the payload
     payload.sku_code = currentSkuContext.sku_code
+
+    const successMsg = updateSkuFormConfig.successMessage(data)
 
     updateSKU(payload)
       .then(() => {
         toast.success(successMsg.title, { description: successMsg.description })
+        resetFormState()
         onSuccess?.()
         setShow(false)
       })
@@ -191,19 +187,25 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
           description: "Could not update the SKU. Please try again.",
         })
       })
-  }
+  }, [currentSkuContext, updateSKU, resetFormState, onSuccess, setShow])
 
-  const title = updateSkuFormConfig.getTitle(currentSkuContext)
-  const description = updateSkuFormConfig.getDescription(currentSkuContext)
+  const { title, description } = useMemo(() => ({
+    title: updateSkuFormConfig.getTitle(currentSkuContext),
+    description: updateSkuFormConfig.getDescription(currentSkuContext)
+  }), [currentSkuContext])
 
-  const fieldsToRender = useMemo(() => {
-    return updateSkuFormConfig.fields.filter(field => field.name !== "sku_code")
+  const { fullWidthFields, halfWidthFields } = useMemo(() => {
+    const fieldsToRender = updateSkuFormConfig.fields.filter(field => field.name !== "sku_code")
+    return {
+      fullWidthFields: fieldsToRender.filter(f => f.gridColumn === "full" || !f.gridColumn),
+      halfWidthFields: fieldsToRender.filter(f => f.gridColumn === "half")
+    }
   }, [])
 
-  const fullWidthFields = fieldsToRender.filter(
-    (f) => f.gridColumn === "full" || !f.gridColumn
+  const skuCodeValidation = useMemo(() => 
+    updateSkuFormConfig.fields.find(f => f.name === "sku_code")?.validation,
+    []
   )
-  const halfWidthFields = fieldsToRender.filter((f) => f.gridColumn === "half")
 
   return (
     <Dialog open={show} onOpenChange={setShow}>
@@ -215,7 +217,7 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
           <DialogDescription>{description}</DialogDescription>
         </DialogHeader>
 
-        <div className="scrollable-form flex-1 overflow-y-auto px-6">
+        <div className="scrollable-form flex-1 overflow-y-visible px-6">
           <FormProvider {...methods}>
             <form
               onSubmit={handleSubmit(onValid)}
@@ -235,7 +237,7 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
                     <Controller
                       name="sku_code"
                       control={methods.control}
-                      rules={updateSkuFormConfig.fields.find(f => f.name === "sku_code")?.validation}
+                      rules={skuCodeValidation}
                       render={({ field }) => (
                         <SearchableAutocomplete
                           options={skuOptions}
@@ -285,9 +287,9 @@ export function UpdateSkuForm(props: UpdateSkuFormProps) {
             Cancel
           </Button>
           <Button 
-            type="button"
+            type="submit"
+            form="update-sku-form"
             disabled={isPending || !isUpdateEnabled}
-            onClick={() => handleSubmit(onValid)()}
           >
             {isPending ? "Updating..." : "Update"}
           </Button>
