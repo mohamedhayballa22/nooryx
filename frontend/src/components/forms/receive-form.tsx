@@ -25,7 +25,7 @@ export function ReceiveForm(props: ReceiveFormProps) {
     ...receiveFormConfig,
     fields: receiveFormConfig.fields.map(field => 
       field.name === 'cost_price' 
-        ? { ...field, label: `Cost Price Per Unit (${settings?.currency || 'N/A'})` }
+        ? { ...field, label: `Cost Price Per Unit${settings?.currency ? ` (${settings.currency})` : ''}` }
         : field
     )
   }), [settings?.currency])
