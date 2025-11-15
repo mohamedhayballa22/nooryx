@@ -163,7 +163,6 @@ async def update_settings(
     Creates settings records if they don't exist.
     Only updates provided fields.
     """
-    print(f"Update settings: {settings_update}")
 
     # Check if any fields were provided
     update_data = settings_update.model_dump(exclude_unset=True)
