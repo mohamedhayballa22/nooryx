@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DataToolbar } from "@/components/data-toolbar"
 import { PaginationControls } from "@/components/app-pagination"
 import { Button } from "@/components/ui/button"
-import { PlusIcon, Settings } from "lucide-react"
+import { Settings } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -135,39 +135,45 @@ export function DataTable<TData, TValue>({
           showViewToggle
           actions={
             <div className="flex items-center gap-2">
-              <Button 
-                variant="outline" 
-                onClick={() => setIsFormOpen(true)}
-              >
-                <PlusIcon className="-ms-1 opacity-60" size={16} />
-                Receive
-              </Button>
-              <DropdownMenu>
-                <DropdownMenuTrigger asChild>
-                  <Button variant="outline">
-                    Stock Actions
-                    <NavArrowDownSolid /> 
-                  </Button>
-                </DropdownMenuTrigger>
-                <DropdownMenuContent align="end" className="w-48">
-                  <DropdownMenuItem onClick={() => setActiveForm("ship")}>
-                    Ship Stock
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActiveForm("reserve")}>
-                    Reserve Stock
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActiveForm("unreserve")}>
-                    Unreserve Stock
-                  </DropdownMenuItem>
-                  <DropdownMenuItem onClick={() => setActiveForm("transfer")}>
-                    Transfer Stock
-                  </DropdownMenuItem>
-                  <DropdownMenuSeparator />
-                  <DropdownMenuItem onClick={() => setActiveForm("adjust")}>
-                    Adjust Stock
-                  </DropdownMenuItem>
-                </DropdownMenuContent>
-              </DropdownMenu>
+              <div className="flex items-stretch border rounded-md overflow-hidden">
+                <Button 
+                  variant="ghost"
+                  className="rounded-none border-0 hover:bg-accent"
+                  onClick={() => setIsFormOpen(true)}
+                >
+                  Receive Stock
+                </Button>
+                <div className="w-px bg-border" />
+                <DropdownMenu>
+                  <DropdownMenuTrigger asChild>
+                    <Button 
+                      variant="ghost"
+                      className="rounded-none border-0 h-full px-3 hover:bg-accent"
+                    >
+                      <NavArrowDownSolid className="h-4 w-4 mt-0.5" />
+                    </Button>
+                  </DropdownMenuTrigger>
+                  <DropdownMenuContent align="end" className="w-48">
+                    <DropdownMenuItem onClick={() => setActiveForm("ship")}>
+                      Ship Stock
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setActiveForm("reserve")}>
+                      Reserve Stock
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setActiveForm("unreserve")}>
+                      Unreserve Stock
+                    </DropdownMenuItem>
+                    <DropdownMenuItem onClick={() => setActiveForm("transfer")}>
+                      Transfer Stock
+                    </DropdownMenuItem>
+                    <DropdownMenuSeparator />
+                    <DropdownMenuItem onClick={() => setActiveForm("adjust")}>
+                      Adjust Stock
+                    </DropdownMenuItem>
+                  </DropdownMenuContent>
+                </DropdownMenu>
+              </div>
+              
               <Button 
                 variant="outline" 
                 size="icon"

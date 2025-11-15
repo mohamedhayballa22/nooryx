@@ -6,7 +6,7 @@ import { Tabs, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
-import { PlusIcon, Settings } from "lucide-react"
+import { Settings } from "lucide-react"
 import {
   DropdownMenu,
   DropdownMenuTrigger,
@@ -70,39 +70,45 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
           </div>
 
           <div className="flex items-center gap-2">
-            <Button 
-              variant="outline" 
-              onClick={() => setIsReceiveFormOpen(true)}
-            >
-              <PlusIcon className="-ms-1 opacity-60" size={16} />
-              Receive
-            </Button>
-            <DropdownMenu>
-              <DropdownMenuTrigger asChild>
-                <Button variant="outline">
-                  Actions
-                  <NavArrowDownSolid /> 
-                </Button>
-              </DropdownMenuTrigger>
-              <DropdownMenuContent align="end" className="w-48">
-                <DropdownMenuItem onClick={() => setActiveForm("ship")}>
-                  Ship
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveForm("reserve")}>
-                  Reserve
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveForm("unreserve")}>
-                  Unreserve
-                </DropdownMenuItem>
-                <DropdownMenuItem onClick={() => setActiveForm("transfer")}>
-                  Transfer
-                </DropdownMenuItem>
-                <DropdownMenuSeparator />
-                <DropdownMenuItem onClick={() => setActiveForm("adjust")}>
-                  Adjust
-                </DropdownMenuItem>
-              </DropdownMenuContent>
-            </DropdownMenu>
+            <div className="flex items-stretch border rounded-md overflow-hidden">
+              <Button 
+                variant="ghost"
+                className="rounded-none border-0 hover:bg-accent"
+                onClick={() => setIsReceiveFormOpen(true)}
+              >
+                Receive Stock
+              </Button>
+              <div className="w-px bg-border" />
+              <DropdownMenu>
+                <DropdownMenuTrigger asChild>
+                  <Button 
+                    variant="ghost"
+                    className="rounded-none border-0 h-full px-3 hover:bg-accent"
+                  >
+                    <NavArrowDownSolid className="h-4 w-4 mt-0.5" />
+                  </Button>
+                </DropdownMenuTrigger>
+                <DropdownMenuContent align="end" className="w-48">
+                  <DropdownMenuItem onClick={() => setActiveForm("ship")}>
+                    Ship
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveForm("reserve")}>
+                    Reserve
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveForm("unreserve")}>
+                    Unreserve
+                  </DropdownMenuItem>
+                  <DropdownMenuItem onClick={() => setActiveForm("transfer")}>
+                    Transfer
+                  </DropdownMenuItem>
+                  <DropdownMenuSeparator />
+                  <DropdownMenuItem onClick={() => setActiveForm("adjust")}>
+                    Adjust
+                  </DropdownMenuItem>
+                </DropdownMenuContent>
+              </DropdownMenu>
+            </div>
+            
             <Button 
               variant="outline" 
               size="icon"
@@ -206,8 +212,7 @@ SkuHeader.Skeleton = function SkuHeaderSkeleton() {
           <Skeleton className="h-6 w-20 rounded-full" />
         </div>
         <div className="flex items-center gap-2">
-          <Skeleton className="h-10 w-24" />
-          <Skeleton className="h-10 w-24" />
+          <Skeleton className="h-10 w-36" />
           <Skeleton className="h-10 w-10" />
         </div>
       </div>
