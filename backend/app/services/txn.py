@@ -1,6 +1,7 @@
 from typing import Tuple, Optional
+from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import func, select
 from sqlalchemy.orm.exc import StaleDataError
 from uuid import UUID
 
@@ -17,9 +18,12 @@ from app.services.exceptions import (
     InsufficientStockError,
     CurrencyError
 )
+from app.core.db import async_session_maker
 from app.services.state_updater import StateUpdater
 from app.services.cost_tracker import CostTracker
 from app.services.currency_service import CurrencyService
+from app.services.alert_service import AlertService
+from app.core.logger_config import logger
 
 
 TransactionPayload = (
@@ -39,7 +43,8 @@ class TransactionService:
         self, 
         session: AsyncSession, 
         org_id: UUID,
-        user_id: UUID | None = None
+        user_id: UUID | None = None,
+        background_tasks: Optional[BackgroundTasks] = None
     ):
         """
         Initialize transaction service for a specific organization.
@@ -56,6 +61,8 @@ class TransactionService:
         self.cost_tracker = CostTracker(session, org_id)
         self.currency_service = CurrencyService()
         self._org_currency: Optional[str] = None
+        self.background_tasks = background_tasks
+        self._threshold_check_data: Optional[dict] = None
     
     async def _get_org_currency(self) -> str:
         """
@@ -116,6 +123,9 @@ class TransactionService:
                 location.id,
                 txn_payload.action
             )
+
+            #  Capture org-wide available before transaction
+            available_before = await self._get_org_wide_available_before(txn_payload.sku_code)
             
             if txn_payload.action == "ship":
                 txn_payload.qty = -abs(txn_payload.qty)
@@ -127,6 +137,8 @@ class TransactionService:
                 state.on_hand,
                 cost_price_minor
             )
+
+            available_after = available_before + transaction.qty
             
             # 5. Update inventory state (may raise InsufficientStockError)
             try:
@@ -144,6 +156,14 @@ class TransactionService:
                         reserved=state.reserved
                     )
                 raise
+
+            # Store threshold check data if this was an outbound transaction
+            if transaction.is_outbound:
+                self._threshold_check_data = {
+                    'sku_code': txn_payload.sku_code,
+                    'available_before': available_before,
+                    'available_after': available_after
+                }
             
             # 6. Track costs for costing methods (FIFO/LIFO/WAC)
             # Note: transaction.cost_price is already in minor units at this point
@@ -436,3 +456,75 @@ class TransactionService:
         sku_name = result.scalar_one_or_none()
         return (sku_name is not None, sku_name)
     
+    def schedule_low_stock_check(self) -> None:
+        """
+        Schedule a low stock check as a background task if threshold may have been crossed.
+        
+        This should be called AFTER the transaction is committed in the endpoint.
+        The check runs asynchronously and won't block the response.
+        """
+        if not self.background_tasks or not self._threshold_check_data:
+            return
+        
+        # Extract check data
+        check_data = self._threshold_check_data
+        
+        # Schedule the check to run after response is sent
+        self.background_tasks.add_task(
+            self._perform_threshold_check,
+            check_data['sku_code'],
+            check_data['available_before'],
+            check_data['available_after']
+        )
+    
+    async def _perform_threshold_check(
+        self,
+        sku_code: str,
+        available_before: int,
+        available_after: int
+    ) -> None:
+        """
+        Background task that checks if SKU crossed reorder point threshold.
+        
+        This runs AFTER the HTTP response has been sent to the client.
+        Uses a new database session to avoid connection issues.
+        """
+        async with async_session_maker() as session:
+            try:
+                alert_service = AlertService(session, self.org_id)
+                await alert_service.check_sku_crossed_threshold(
+                    sku_code=sku_code,
+                    qty_before=available_before,
+                    qty_after=available_after
+                )
+                await session.commit()
+            except Exception as e:
+                # Log error but don't crash - this is a background task
+                logger(f"Error in threshold check for SKU {sku_code}: {e}")
+                await session.rollback()
+    
+    
+    async def _get_org_wide_available_before(self, sku_code: str) -> int:
+        """
+        Calculate total available stock for a SKU across all locations
+        before a transaction is committed.
+        
+        Args:
+            sku_code: SKU to check
+            
+        Returns:
+            Total available across all locations
+        """
+        result = await self.session.execute(
+            select(
+                func.coalesce(func.sum(State.available), 0),
+            )
+            .filter(
+                State.sku_code == sku_code,
+                State.org_id == self.org_id
+            )
+        )
+        available = result.scalar_one_or_none()
+        
+        return available if available is not None else 0
+     

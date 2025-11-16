@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends
+from fastapi import APIRouter, BackgroundTasks, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
@@ -30,6 +30,7 @@ def _build_transaction_response(txn, state) -> dict:
 @router.post("/receive")
 async def receive_stock(
     txn: ReceiveTxn,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -37,11 +38,14 @@ async def receive_stock(
     service = TransactionService(
         session=db,
         org_id=current_user.org_id,
-        user_id=current_user.id
+        user_id=current_user.id,
+        background_tasks=background_tasks
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
     await db.commit()
+    
+    service.schedule_low_stock_check()
     
     return _build_transaction_response(applied_txn, updated_state)
 
@@ -49,6 +53,7 @@ async def receive_stock(
 @router.post("/ship")
 async def ship_stock(
     txn: ShipTxn,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -63,11 +68,14 @@ async def ship_stock(
     service = TransactionService(
         session=db,
         org_id=current_user.org_id,
-        user_id=current_user.id
+        user_id=current_user.id,
+        background_tasks=background_tasks
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
     await db.commit()
+
+    service.schedule_low_stock_check()
     
     return _build_transaction_response(applied_txn, updated_state)
 
@@ -75,6 +83,7 @@ async def ship_stock(
 @router.post("/adjust")
 async def adjust_stock(
     txn: AdjustTxn,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -86,11 +95,14 @@ async def adjust_stock(
     service = TransactionService(
         session=db,
         org_id=current_user.org_id,
-        user_id=current_user.id
+        user_id=current_user.id,
+        background_tasks=background_tasks
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
     await db.commit()
+
+    service.schedule_low_stock_check()
 
     return _build_transaction_response(applied_txn, updated_state)
 
@@ -98,6 +110,7 @@ async def adjust_stock(
 @router.post("/reserve")
 async def reserve_stock(
     txn: ReserveTxn,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -110,11 +123,14 @@ async def reserve_stock(
     service = TransactionService(
         session=db,
         org_id=current_user.org_id,
-        user_id=current_user.id
+        user_id=current_user.id,
+        background_tasks=background_tasks
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
     await db.commit()
+    
+    service.schedule_low_stock_check()
     
     return _build_transaction_response(applied_txn, updated_state)
 
@@ -122,6 +138,7 @@ async def reserve_stock(
 @router.post("/unreserve")
 async def unreserve_stock(
     txn: UnreserveTxn,
+    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -134,11 +151,14 @@ async def unreserve_stock(
     service = TransactionService(
         session=db,
         org_id=current_user.org_id,
-        user_id=current_user.id
+        user_id=current_user.id,
+        background_tasks=background_tasks
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
     await db.commit()
+    
+    service.schedule_low_stock_check()
     
     return _build_transaction_response(applied_txn, updated_state)
 
