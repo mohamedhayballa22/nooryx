@@ -329,6 +329,11 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
 
     organization = relationship("Organization", back_populates="users")
     settings = relationship("UserSettings", uselist=False, back_populates="user", cascade="all, delete-orphan")
+    alert_read_receipts = relationship(
+        "AlertReadReceipt",
+        back_populates="user",
+        cascade="all, delete-orphan"
+    )
 
     __table_args__ = (
         UniqueConstraint("id", "org_id", name="uq_user_id_org_id"),
@@ -408,3 +413,99 @@ class UserSettings(Base):
     updated_at = Column(DateTime(timezone=True), onupdate=func.now())
 
     user = relationship("User", back_populates="settings")
+
+
+class Alert(Base):
+    """Organization-scoped alerts with user-level read tracking."""
+    
+    __tablename__ = "alerts"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("orgs.org_id", ondelete="CASCADE"), 
+        nullable=False, 
+        index=True
+    )
+    
+    alert_type = Column(
+        String, 
+        nullable=False,
+        doc="Alert classification: 'team_member_joined' | 'low_stock'"
+    )
+    severity = Column(
+        String, 
+        nullable=False, 
+        default="info",
+        doc="Severity level: 'info' | 'warning' | 'critical'"
+    )
+    
+    title = Column(String, nullable=False, doc="Alert headline")
+    message = Column(String, nullable=True, doc="Optional detailed message")
+    
+    aggregation_key = Column(
+        String, 
+        nullable=True, 
+        index=True,
+        doc="Groups related alerts (e.g., 'low_stock_2024-11-12')"
+    )
+    
+    alert_metadata = Column(
+        JSONB, 
+        nullable=True,
+        doc="Type-specific data: user_id, sku_codes[], location_ids[], details[], etc."
+    )
+    
+    created_at = Column(
+        DateTime(timezone=True), 
+        server_default=func.now(), 
+        nullable=False,
+        index=True
+    )
+    expires_at = Column(
+        DateTime(timezone=True), 
+        nullable=True,
+        doc="Optional auto-cleanup timestamp"
+    )
+    
+    # Relationships
+    organization = relationship("Organization", backref="alerts")
+    read_receipts = relationship(
+        "AlertReadReceipt", 
+        back_populates="alert", 
+        cascade="all, delete-orphan"
+    )
+    
+    __table_args__ = (
+        Index('ix_alerts_org_type_created', 'org_id', 'alert_type', 'created_at'),
+        Index('ix_alerts_org_aggregation', 'org_id', 'aggregation_key'),
+    )
+
+
+class AlertReadReceipt(Base):
+    """Tracks which users have read which alerts."""
+    
+    __tablename__ = "alert_read_receipts"
+
+    alert_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("alerts.id", ondelete="CASCADE"),
+        primary_key=True
+    )
+    user_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("users.id", ondelete="CASCADE"),
+        primary_key=True
+    )
+    read_at = Column(
+        DateTime(timezone=True), 
+        server_default=func.now(), 
+        nullable=False
+    )
+    
+    alert = relationship("Alert", back_populates="read_receipts")
+    user = relationship("User", back_populates="alert_read_receipts")
+    
+    __table_args__ = (
+        Index('ix_alert_receipts_user_alert', 'user_id', 'alert_id'),
+    )
