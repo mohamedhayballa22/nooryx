@@ -4,7 +4,7 @@ from sqlalchemy import select
 from fastapi_users import BaseUserManager
 from fastapi_users.exceptions import UserAlreadyExists
 from app.core.auth.users import get_user_manager
-from app.core.db import get_session
+from app.core.db import get_session, async_session_maker
 from app.models import Organization, User, Subscription
 from app.core.auth.dependencies import get_current_user
 from app.core.auth.schemas import (
@@ -20,6 +20,8 @@ from app.core.auth.users import get_user_db
 from app.core.auth.invitations import create_invitation_token, decode_invitation_token
 from uuid import UUID, uuid4
 from app.services.emails.invitation import send_invitation_email, validate_invitation_email
+from app.services.alert_service import AlertService
+from app.core.logger_config import logger
 
 
 router = APIRouter()
@@ -122,6 +124,7 @@ async def invite_user_to_org(
 async def accept_invitation(
     payload: InvitationAcceptRequest,
     request: Request,
+    background_tasks: BackgroundTasks,
     user_manager: BaseUserManager[User, UUID] = Depends(get_user_manager),
     session: AsyncSession = Depends(get_session),
 ):
@@ -152,4 +155,40 @@ async def accept_invitation(
     except Exception as e:
         raise HTTPException(status_code=400, detail=f"Registration failed: {str(e)}")
 
+    # Create team member alert in background
+    background_tasks.add_task(
+        create_team_member_alert_task,
+        org_id=org_id,
+        user_id=user.id,
+        first_name=user.first_name,
+        last_name=user.last_name,
+        email=user.email,
+        role=user.role
+    )
+
     return InvitationAcceptResponse(email=user.email, org_name=org.name)
+
+
+async def create_team_member_alert_task(
+    org_id: UUID,
+    user_id: UUID,
+    first_name: str,
+    last_name: str,
+    email: str,
+    role: str
+):
+    """Background task to create team member joined alert."""
+    async with async_session_maker() as session:
+        try:
+            alert_service = AlertService(session, org_id)
+            await alert_service.create_team_member_alert(
+                user_id=user_id,
+                first_name=first_name,
+                last_name=last_name,
+                email=email,
+                role=role
+            )
+            await session.commit()
+        except Exception as e:
+            await session.rollback()
+            logger.error(f"Failed to create team member alert: {e}", exc_info=True)
