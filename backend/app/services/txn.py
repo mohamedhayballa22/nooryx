@@ -517,10 +517,10 @@ class TransactionService:
         """
         result = await self.session.execute(
             select(
-                func.coalesce(func.sum(State.available), 0),
+                func.coalesce(func.sum(State.available), 0)
             )
             .filter(
-                State.sku_code == sku_code,
+                State.sku_code == sku_code.upper(),
                 State.org_id == self.org_id
             )
         )
