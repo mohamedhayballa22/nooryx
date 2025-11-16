@@ -1,5 +1,5 @@
 from typing import Optional, Literal
-from datetime import date, datetime
+from datetime import date, datetime, timezone
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, exists
@@ -154,7 +154,7 @@ class AlertService:
                 # Update title and metadata
                 total_count = len(existing_alert.alert_metadata['sku_codes'])
                 existing_alert.title = self._generate_low_stock_title(total_count)
-                existing_alert.alert_metadata['check_timestamp'] = datetime.utcnow().isoformat()
+                existing_alert.alert_metadata['check_timestamp'] = datetime.now(timezone.utc).isoformat()
                 existing_alert.severity = severity
                 
                 # Mark as modified for SQLAlchemy
@@ -181,7 +181,7 @@ class AlertService:
                     )
                     for item in low_stock_items
                 ],
-                check_timestamp=datetime.utcnow()
+                check_timestamp=datetime.now(timezone.utc).isoformat()
             )
             
             alert = Alert(
