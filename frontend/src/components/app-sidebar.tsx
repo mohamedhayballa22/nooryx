@@ -3,7 +3,6 @@
 import * as React from "react"
 import Link from "next/link"
 import Image from "next/image"
-import { useAuth } from "@/lib/auth";
 
 import {
   Sidebar,
@@ -51,7 +50,7 @@ const mainItems = [
   { title: "Inventory", url: "/core/inventory", icon: BoxIso },
   { title: "Audit Trail", url: "/core/audit-trail", icon: ClockRotateRight },
   { title: "Valuation", url: "/core/valuation", icon: Coins },
-  { title: "Alerts", url: "#", icon: BellNotification },
+  { title: "Alerts", url: "/core/alerts", icon: BellNotification },
 ]
 
 const settingsSubItems = [
