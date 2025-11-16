@@ -205,7 +205,7 @@ class AlertService:
     
     async def build_alerts_query(
         self,
-        user_id: UUID,
+        user: User,
         read_filter: Optional[Literal["read", "unread"]] = None,
         alert_type: Optional[Literal["team_member_joined", "low_stock"]] = None,
     ):
@@ -213,14 +213,18 @@ class AlertService:
         Build SQLAlchemy query for alerts with filters applied.
 
         Args:
-            user_id: User requesting the alerts
+            user: User requesting the alerts
             read_filter: Filter by read status (None = all)
             alert_type: Filter by alert type (None = all)
 
         Returns:
             SQLAlchemy select query ready for pagination
         """
-        query = select(Alert).filter(Alert.org_id == self.org_id)
+        query = (
+            select(Alert)
+            .filter(Alert.org_id == self.org_id)
+            .filter(Alert.created_at >= user.created_at)
+        )
 
         # Optional type filter
         if alert_type:
@@ -234,7 +238,7 @@ class AlertService:
                     .select_from(AlertReadReceipt)
                     .filter(
                         AlertReadReceipt.alert_id == Alert.id,
-                        AlertReadReceipt.user_id == user_id
+                        AlertReadReceipt.user_id == user.id
                     )
                 )
             )
@@ -245,7 +249,7 @@ class AlertService:
                     .select_from(AlertReadReceipt)
                     .filter(
                         AlertReadReceipt.alert_id == Alert.id,
-                        AlertReadReceipt.user_id == user_id
+                        AlertReadReceipt.user_id == user.id
                     )
                 )
             )
@@ -254,7 +258,7 @@ class AlertService:
         query = query.filter(
             ~(
                 (Alert.alert_type == "team_member_joined") &
-                (Alert.alert_metadata["user_id"].astext == str(user_id))
+                (Alert.alert_metadata["user_id"].astext == str(user.id))
             )
         )
 
@@ -311,14 +315,12 @@ class AlertService:
             is_read=is_read
         )
     
-    async def get_unread_count(self, user_id: UUID) -> int:
+    async def get_unread_count(self, user: User) -> int:
         """
         Get count of unread alerts for sidebar badge.
         
-        Optimized query that should execute in <10ms with proper indexes.
-        
         Args:
-            user_id: User requesting the count
+            user: User requesting the count
             
         Returns:
             Number of unread alerts
@@ -327,13 +329,24 @@ class AlertService:
             select(func.count())
             .select_from(Alert)
             .filter(
+                # Only alerts for this org
                 Alert.org_id == self.org_id,
+
+                Alert.created_at >= user.created_at,
+
+                # Exclude "team_member_joined" alerts for the user that joined
+                ~(
+                    (Alert.alert_type == "team_member_joined") &
+                    (Alert.alert_metadata["user_id"].astext == str(user.id))
+                ),
+
+                # Unread = no read receipt exists for this user
                 ~exists(
                     select(1)
                     .select_from(AlertReadReceipt)
                     .filter(
                         AlertReadReceipt.alert_id == Alert.id,
-                        AlertReadReceipt.user_id == user_id
+                        AlertReadReceipt.user_id == user.id
                     )
                 )
             )

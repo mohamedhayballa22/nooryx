@@ -48,7 +48,7 @@ async def get_alerts(
     alert_service = AlertService(session, current_user.org_id)
     
     query = await alert_service.build_alerts_query(
-        user_id=current_user.id,
+        user=current_user,
         read_filter=read,
         alert_type=type
     )
@@ -77,7 +77,7 @@ async def get_unread_count(
     """Get count of unread alerts for sidebar badge."""
     
     alert_service = AlertService(session, current_user.org_id)
-    count = await alert_service.get_unread_count(current_user.id)
+    count = await alert_service.get_unread_count(current_user)
     
     return UnreadCountResponse(count=count)
 
