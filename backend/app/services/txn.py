@@ -500,7 +500,7 @@ class TransactionService:
                 await session.commit()
             except Exception as e:
                 # Log error but don't crash - this is a background task
-                logger(f"Error in threshold check for SKU {sku_code}: {e}")
+                logger.error(f"Error in threshold check for SKU {sku_code}: {e}")
                 await session.rollback()
     
     
