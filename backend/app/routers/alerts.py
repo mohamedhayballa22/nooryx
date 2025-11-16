@@ -6,12 +6,14 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.db import get_session
 from app.core.auth.dependencies import get_current_user
 from app.models import User
-from app.services.alert_service import AlertService
+from app.services.alert_service import AlertService, AlertTransformer
 from app.schemas.alerts import (
-    AlertListResponse,
+    AlertResponse,
     UnreadCountResponse,
     MarkReadResponse
 )
+from fastapi_pagination.ext.sqlalchemy import apaginate
+from fastapi_pagination import Page
 
 
 router = APIRouter()
@@ -23,7 +25,7 @@ router = APIRouter()
 
 @router.get(
     "",
-    response_model=AlertListResponse,
+    response_model=Page[AlertResponse],
     summary="Get paginated alerts",
     description="""
     Retrieve alerts for the authenticated user's organization with pagination.
@@ -38,48 +40,23 @@ router = APIRouter()
 async def get_alerts(
     read: Optional[Literal["read", "unread"]] = None,
     type: Optional[Literal["team_member_joined", "low_stock"]] = None,
-    page: int = 1,
-    per_page: int = 25,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
     """Get paginated alerts for the current user's organization."""
     
-    # Validate pagination params
-    if page < 1:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Page must be >= 1"
-        )
-    if per_page < 1 or per_page > 100:
-        raise HTTPException(
-            status_code=status.HTTP_400_BAD_REQUEST,
-            detail="Per page must be between 1 and 100"
-        )
-    
     alert_service = AlertService(session, current_user.org_id)
     
-    alerts, total = await alert_service.get_alerts(
+    query = await alert_service.build_alerts_query(
         user_id=current_user.id,
         read_filter=read,
-        alert_type=type,
-        page=page,
-        per_page=per_page
+        alert_type=type
     )
     
-    # Get unread count for response
-    unread_count = await alert_service.get_unread_count(current_user.id)
-    
-    # Calculate total pages
-    pages = (total + per_page - 1) // per_page if total > 0 else 0
-    
-    return AlertListResponse(
-        alerts=alerts,
-        total=total,
-        page=page,
-        per_page=per_page,
-        pages=pages,
-        unread_count=unread_count
+    return await apaginate(
+        session,
+        query,
+        transformer=AlertTransformer(alert_service, current_user.id)
     )
 
 

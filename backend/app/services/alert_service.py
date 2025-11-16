@@ -193,35 +193,28 @@ class AlertService:
     # Alert Querying
     # ========================================================================
     
-    async def get_alerts(
+    async def build_alerts_query(
         self,
         user_id: UUID,
         read_filter: Optional[Literal["read", "unread"]] = None,
         alert_type: Optional[Literal["team_member_joined", "low_stock"]] = None,
-        page: int = 1,
-        per_page: int = 25
-    ) -> tuple[list[AlertResponse], int]:
+    ):
         """
-        Get paginated alerts with read status for the requesting user.
+        Build SQLAlchemy query for alerts with filters applied.
         
         Args:
             user_id: User requesting the alerts
             read_filter: Filter by read status (None = all)
             alert_type: Filter by alert type (None = all)
-            page: Page number (1-indexed)
-            per_page: Items per page
             
         Returns:
-            (alerts_with_read_status, total_count)
+            SQLAlchemy select query ready for pagination
         """
-        # Build base query
         query = select(Alert).filter(Alert.org_id == self.org_id)
         
-        # Apply filters
         if alert_type:
             query = query.filter(Alert.alert_type == alert_type)
         
-        # Handle read status filter
         if read_filter == "read":
             query = query.filter(
                 exists(
@@ -245,49 +238,58 @@ class AlertService:
                 )
             )
         
-        # Get total count
-        count_query = select(func.count()).select_from(query.subquery())
-        total_result = await self.session.execute(count_query)
-        total = total_result.scalar_one()
+        return query.order_by(Alert.created_at.desc())
+
+
+    async def get_read_status_map(
+        self,
+        alert_ids: list[UUID],
+        user_id: UUID
+    ) -> set[UUID]:
+        """
+        Get set of alert IDs that have been read by user.
         
-        # Apply pagination and ordering
-        query = query.order_by(Alert.created_at.desc())
-        query = query.offset((page - 1) * per_page).limit(per_page)
+        Args:
+            alert_ids: List of alert IDs to check
+            user_id: User to check read status for
+            
+        Returns:
+            Set of alert IDs that are read
+        """
+        if not alert_ids:
+            return set()
         
-        # Execute query
-        result = await self.session.execute(query)
-        alerts = result.scalars().all()
-        
-        # Fetch read status for these alerts
-        alert_ids = [alert.id for alert in alerts]
-        if alert_ids:
-            read_status_result = await self.session.execute(
-                select(AlertReadReceipt.alert_id)
-                .filter(
-                    AlertReadReceipt.alert_id.in_(alert_ids),
-                    AlertReadReceipt.user_id == user_id
-                )
+        result = await self.session.execute(
+            select(AlertReadReceipt.alert_id)
+            .filter(
+                AlertReadReceipt.alert_id.in_(alert_ids),
+                AlertReadReceipt.user_id == user_id
             )
-            read_alert_ids = set(read_status_result.scalars().all())
-        else:
-            read_alert_ids = set()
+        )
+        return set(result.scalars().all())
+
+
+    def to_response(self, alert: Alert, is_read: bool) -> AlertResponse:
+        """
+        Convert Alert model to AlertResponse.
         
-        # Build response with read status
-        alert_responses = [
-            AlertResponse(
-                id=alert.id,
-                alert_type=alert.alert_type,
-                severity=alert.severity,
-                title=alert.title,
-                message=alert.message,
-                aggregation_key=alert.aggregation_key,
-                alert_metadata=alert.alert_metadata,
-                is_read=alert.id in read_alert_ids
-            )
-            for alert in alerts
-        ]
-        
-        return alert_responses, total
+        Args:
+            alert: Alert model instance
+            is_read: Whether this alert has been read by the user
+            
+        Returns:
+            AlertResponse with read status
+        """
+        return AlertResponse(
+            id=alert.id,
+            alert_type=alert.alert_type,
+            severity=alert.severity,
+            title=alert.title,
+            message=alert.message,
+            aggregation_key=alert.aggregation_key,
+            alert_metadata=alert.alert_metadata,
+            is_read=is_read
+        )
     
     async def get_unread_count(self, user_id: UUID) -> int:
         """
@@ -498,4 +500,29 @@ class AlertService:
     def _generate_low_stock_title(count: int) -> str:
         """Generate human-readable title for low stock alerts."""
         return f"{count} SKU{'s' if count != 1 else ''} need reordering"
+    
+
+class AlertTransformer:
+    """Transformer that enriches alerts with read status."""
+    
+    def __init__(self, alert_service: AlertService, user_id: UUID):
+        self.alert_service = alert_service
+        self.user_id = user_id
+    
+    async def __call__(self, alerts: list[Alert]) -> list[AlertResponse]:
+        """Transform alerts to responses with read status."""
+        if not alerts:
+            return []
+        
+        # Batch fetch read status for all alerts on this page
+        alert_ids = [alert.id for alert in alerts]
+        read_alert_ids = await self.alert_service.get_read_status_map(
+            alert_ids, 
+            self.user_id
+        )
+        
+        return [
+            self.alert_service.to_response(alert, alert.id in read_alert_ids)
+            for alert in alerts
+        ]
     
