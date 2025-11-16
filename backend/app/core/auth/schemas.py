@@ -38,9 +38,6 @@ class OrgRegisterResponse(BaseModel):
 class InvitationCreateRequest(BaseModel):
     email: EmailStr = Field(..., description="Email of the user to invite")
 
-class InvitationCreateResponse(BaseModel):
-    token: str
-    expires_at: datetime
 
 # Invitation acceptance
 class InvitationAcceptRequest(BaseModel):

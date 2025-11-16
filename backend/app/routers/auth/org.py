@@ -14,7 +14,6 @@ from app.core.auth.schemas import (
     InvitationAcceptRequest,
     InvitationAcceptResponse, 
     InvitationCreateRequest, 
-    InvitationCreateResponse,
 )
 from app.core.auth.manager import UserManager
 from app.core.auth.users import get_user_db

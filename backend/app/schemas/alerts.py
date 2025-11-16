@@ -56,16 +56,6 @@ class AlertResponse(AlertBase):
     )
 
 
-class AlertListResponse(BaseModel):
-    """Paginated alert list response."""
-    alerts: list[AlertResponse]
-    total: int
-    page: int
-    per_page: int
-    pages: int
-    unread_count: int
-
-
 class UnreadCountResponse(BaseModel):
     """Unread alert count for sidebar badge."""
     count: int
