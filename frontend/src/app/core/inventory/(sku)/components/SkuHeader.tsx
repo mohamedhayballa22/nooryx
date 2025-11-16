@@ -84,6 +84,7 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
                   <Button 
                     variant="ghost"
                     className="rounded-none border-0 h-full px-3 hover:bg-accent"
+                    aria-label="More actions"
                   >
                     <NavArrowDownSolid className="h-4 w-4 mt-0.5" />
                   </Button>
