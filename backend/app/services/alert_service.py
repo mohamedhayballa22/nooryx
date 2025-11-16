@@ -43,31 +43,41 @@ class AlertService:
     
     async def create_team_member_alert(
         self,
-        new_user: User
+        user_id: UUID,
+        first_name: str,
+        last_name: str,
+        email: str,
+        role: str
     ) -> Alert:
         """
         Create alert when a new team member joins the organization.
         
         Args:
-            new_user: The newly created User instance
+            user_id: ID of the newly created user
+            first_name: User's first name
+            last_name: User's last name
+            email: User's email
+            role: User's role
             
         Returns:
             Created Alert instance
         """
+        user_name = f"{first_name} {last_name}"
+        
         metadata = TeamMemberJoinedMetadata(
-            user_id=new_user.id,
-            user_name=f"{new_user.first_name} {new_user.last_name}",
-            user_email=new_user.email,
-            role=new_user.role
+            user_id=user_id,
+            user_name=user_name,
+            user_email=email,
+            role=role
         )
         
         alert = Alert(
             org_id=self.org_id,
             alert_type="team_member_joined",
             severity="info",
-            title=f"{metadata.user_name} joined the team",
+            title=f"{user_name} joined the team",
             message=None,
-            aggregation_key=None,  # Each join is separate
+            aggregation_key=None,
             alert_metadata=metadata.model_dump(mode='json')
         )
         
@@ -201,20 +211,22 @@ class AlertService:
     ):
         """
         Build SQLAlchemy query for alerts with filters applied.
-        
+
         Args:
             user_id: User requesting the alerts
             read_filter: Filter by read status (None = all)
             alert_type: Filter by alert type (None = all)
-            
+
         Returns:
             SQLAlchemy select query ready for pagination
         """
         query = select(Alert).filter(Alert.org_id == self.org_id)
-        
+
+        # Optional type filter
         if alert_type:
             query = query.filter(Alert.alert_type == alert_type)
-        
+
+        # Read/unread filter
         if read_filter == "read":
             query = query.filter(
                 exists(
@@ -237,7 +249,15 @@ class AlertService:
                     )
                 )
             )
-        
+
+        # Exclude "team_member_joined" alerts for the user *who* joined
+        query = query.filter(
+            ~(
+                (Alert.alert_type == "team_member_joined") &
+                (Alert.alert_metadata["user_id"].astext == str(user_id))
+            )
+        )
+
         return query.order_by(Alert.created_at.desc())
 
 
