@@ -113,8 +113,6 @@ Questions? Contact us at {settings.SUPPORT_EMAIL}
             timeout=10,
         )
         
-        logger.info(f"Invitation email sent successfully to {to_email}")
-        
     except Exception as e:
         # Log but don't raise - this is in background task
         logger.error(f"Failed to send invitation email to {to_email}: {str(e)}", exc_info=True)
