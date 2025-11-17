@@ -136,12 +136,12 @@ export default function AlertCard({ alert }: AlertCardProps) {
 
               <div className="flex items-center justify-between pt-1">
                 <p className="text-xs text-muted-foreground">
-                  {formatTime(alert.alert_metadata.check_timestamp)}
+                  {formatTime(alert.alert_metadata?.check_timestamp)}
                 </p>
                 {!alert.is_read && (
                   <button
                     onClick={() => {/* TODO: implement mark as read */}}
-                    className="cursor-pointer xt-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
+                    className="text-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
                   >
                     Mark as read
                   </button>
@@ -154,12 +154,12 @@ export default function AlertCard({ alert }: AlertCardProps) {
             <>
               <div className="rounded-md bg-muted/50 p-3 space-y-1.5 text-sm">
                 <p className="font-medium text-foreground text-sm">
-                  {alert.alert_metadata.user_name}
+                  {alert.alert_metadata?.user_name}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {alert.alert_metadata.user_email}
+                  {alert.alert_metadata?.user_email}
                 </p>
-                {alert.alert_metadata.role && (
+                {alert.alert_metadata?.role && (
                   <p className="text-xs text-muted-foreground">
                     {alert.alert_metadata.role}
                   </p>
