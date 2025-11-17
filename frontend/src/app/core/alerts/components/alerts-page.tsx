@@ -5,7 +5,6 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import AlertCard from './alert-card'
 import AlertsFilter from './alerts-filter'
 import AlertsHeader from './alerts-header'
-import AlertsLegend from './alerts-legend'
 import EmptyState from './empty-state'
 import { PaginationControls } from '@/components/app-pagination'
 import { useAlerts, useMarkAllAlertsAsRead } from '@/hooks/use-alerts'
@@ -99,7 +98,6 @@ export default function AlertsPage() {
 
       <div className="mb-6 flex items-center justify-between">
         <AlertsFilter currentFilter={filter} onChange={handleFilterChange} />
-        <AlertsLegend />
       </div>
 
       <div className="space-y-3 mt-6">
