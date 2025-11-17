@@ -141,7 +141,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
                 {!alert.is_read && (
                   <button
                     onClick={() => {/* TODO: implement mark as read */}}
-                    className="text-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
+                    className="cursor-pointer xt-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
                   >
                     Mark as read
                   </button>
@@ -170,7 +170,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
                 <div className="flex items-center justify-end pt-1">
                   <button 
                     onClick={() => {/* TODO: implement mark as read */}}
-                    className="text-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
+                    className="cursor-pointer text-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
                   >
                     Mark as read
                   </button>
