@@ -37,20 +37,24 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { 
   HomeSimple, BoxIso, ClockRotateRight, 
-  BellNotification, Settings, HelpCircle,
+  Bell, Settings, HelpCircle,
   NavArrowUp, LogOut, User, Coins,
   NavArrowDown, Globe, Package, Group,
   Lock, CreditCard
  } from "iconoir-react"
- import { useUserAccount } from "@/app/core/settings/account/hooks/use-account"
+import { useUserAccount } from "@/app/core/settings/account/hooks/use-account"
 import { SignOutConfirmDialog } from "./signout-dialog";
+import { useUnreadCount } from "@/hooks/use-alerts"
+import { toast } from "sonner"
+import { useRouter } from "next/navigation"
+import { useQueryClient } from "@tanstack/react-query"
 
 const mainItems = [
   { title: "Dashboard", url: "/core/dashboard", icon: HomeSimple },
   { title: "Inventory", url: "/core/inventory", icon: BoxIso },
   { title: "Audit Trail", url: "/core/audit-trail", icon: ClockRotateRight },
   { title: "Valuation", url: "/core/valuation", icon: Coins },
-  { title: "Alerts", url: "/core/alerts", icon: BellNotification },
+  { title: "Alerts", url: "/core/alerts", icon: Bell },
 ]
 
 const settingsSubItems = [
@@ -71,6 +75,36 @@ export function AppSidebar() {
   const userName = (data?.user.first_name || '') + " " + (data?.user.last_name || '')
   const userEmail = data?.user.email
   const [showSignOutDialog, setShowSignOutDialog] = React.useState(false)
+  const { count: unreadCount, hasInitialData } = useUnreadCount()
+  const router = useRouter()
+  const queryClient = useQueryClient() // Add this
+
+  // Track previous unread count without causing re-renders
+  const prevUnreadRef = React.useRef(unreadCount);
+
+  React.useEffect(() => {
+    const prev = prevUnreadRef.current;
+
+    if (hasInitialData && prev !== undefined && unreadCount > prev) {
+      toast.info(
+        `You have ${unreadCount - prev} new alert${unreadCount - prev === 1 ? "" : "s"}`,
+        {
+          action: {
+            label: "View Alerts", 
+            onClick: () => {
+              router.push("/core/alerts")
+              // Invalidate alerts queries when user clicks to view alerts
+              queryClient.invalidateQueries({ queryKey: ["alerts", "list"]})
+            }
+          },
+          duration: 7000,
+          position: "top-center"
+        }
+      );
+    }
+
+    prevUnreadRef.current = unreadCount;
+  }, [unreadCount, hasInitialData, router, queryClient]);
 
   return (
     <Sidebar collapsible="icon">
@@ -101,9 +135,9 @@ export function AppSidebar() {
                     <Link href={item.url} className="relative flex items-center">
                       <div className="relative">
                         <item.icon className="w-5 h-5" />
-                        {item.title === "Alerts" && (
+                        {item.title === "Alerts" && unreadCount > 0 && (
                           <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">
-                            3
+                            {unreadCount}
                           </span>
                         )}
                       </div>
