@@ -77,7 +77,7 @@ export function AppSidebar() {
   const [showSignOutDialog, setShowSignOutDialog] = React.useState(false)
   const { count: unreadCount, hasInitialData } = useUnreadCount()
   const router = useRouter()
-  const queryClient = useQueryClient() // Add this
+  const queryClient = useQueryClient()
 
   // Track previous unread count without causing re-renders
   const prevUnreadRef = React.useRef(unreadCount);

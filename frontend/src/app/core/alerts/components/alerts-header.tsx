@@ -27,7 +27,7 @@ export default function AlertsHeader({
             <div className="inline-flex items-center gap-2 rounded-full bg-foreground/10 px-3 py-1">
               <span className="h-1.5 w-1.5 rounded-full bg-foreground" />
               <span className="text-xs font-medium text-foreground">
-                {unreadCount} new
+                {unreadCount} unread
               </span>
             </div>
           </>
