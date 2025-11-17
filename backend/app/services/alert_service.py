@@ -239,6 +239,143 @@ class AlertService:
         return "warning"
     
     # ========================================================================
+    # Alert Resolution
+    # ========================================================================
+    
+    async def resolve_sku_threshold(
+        self, 
+        sku_code: str,
+        qty_before: int,
+        qty_after: int
+    ) -> list[Alert]:
+        """
+        Resolve a low stock alert if SKU just crossed back above its reorder point.
+        """
+
+        print(f"[resolve_sku_threshold] Start — sku={sku_code}, qty_before={qty_before}, qty_after={qty_after}")
+
+        # Fetch SKU configuration
+        result = await self.session.execute(
+            select(SKU.reorder_point)
+            .filter(
+                SKU.code == sku_code,
+                SKU.org_id == self.org_id
+            )
+        )
+        reorder_point = result.scalar_one_or_none()
+        print(f"[resolve_sku_threshold] Retrieved reorder_point={reorder_point} for sku={sku_code}")
+
+        if reorder_point is None:
+            print(f"[resolve_sku_threshold] No reorder point found — exiting early")
+            return []
+
+        # Check if the reorder point was crossed upward
+        crossed_upward = (qty_before < reorder_point and qty_after >= reorder_point)
+        print(
+            "[resolve_sku_threshold] Reorder point crossing check — "
+            f"before({qty_before}) < rp({reorder_point}) and after({qty_after}) >= rp({reorder_point}) "
+            f"=> crossed_upward={crossed_upward}"
+        )
+
+        if not crossed_upward:
+            print(f"[resolve_sku_threshold] SKU did not cross upward — exiting with no action")
+            return []
+
+        # Find ALL low stock alerts containing this SKU
+        print(f"[resolve_sku_threshold] Fetching low_stock alerts containing sku={sku_code}")
+        result = await self.session.execute(
+            select(Alert)
+            .filter(
+                Alert.org_id == self.org_id,
+                Alert.alert_type == "low_stock",
+                Alert.alert_metadata["sku_codes"].astext.contains(f'"{sku_code}"')
+            )
+            .with_for_update()
+        )
+        affected_alerts = result.scalars().all()
+        print(f"[resolve_sku_threshold] Found {len(affected_alerts)} potentially affected alerts")
+
+        if not affected_alerts:
+            print(f"[resolve_sku_threshold] No matching alerts — nothing to resolve")
+            return []
+
+        modified_alerts = []
+
+        for alert in affected_alerts:
+            print(f"\n[resolve_sku_threshold] Processing alert id={alert.id}")
+            sku_codes = alert.alert_metadata.get("sku_codes", [])
+            print(f"[alert {alert.id}] sku_codes in alert: {sku_codes}")
+
+            # Extra safety check in case of false-positive contains()
+            if sku_code not in sku_codes:
+                print(
+                    f"[alert {alert.id}] SKU present in DB filter but not in metadata — "
+                    "possible false-positive; skipping"
+                )
+                continue
+
+            # If only one SKU, delete the entire alert
+            if len(sku_codes) == 1:
+                print(f"[alert {alert.id}] Alert contains only this SKU — deleting alert")
+                await self.session.delete(alert)
+                modified_alerts.append(alert)
+                continue
+
+            # Otherwise, remove SKU from alert
+            print(f"[alert {alert.id}] Removing sku={sku_code} from multi-SKU alert")
+            alert.alert_metadata["sku_codes"].remove(sku_code)
+
+            # Remove details for this SKU
+            before_details_count = len(alert.alert_metadata.get("details", []))
+            alert.alert_metadata["details"] = [
+                d for d in alert.alert_metadata["details"]
+                if d["sku_code"] != sku_code
+            ]
+            after_details_count = len(alert.alert_metadata.get("details", []))
+            print(
+                f"[alert {alert.id}] Details reduced {before_details_count} -> {after_details_count}"
+            )
+
+            # Update title
+            remaining_count = len(alert.alert_metadata["sku_codes"])
+            alert.title = self._generate_low_stock_title(remaining_count)
+            print(
+                f"[alert {alert.id}] Updated title based on {remaining_count} remaining SKU(s): {alert.title}"
+            )
+
+            # Recalculate severity
+            remaining_items = [
+                LowStockItem(
+                    sku_code=d["sku_code"],
+                    sku_name=d["sku_name"],
+                    available=d["available"],
+                    reorder_point=d["reorder_point"]
+                )
+                for d in alert.alert_metadata["details"]
+            ]
+            new_severity = self._calculate_severity(remaining_items)
+            print(
+                f"[alert {alert.id}] Severity recalculated based on remaining items — new_severity={new_severity}"
+            )
+            alert.severity = new_severity
+
+            # Timestamp update
+            ts = datetime.now(timezone.utc).isoformat()
+            alert.alert_metadata["check_timestamp"] = ts
+            print(f"[alert {alert.id}] Updated check_timestamp={ts}")
+
+            # Mark SQLAlchemy JSON field as modified
+            flag_modified(alert, "alert_metadata")
+
+            modified_alerts.append(alert)
+
+        print(f"[resolve_sku_threshold] {len(modified_alerts)} alerts modified/deleted — flushing changes")
+        await self.session.flush()
+
+        print("[resolve_sku_threshold] Completed successfully")
+        return modified_alerts
+    
+    # ========================================================================
     # Alert Querying
     # ========================================================================
     

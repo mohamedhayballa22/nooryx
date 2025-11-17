@@ -158,13 +158,12 @@ class TransactionService:
                     )
                 raise
 
-            # Store threshold check data if this was an outbound transaction
-            if transaction.is_outbound:
-                self._threshold_check_data = {
-                    'sku_code': txn_payload.sku_code,
-                    'available_before': available_before,
-                    'available_after': available_after
-                }
+            # Store threshold check data for background task
+            self._threshold_check_data = {
+                'sku_code': txn_payload.sku_code,
+                'available_before': available_before,
+                'available_after': available_after
+            }
             
             # 6. Track costs for costing methods (FIFO/LIFO/WAC)
             # Note: transaction.cost_price is already in minor units at this point
@@ -502,6 +501,54 @@ class TransactionService:
             except Exception as e:
                 # Log error but don't crash - this is a background task
                 logger.error(f"Error in threshold check for SKU {sku_code}: {e}")
+                await session.rollback()
+
+    
+    def schedule_low_stock_resolution(self) -> None:
+        """
+        Schedule a low stock resolution check as a background task.
+        
+        This should be called AFTER the transaction is committed in the endpoint.
+        The check runs asynchronously and won't block the response.
+        """
+        if not self.background_tasks or not self._threshold_check_data:
+            return
+        
+        # Extract check data
+        check_data = self._threshold_check_data
+        
+        # Schedule the resolution check to run after response is sent
+        self.background_tasks.add_task(
+            self._perform_threshold_resolution,
+            check_data['sku_code'],
+            check_data['available_before'],
+            check_data['available_after']
+        )
+
+    async def _perform_threshold_resolution(
+        self,
+        sku_code: str,
+        available_before: int,
+        available_after: int
+    ) -> None:
+        """
+        Background task that checks if SKU crossed back above reorder point threshold.
+        
+        This runs AFTER the HTTP response has been sent to the client.
+        Uses a new database session to avoid connection issues.
+        """
+        async with async_session_maker() as session:
+            try:
+                alert_service = AlertService(session, self.org_id)
+                await alert_service.resolve_sku_threshold(
+                    sku_code=sku_code,
+                    qty_before=available_before,
+                    qty_after=available_after
+                )
+                await session.commit()
+            except Exception as e:
+                # Log error but don't crash - this is a background task
+                logger.error(f"Error in threshold resolution for SKU {sku_code}: {e}")
                 await session.rollback()
     
     
