@@ -84,7 +84,7 @@ class LowStockItem(BaseModel):
             return "critical"
         if self.reorder_point > 0:
             ratio = self.available / self.reorder_point
-        if ratio <= 0.25:  # 25% or less of reorder point
-            return "critical"
+            if ratio <= 0.25:  # 25% or less of reorder point
+                return "critical"
         return "warning"
     
