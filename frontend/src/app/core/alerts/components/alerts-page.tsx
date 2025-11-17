@@ -24,7 +24,7 @@ export default function AlertsPage() {
   }
 
   return (
-    <div className="mx-auto max-w-2xl py-8">
+    <div className="mx-auto max-w-2xl py-6">
       <AlertsHeader unreadCount={unreadCount} onMarkAllRead={handleMarkAllRead} />
 
       <div className="mb-6 flex items-center justify-between">
