@@ -13,7 +13,7 @@ export const updateSkuFormConfig: UpdateSkuFormConfig = {
   
   getDescription: (skuContext) => {
     return skuContext
-      ? `Update details for ${skuContext.sku_name}.`
+      ? `Update details for ${skuContext.sku_code}.`
       : "Update details for an existing SKU."
   },
   
