@@ -8,9 +8,12 @@ export default function AlertsFilter({
   onChange,
 }: AlertsFilterProps) {
   return (
-    <div className="flex gap-2 border-b border-border">
+    <div className="flex gap-2 border-b border-border" role="tablist">
       <button
         onClick={() => onChange('all')}
+        role="tab"
+        aria-selected={currentFilter === 'all'}
+        aria-controls="alerts-panel"
         className={`cursor-pointer px-3 py-2 text-sm font-medium transition-colors ${
           currentFilter === 'all'
             ? 'border-b-2 border-foreground text-foreground'
@@ -21,6 +24,9 @@ export default function AlertsFilter({
       </button>
       <button
         onClick={() => onChange('unread')}
+        role="tab"
+        aria-selected={currentFilter === 'unread'}
+        aria-controls="alerts-panel"
         className={`cursor-pointer px-3 py-2 text-sm font-medium transition-colors ${
           currentFilter === 'unread'
             ? 'border-b-2 border-foreground text-foreground'
