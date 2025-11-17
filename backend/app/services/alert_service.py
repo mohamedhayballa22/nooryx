@@ -132,10 +132,12 @@ class AlertService:
             ]
             
             if new_items:
-                # Severity: critical if already critical OR any new item has available <= 0
-                has_new_critical = any(item.available <= 0 for item in new_items)
+                # Calculate severity for new items
+                new_severity = self._calculate_severity(new_items)
+                
+                # Escalate to critical if either old or new items are critical
                 severity: Literal["warning", "critical"] = (
-                    "critical" if (existing_alert.severity == "critical" or has_new_critical) 
+                    "critical" if (existing_alert.severity == "critical" or new_severity == "critical") 
                     else "warning"
                 )
 
@@ -174,9 +176,7 @@ class AlertService:
         
         else:
             # CREATE: New alert for today
-            # Severity: critical if any SKU has available <= 0
-            has_critical = any(item.available <= 0 for item in low_stock_items)
-            severity: Literal["warning", "critical"] = "critical" if has_critical else "warning"
+            severity = self._calculate_severity(low_stock_items)
             
             metadata = LowStockMetadata(
                 sku_codes=[item.sku_code for item in low_stock_items],
@@ -206,6 +206,37 @@ class AlertService:
             await self.session.flush()
             
             return alert
+
+    def _calculate_severity(self, items: list[LowStockItem]) -> Literal["warning", "critical"]:
+        """
+        Calculate alert severity based on how far below reorder point items are.
+        
+        Critical if ANY item meets these conditions:
+        - Completely out of stock (available <= 0)
+        - Less than 25% of reorder point remains
+        
+        Otherwise warning.
+        
+        Args:
+            items: List of low stock items to evaluate
+            
+        Returns:
+            "critical" or "warning"
+        """
+        for item in items:
+            # Out of stock is always critical
+            if item.available <= 0:
+                return "critical"
+            
+            # Avoid division by zero for edge case of reorder_point = 0
+            if item.reorder_point > 0:
+                percentage_remaining = (item.available / item.reorder_point) * 100
+                
+                # Less than 25% of reorder point is critical
+                if percentage_remaining < 25:
+                    return "critical"
+        
+        return "warning"
     
     # ========================================================================
     # Alert Querying

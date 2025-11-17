@@ -82,5 +82,9 @@ class LowStockItem(BaseModel):
         """Determine severity based on available quantity."""
         if self.available <= 0:
             return "critical"
+        if self.reorder_point > 0:
+            ratio = self.available / self.reorder_point
+        if ratio <= 0.25:  # 25% or less of reorder point
+            return "critical"
         return "warning"
     
