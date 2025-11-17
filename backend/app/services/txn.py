@@ -53,6 +53,7 @@ class TransactionService:
             session: Database session
             org_id: Organization ID (tenant isolation)
             user_id: Optional user ID for audit trail
+            background_tasks: Optional FastAPI BackgroundTasks for scheduling async checks
         """
         self.session = session
         self.org_id = org_id
