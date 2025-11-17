@@ -407,7 +407,7 @@ class AlertService:
         
         return True
     
-    async def mark_all_as_read(self, user_id: UUID) -> int:
+    async def mark_all_as_read(self, user: User) -> int:
         """
         Mark all alerts as read for the user.
         
@@ -422,12 +422,18 @@ class AlertService:
             select(Alert.id)
             .filter(
                 Alert.org_id == self.org_id,
-                ~exists(
+                Alert.created_at >= user.created_at,
+                # Exclude team_member_joined for the user who joined
+                ~(
+                    (Alert.alert_type == "team_member_joined") &
+                    (Alert.alert_metadata["user_id"].astext == str(user.id))
+                ),
+                ~exists( 
                     select(1)
                     .select_from(AlertReadReceipt)
                     .filter(
                         AlertReadReceipt.alert_id == Alert.id,
-                        AlertReadReceipt.user_id == user_id
+                        AlertReadReceipt.user_id == user.id
                     )
                 )
             )
@@ -439,7 +445,7 @@ class AlertService:
         
         # Bulk insert read receipts
         receipts = [
-            AlertReadReceipt(alert_id=alert_id, user_id=user_id)
+            AlertReadReceipt(alert_id=alert_id, user_id=user.id)
             for alert_id in unread_alert_ids
         ]
         self.session.add_all(receipts)
