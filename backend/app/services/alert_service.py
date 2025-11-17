@@ -124,23 +124,22 @@ class AlertService:
         existing_alert = result.scalar_one_or_none()
         
         if existing_alert:
-            # UPDATE: Merge new items with existing
+            # UPDATE: Merge new items OR update existing items
             existing_codes = set(existing_alert.alert_metadata.get('sku_codes', []))
             new_items = [
                 item for item in low_stock_items 
                 if item.sku_code not in existing_codes
             ]
+            updated_items = [
+                item for item in low_stock_items
+                if item.sku_code in existing_codes
+            ]
             
+            needs_update = False
+            
+            # Add completely new items
             if new_items:
-                # Calculate severity for new items
-                new_severity = self._calculate_severity(new_items)
-                
-                # Escalate to critical if either old or new items are critical
-                severity: Literal["warning", "critical"] = (
-                    "critical" if (existing_alert.severity == "critical" or new_severity == "critical") 
-                    else "warning"
-                )
-
+                needs_update = True
                 # Add new SKU codes
                 existing_alert.alert_metadata['sku_codes'].extend(
                     [item.sku_code for item in new_items]
@@ -156,12 +155,56 @@ class AlertService:
                     ).model_dump(mode='json')
                     for item in new_items
                 ])
+            
+            # Update existing items (e.g., quantity changed, went out of stock)
+            if updated_items:
+                needs_update = True
+                for item in updated_items:
+                    # Find and update the detail
+                    for detail in existing_alert.alert_metadata['details']:
+                        if detail['sku_code'] == item.sku_code:
+                            detail['available'] = item.available
+                            detail['reorder_point'] = item.reorder_point
+                            break
+            
+            if needs_update:
+                # Recalculate severity for ALL items
+                all_items = [
+                    LowStockItem(
+                        sku_code=detail['sku_code'],
+                        sku_name=detail['sku_name'],
+                        available=detail['available'],
+                        reorder_point=detail['reorder_point']
+                    )
+                    for detail in existing_alert.alert_metadata['details']
+                ]
+                severity = self._calculate_severity(all_items)
+                
+                # Count out of stock items
+                out_of_stock_count = sum(1 for item in all_items if item.available <= 0)
                 
                 # Update title and metadata
                 total_count = len(existing_alert.alert_metadata['sku_codes'])
                 existing_alert.title = self._generate_low_stock_title(total_count)
                 existing_alert.alert_metadata['check_timestamp'] = datetime.now(timezone.utc).isoformat()
                 existing_alert.severity = severity
+                
+                # Generate message based on update state
+                new_count = len(new_items)
+                
+                # Use out of stock info if present, otherwise use severity label
+                if out_of_stock_count > 0:
+                    status_label = f"{out_of_stock_count} out of stock"
+                else:
+                    status_label = "Critically low" if severity == "critical" else "Action needed soon"
+                
+                if new_count == 1:
+                    existing_alert.message = f"1 additional SKU below reorder point ({total_count} total) • {status_label}"
+                elif new_count > 1:
+                    existing_alert.message = f"{new_count} additional SKUs below reorder point ({total_count} total) • {status_label}"
+                else:
+                    # Only updates to existing items (e.g., went out of stock)
+                    existing_alert.message = f"{total_count} SKU{'s' if total_count != 1 else ''} below reorder points • {status_label}"
                 
                 # Mark as modified for SQLAlchemy
                 flag_modified(existing_alert, "alert_metadata")
@@ -192,12 +235,20 @@ class AlertService:
                 check_timestamp=datetime.now(timezone.utc).isoformat()
             )
             
+            # Generate message for new alert
+            item_count = len(low_stock_items)
+            if item_count == 1:
+                message = f"{low_stock_items[0].sku_name} is below reorder point"
+            else:
+                severity_label = "Critically low stock" if severity == "critical" else "Action needed soon"
+                message = f"{item_count} SKUs below reorder points • {severity_label}"
+            
             alert = Alert(
                 org_id=self.org_id,
                 alert_type="low_stock",
                 severity=severity,
                 title=self._generate_low_stock_title(len(low_stock_items)),
-                message="Available stock has fallen below reorder points",
+                message=message,
                 aggregation_key=aggregation_key,
                 alert_metadata=metadata.model_dump(mode='json')
             )
@@ -666,10 +717,11 @@ class AlertService:
         if not alerts:
             return None
         
-        # Check if reorder point was crossed in this transaction
+        # Check if reorder point was crossed in this transaction OR if item went out of stock
         crossed_threshold = (qty_before >= reorder_point and qty_after < reorder_point)
-        
-        if not crossed_threshold:
+        went_out_of_stock = (qty_before > 0 and qty_after == 0)
+
+        if not (crossed_threshold or went_out_of_stock):
             return None
         
         # Create low stock item
