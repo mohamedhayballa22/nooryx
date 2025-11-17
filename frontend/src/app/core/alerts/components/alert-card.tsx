@@ -2,6 +2,7 @@
 
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
+import { useFormatting } from '@/hooks/use-formatting'
 
 interface Alert {
   alert_type: 'low_stock' | 'team_member_joined'
@@ -19,6 +20,7 @@ interface AlertCardProps {
 
 export default function AlertCard({ alert }: AlertCardProps) {
   const [expanded, setExpanded] = useState(false)
+  const { formatDate } = useFormatting();
 
   const getSeverityStyles = (severity: string) => {
     switch (severity) {
@@ -45,11 +47,10 @@ export default function AlertCard({ alert }: AlertCardProps) {
 
   const formatTime = (timestamp: string) => {
     const date = new Date(timestamp)
-    return date.toLocaleTimeString('en-US', {
-      hour: '2-digit',
-      minute: '2-digit',
-      hour12: true,
-    })
+    if (isNaN(date.getTime())) {
+      return 'N/A'
+    }
+    return formatDate(date)
   }
 
   const isLowStock = alert.alert_type === 'low_stock'
@@ -67,6 +68,8 @@ export default function AlertCard({ alert }: AlertCardProps) {
       <button
         onClick={() => setExpanded(!expanded)}
         className="cursor-pointer w-full px-4 py-3.5 text-left hover:bg-muted/30 transition-colors rounded-lg"
+        aria-expanded={expanded}
+        aria-label={`Toggle alert details: ${alert.title}`}
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
@@ -99,7 +102,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
           {isLowStock && (
             <>
               <div className="space-y-2">
-                {(alert.alert_metadata.details || []).map(
+                {(alert.alert_metadata?.details || []).map(
                   (detail: {
                     sku_code: string
                     sku_name: string
@@ -136,7 +139,10 @@ export default function AlertCard({ alert }: AlertCardProps) {
                   {formatTime(alert.alert_metadata.check_timestamp)}
                 </p>
                 {!alert.is_read && (
-                  <button className="text-xs font-medium text-foreground/60 hover:text-foreground transition-colors">
+                  <button
+                    onClick={() => {/* TODO: implement mark as read */}}
+                    className="text-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
+                  >
                     Mark as read
                   </button>
                 )}
@@ -162,7 +168,10 @@ export default function AlertCard({ alert }: AlertCardProps) {
 
               {!alert.is_read && (
                 <div className="flex items-center justify-end pt-1">
-                  <button className="text-xs font-medium text-foreground/60 hover:text-foreground transition-colors">
+                  <button 
+                    onClick={() => {/* TODO: implement mark as read */}}
+                    className="text-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
+                  >
                     Mark as read
                   </button>
                 </div>
