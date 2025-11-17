@@ -38,20 +38,17 @@ export default function AlertCard({ alert }: AlertCardProps) {
       case 'warning':
         return {
           dot: 'bg-amber-500',
-          bg: 'bg-amber-500/5 dark:bg-amber-500/10',
-          border: 'border-amber-200/50 dark:border-amber-500/20',
+          badge: 'bg-amber-500/10 text-amber-700 dark:text-amber-400 border-amber-200/50 dark:border-amber-500/30',
         }
       case 'critical':
         return {
           dot: 'bg-red-500',
-          bg: 'bg-red-500/5 dark:bg-red-500/10',
-          border: 'border-red-200/50 dark:border-red-500/20',
+          badge: 'bg-red-500/10 text-red-700 dark:text-red-400 border-red-200/50 dark:border-red-500/30',
         }
       default:
         return {
-          dot: 'bg-gray-400 dark:bg-gray-500',
-          bg: 'bg-transparent',
-          border: 'border-border',
+          dot: 'bg-blue-500',
+          badge: 'bg-blue-500/10 text-blue-700 dark:text-blue-400 border-blue-200/50 dark:border-blue-500/30',
         }
     }
   }
@@ -79,8 +76,8 @@ export default function AlertCard({ alert }: AlertCardProps) {
     <div
       className={`rounded-lg border transition-all ${
         alert.is_read
-          ? 'border-border bg-card'
-          : `${severityStyles.border} ${severityStyles.bg}`
+          ? 'border-border bg-card opacity-60'
+          : 'border-border bg-card shadow-sm'
       }`}
     >
       <button
@@ -91,13 +88,21 @@ export default function AlertCard({ alert }: AlertCardProps) {
       >
         <div className="flex items-start justify-between gap-3">
           <div className="flex items-start gap-3 flex-1 min-w-0">
-            {/* Severity indicator */}
-            <div className={`h-2 w-2 rounded-full flex-shrink-0 mt-1 ${severityStyles.dot}`} />
+            {/* Unread indicator - bold vertical bar */}
+            {!alert.is_read && (
+              <div className={`h-5 w-1 rounded-full flex-shrink-0 ${severityStyles.dot}`} />
+            )}
 
             <div className="flex-1 min-w-0">
-              <h3 className={`font-medium text-sm ${!alert.is_read ? 'text-foreground' : 'text-muted-foreground'}`}>
-                {alert.title}
-              </h3>
+              <div className="flex items-center gap-2 flex-wrap">
+                <h3 className={`font-medium text-sm ${!alert.is_read ? 'text-foreground' : 'text-muted-foreground'}`}>
+                  {alert.title}
+                </h3>
+                {/* Severity badge */}
+                <span className={`inline-flex items-center px-2 py-0.5 rounded text-xs font-medium border ${severityStyles.badge}`}>
+                  {alert.severity}
+                </span>
+              </div>
               {alert.message && (
                 <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
                   {alert.message}
@@ -153,7 +158,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
                   <button
                     onClick={handleMarkAsRead}
                     disabled={markAsReadMutation.isPending}
-                    className="cursor-pointer text-xs font-medium text-foreground/60 hover:text-foreground transition-colors disabled:opacity-50"
+                    className="cursor-pointer text-xs font-medium text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
                   >
                     {markAsReadMutation.isPending ? 'Marking...' : 'Mark as read'}
                   </button>
@@ -183,7 +188,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
                   <button 
                     onClick={handleMarkAsRead}
                     disabled={markAsReadMutation.isPending}
-                    className="cursor-pointer text-xs font-medium text-foreground/60 hover:text-foreground transition-colors disabled:opacity-50"
+                    className="cursor-pointer text-xs font-medium text-primary hover:text-primary/80 transition-colors disabled:opacity-50"
                   >
                     {markAsReadMutation.isPending ? 'Marking...' : 'Mark as read'}
                   </button>
