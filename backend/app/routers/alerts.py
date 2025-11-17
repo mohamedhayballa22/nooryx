@@ -121,7 +121,7 @@ async def mark_all_alerts_as_read(
     
     alert_service = AlertService(session, current_user.org_id)
     
-    marked_count = await alert_service.mark_all_as_read(current_user.id)
+    marked_count = await alert_service.mark_all_as_read(current_user)
     await session.commit()
     
     return MarkReadResponse(marked_count=marked_count)
