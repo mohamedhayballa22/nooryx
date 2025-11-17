@@ -3,24 +3,35 @@
 import { useState } from 'react'
 import { ChevronDown } from 'lucide-react'
 import { useFormatting } from '@/hooks/use-formatting'
+import { useMarkAlertAsRead } from '@/hooks/use-alerts'
+import type { AlertResponse } from '@/lib/api/alerts'
 
-interface Alert {
-  alert_type: 'low_stock' | 'team_member_joined'
-  severity: string
-  title: string
-  message: string | null
-  alert_metadata: any
-  id: string
-  is_read: boolean
+interface LowStockMetadata {
+  details: Array<{
+    sku_code: string
+    sku_name: string
+    available: number
+    reorder_point: number
+  }>
+  sku_codes: string[]
+  check_timestamp: string
+}
+
+interface TeamMemberJoinedMetadata {
+  role: string | null
+  user_id: string
+  user_name: string
+  user_email: string
 }
 
 interface AlertCardProps {
-  alert: Alert
+  alert: AlertResponse
 }
 
 export default function AlertCard({ alert }: AlertCardProps) {
   const [expanded, setExpanded] = useState(false)
-  const { formatDate } = useFormatting();
+  const { formatDate } = useFormatting()
+  const markAsReadMutation = useMarkAlertAsRead()
 
   const getSeverityStyles = (severity: string) => {
     switch (severity) {
@@ -53,9 +64,16 @@ export default function AlertCard({ alert }: AlertCardProps) {
     return formatDate(date)
   }
 
+  const handleMarkAsRead = async () => {
+    await markAsReadMutation.mutateAsync(alert.id)
+  }
+
   const isLowStock = alert.alert_type === 'low_stock'
   const isTeamMemberJoined = alert.alert_type === 'team_member_joined'
   const severityStyles = getSeverityStyles(alert.severity)
+
+  const lowStockMetadata = alert.alert_metadata as LowStockMetadata | undefined
+  const teamMemberMetadata = alert.alert_metadata as TeamMemberJoinedMetadata | undefined
 
   return (
     <div
@@ -99,69 +117,63 @@ export default function AlertCard({ alert }: AlertCardProps) {
 
       {expanded && (
         <div className="border-t border-border px-4 py-3 space-y-3">
-          {isLowStock && (
+          {isLowStock && lowStockMetadata && (
             <>
               <div className="space-y-2">
-                {(alert.alert_metadata?.details || []).map(
-                  (detail: {
-                    sku_code: string
-                    sku_name: string
-                    available: number
-                    reorder_point: number
-                  }) => (
-                    <div
-                      key={detail.sku_code}
-                      className="rounded-md bg-muted/50 p-3 flex items-center justify-between text-sm"
-                    >
-                      <div className="min-w-0 flex-1">
-                        <p className="font-medium text-foreground text-sm">
-                          {detail.sku_name}
-                        </p>
-                        <p className="text-xs text-muted-foreground mt-0.5">
-                          {detail.sku_code}
-                        </p>
-                      </div>
-                      <div className="text-right ml-4">
-                        <p className="font-medium text-foreground text-sm">
-                          Available: {detail.available}
-                        </p>
-                        <p className="text-xs text-muted-foreground">
-                          Reorder Point: {detail.reorder_point}
-                        </p>
-                      </div>
+                {(lowStockMetadata.details || []).map((detail) => (
+                  <div
+                    key={detail.sku_code}
+                    className="rounded-md bg-muted/50 p-3 flex items-center justify-between text-sm"
+                  >
+                    <div className="min-w-0 flex-1">
+                      <p className="font-medium text-foreground text-sm">
+                        {detail.sku_name}
+                      </p>
+                      <p className="text-xs text-muted-foreground mt-0.5">
+                        {detail.sku_code}
+                      </p>
                     </div>
-                  )
-                )}
+                    <div className="text-right ml-4">
+                      <p className="font-medium text-foreground text-sm">
+                        Available: {detail.available}
+                      </p>
+                      <p className="text-xs text-muted-foreground">
+                        Reorder Point: {detail.reorder_point}
+                      </p>
+                    </div>
+                  </div>
+                ))}
               </div>
 
               <div className="flex items-center justify-between pt-1">
                 <p className="text-xs text-muted-foreground">
-                  {formatTime(alert.alert_metadata?.check_timestamp)}
+                  {formatTime(lowStockMetadata.check_timestamp)}
                 </p>
                 {!alert.is_read && (
                   <button
-                    onClick={() => {/* TODO: implement mark as read */}}
-                    className="text-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
+                    onClick={handleMarkAsRead}
+                    disabled={markAsReadMutation.isPending}
+                    className="cursor-pointer text-xs font-medium text-foreground/60 hover:text-foreground transition-colors disabled:opacity-50"
                   >
-                    Mark as read
+                    {markAsReadMutation.isPending ? 'Marking...' : 'Mark as read'}
                   </button>
                 )}
               </div>
             </>
           )}
 
-          {isTeamMemberJoined && (
+          {isTeamMemberJoined && teamMemberMetadata && (
             <>
               <div className="rounded-md bg-muted/50 p-3 space-y-1.5 text-sm">
                 <p className="font-medium text-foreground text-sm">
-                  {alert.alert_metadata?.user_name}
+                  {teamMemberMetadata.user_name}
                 </p>
                 <p className="text-xs text-muted-foreground">
-                  {alert.alert_metadata?.user_email}
+                  {teamMemberMetadata.user_email}
                 </p>
-                {alert.alert_metadata?.role && (
+                {teamMemberMetadata.role && (
                   <p className="text-xs text-muted-foreground">
-                    {alert.alert_metadata.role}
+                    {teamMemberMetadata.role}
                   </p>
                 )}
               </div>
@@ -169,10 +181,11 @@ export default function AlertCard({ alert }: AlertCardProps) {
               {!alert.is_read && (
                 <div className="flex items-center justify-end pt-1">
                   <button 
-                    onClick={() => {/* TODO: implement mark as read */}}
-                    className="cursor-pointer text-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
+                    onClick={handleMarkAsRead}
+                    disabled={markAsReadMutation.isPending}
+                    className="cursor-pointer text-xs font-medium text-foreground/60 hover:text-foreground transition-colors disabled:opacity-50"
                   >
-                    Mark as read
+                    {markAsReadMutation.isPending ? 'Marking...' : 'Mark as read'}
                   </button>
                 </div>
               )}
