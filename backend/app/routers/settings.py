@@ -232,10 +232,11 @@ async def update_settings(
     return
 
 
-@router.patch("/{sku_code}", status_code=status.HTTP_204_NO_CONTENT)
+@router.patch("/sku/{sku_code}", status_code=status.HTTP_204_NO_CONTENT)
 async def update_stock_optimized(
     sku_code: str,
     update_data: SKUThresholdsUpdateRequest,
+    user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_tenant_session),
 ):
     """ Update the stock thresholds and alerts for a specific SKU. """
@@ -247,7 +248,7 @@ async def update_stock_optimized(
         
     update_stmt = (
         update(SKU)
-        .where(SKU.code == sku_code)
+        .where(SKU.code == sku_code, SKU.org_id == user.org_id)
         .values(update_data_dict)
     )
     

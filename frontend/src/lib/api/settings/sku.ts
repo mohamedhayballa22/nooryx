@@ -12,7 +12,7 @@ export async function updateSKU(
 ): Promise<void> {
   const { sku_code, ...updateData } = payload; 
 
-  await protectedApiClient(`/settings/${encodeURIComponent(sku_code)}`, {
+  await protectedApiClient(`/settings/sku/${encodeURIComponent(sku_code)}`, {
     method: "PATCH",
     body: JSON.stringify(updateData), 
   });
