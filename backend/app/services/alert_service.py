@@ -87,9 +87,9 @@ class AlertService:
         return alert
     
     async def create_or_update_low_stock_alert(
-        self,
-        low_stock_items: list[LowStockItem]
-    ) -> Alert:
+            self,
+            low_stock_items: list[LowStockItem]
+        ) -> Alert:
         """
         Create new low stock alert or update existing one for today.
         
@@ -119,12 +119,9 @@ class AlertService:
                 Alert.org_id == self.org_id,
                 Alert.aggregation_key == aggregation_key
             )
+            .with_for_update()
         )
         existing_alert = result.scalar_one_or_none()
-        
-        # Determine overall severity (critical if any SKU has available <= 0)
-        has_critical = any(item.available <= 0 for item in low_stock_items)
-        severity: Literal["warning", "critical"] = "critical" if has_critical else "warning"
         
         if existing_alert:
             # UPDATE: Merge new items with existing
@@ -135,6 +132,13 @@ class AlertService:
             ]
             
             if new_items:
+                # Severity: critical if already critical OR any new item has available <= 0
+                has_new_critical = any(item.available <= 0 for item in new_items)
+                severity: Literal["warning", "critical"] = (
+                    "critical" if (existing_alert.severity == "critical" or has_new_critical) 
+                    else "warning"
+                )
+
                 # Add new SKU codes
                 existing_alert.alert_metadata['sku_codes'].extend(
                     [item.sku_code for item in new_items]
@@ -170,6 +174,10 @@ class AlertService:
         
         else:
             # CREATE: New alert for today
+            # Severity: critical if any SKU has available <= 0
+            has_critical = any(item.available <= 0 for item in low_stock_items)
+            severity: Literal["warning", "critical"] = "critical" if has_critical else "warning"
+            
             metadata = LowStockMetadata(
                 sku_codes=[item.sku_code for item in low_stock_items],
                 details=[
