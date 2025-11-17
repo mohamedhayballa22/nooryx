@@ -39,7 +39,7 @@ router = APIRouter()
 )
 async def get_alerts(
     read: Optional[Literal["read", "unread"]] = None,
-    type: Optional[Literal["team_member_joined", "low_stock"]] = None,
+    alert_type: Optional[Literal["team_member_joined", "low_stock"]] = None,
     current_user: User = Depends(get_current_user),
     session: AsyncSession = Depends(get_session)
 ):
@@ -50,7 +50,7 @@ async def get_alerts(
     query = await alert_service.build_alerts_query(
         user=current_user,
         read_filter=read,
-        alert_type=type
+        alert_type=alert_type
     )
     
     return await apaginate(
