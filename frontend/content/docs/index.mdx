@@ -1,0 +1,80 @@
+---
+title: Introduction
+description: The operating system for modern inventory.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Box, Layers, ShieldCheck, TrendingUp } from 'lucide-react';
+
+**Nooryx is a high-definition inventory management platform designed for teams who demand precision, speed, and clarity.**
+
+We built Nooryx because the standard for inventory software has been too low for too long. Growing brands have been forced to choose between fragile spreadsheets or bloated, legacy ERPs that feel like they were built in the 90s.
+
+Nooryx bridges that gap. It is a **sharp tool**—a dedicated, ledger-based system that solves the painful reality of tracking physical goods with the same rigor you expect from your financial software.
+
+<Callout type="info" title="The Core Philosophy: Ledger & State">
+  To ensure perfect accuracy, Nooryx treats inventory not just as a number, but as an **immutable, transactional ledger**—like a bank account. Every stock movement is treated as a financial transaction. Read our **[Core Philosophy](/welcome/philosophy)** to understand the architecture that guarantees auditability and precision.
+</Callout>
+
+## What makes Nooryx different?
+
+We focus on the specific, complex problems of inventory state management. We don't try to be your CRM, your website builder, or your payroll provider. We are the source of truth for your stock.
+
+<Cards>
+  <Card
+    icon={<Layers />}
+    title="Ledger-Based Truth"
+    href="/welcome/philosophy"
+  >
+    We don't just overwrite numbers. Every change in stock is an auditable event. You can trace the history of a single SKU from receipt to shipment with zero gaps.
+  </Card>
+  <Card
+    icon={<ShieldCheck />}
+    title="Smart Reservations"
+    href="/core-concepts/reservations"
+  >
+    Stop overselling. Nooryx distinguishes between **On Hand** (physical) and **Available** (sellable) stock, holding items for orders before they leave the door.
+  </Card>
+  <Card
+    icon={<TrendingUp />}
+    title="Dynamic Valuation"
+    href="/valuation/methods"
+  >
+    Understand your true holding costs. Switch between **FIFO**, **LIFO**, and **WAC** (Weighted Average Cost) to view your inventory value through the lens that fits your strategy.
+  </Card>
+  <Card
+    icon={<Box />}
+    title="Multi-Location Native"
+    href="/guides/locations"
+  >
+    Manage global stock effortlessly. Whether it's a warehouse in Madrid or a retail backroom in NYC, get a unified view of your assets in real-time.
+  </Card>
+</Cards>
+
+## What Nooryx is (and isn't)
+
+To get the most out of Nooryx, it helps to understand where we fit in your stack.
+
+### Nooryx is...
+* **Deterministic:** Inputs produce predictable outputs. No magic numbers.
+* **Collaborative:** Built for teams, with granular permissions, audit trails, and activity feeds.
+* **Fast:** Keyboard-driven workflows, instant search, and a UI that respects your time.
+* **A State Machine:** We handle the complexity of `Available`, `Reserved`, `Damaged`, and `In-Transit` states so you don't have to.
+
+### Nooryx is not...
+* **A Website Builder:** We integrate with your sales channels (Shopify, etc.), we don't replace them.
+* **A General Purpose ERP:** We don't do HR or Payroll. We do Inventory perfectly.
+* **A Spreadsheet:** Spreadsheets are flexible but fragile. Nooryx imposes the necessary structure to scale without breaking.
+
+## Getting Started
+
+If you are new to Nooryx, we recommend starting with the fundamentals of how we handle stock movement.
+
+1.  **[The Core Philosophy: Ledger & State](/welcome/philosophy)**: Understand the immutable record behind every number.
+2.  **[Core Concepts](/concepts/sku-and-variants)**: Learn how we structure Products, SKUs, and Locations.
+3.  **[Importing Data](/guides/import)**: Bring your existing stock levels into Nooryx.
+
+<Callout title="Ready to dive in?">
+  Check out the **[Quick Start Guide](/getting-started)** to set up your organization, invite your team, and log your first shipment in under 5 minutes.
+</Callout>
