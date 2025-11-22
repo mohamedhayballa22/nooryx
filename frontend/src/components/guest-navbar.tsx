@@ -180,12 +180,28 @@ export default function GuestNavbar() {
             </nav>
             <div className="h-px bg-border my-2" />
             <div className="flex flex-col gap-2">
-                <Button variant="outline" className="w-full justify-start" asChild>
-                    <Link href="/login">Log In</Link>
-                </Button>
-                <Button className="w-full justify-start" asChild>
-                    <Link href="/demo">Get Started</Link>
-                </Button>
+                {isAuthenticated ? (
+                  <Button 
+                    variant="default" 
+                    className="w-full justify-start cursor-pointer" 
+                    onClick={() => {
+                      setIsMobileMenuOpen(false)
+                      router.push('/core/dashboard')
+                    }}
+                  >
+                    Go to App
+                    <MoveRight className="ml-1 mt-0.5 h-4 w-4" />
+                  </Button>
+                ) : (
+                  <>
+                    <Button variant="outline" className="w-full justify-start" asChild>
+                        <Link href="/login">Log In</Link>
+                    </Button>
+                    <Button className="w-full justify-start" asChild>
+                        <Link href="/demo">Get Started</Link>
+                    </Button>
+                  </>
+                )}
             </div>
         </div>
       )}
