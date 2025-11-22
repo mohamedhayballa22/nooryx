@@ -65,7 +65,7 @@ export function SidebarContent(props: ComponentProps<'aside'>) {
       id="nd-sidebar"
       {...props}
       className={cn(
-        'fixed left-0 rtl:left-auto rtl:right-0 flex flex-col top-(--fd-sidebar-top) bottom-0 z-20 text-sm max-md:hidden',
+        'fixed left-0 rtl:left-auto rtl:right-0 flex flex-col top-(--fd-sidebar-top) bottom-0 z-20 text-sm max-md:hidden overflow-hidden',
         props.className,
       )}
       style={{
@@ -75,7 +75,7 @@ export function SidebarContent(props: ComponentProps<'aside'>) {
         width: 'calc(var(--fd-sidebar-width) + max(var(--fd-layout-offset), calc((100vw - var(--fd-page-width) - var(--fd-sidebar-width)) / 2)))',
       } as object}
     >
-      <div className="w-(--fd-sidebar-width)">{props.children}</div>
+      <div className="w-(--fd-sidebar-width) flex flex-col h-full">{props.children}</div>
     </aside>
   );
 }
