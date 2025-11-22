@@ -15,11 +15,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth"
 import { useRouter } from "next/navigation"
-import { MoveRight, Menu } from "lucide-react"
+import { MoveRight, Menu, ChevronDown } from "lucide-react"
 
 export default function GuestNavbar() {
   const [isScrolled, setIsScrolled] = useState(false)
   const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const [expandedSection, setExpandedSection] = useState<string | null>(null)
   const { isAuthenticated } = useAuth ? useAuth() : { isAuthenticated: false }
   const router = useRouter()
 
@@ -30,6 +31,15 @@ export default function GuestNavbar() {
     window.addEventListener("scroll", handleScroll)
     return () => window.removeEventListener("scroll", handleScroll)
   }, [])
+
+  const toggleSection = (section: string) => {
+    setExpandedSection(expandedSection === section ? null : section)
+  }
+
+  const closeMobileMenu = () => {
+    setIsMobileMenuOpen(false)
+    setExpandedSection(null)
+  }
 
   return (
     <header
@@ -171,21 +181,152 @@ export default function GuestNavbar() {
 
       {/* Mobile Menu Content */}
       {isMobileMenuOpen && (
-        <div className="absolute top-20 left-0 right-0 bg-background border-b p-6 md:hidden flex flex-col gap-4 animate-in slide-in-from-top-2">
+        <div className="absolute top-20 left-0 right-0 bg-background border-b p-6 md:hidden flex flex-col gap-4 animate-in slide-in-from-top-2 max-h-[calc(100vh-5rem)] overflow-y-auto">
             <nav className="flex flex-col gap-2">
-                <Link href="/" className="text-lg font-medium p-2 hover:bg-muted rounded-md" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
-                <Link href="/features" className="text-lg font-medium p-2 hover:bg-muted rounded-md" onClick={() => setIsMobileMenuOpen(false)}>Features</Link>
-                <Link href="/pricing" className="text-lg font-medium p-2 hover:bg-muted rounded-md" onClick={() => setIsMobileMenuOpen(false)}>Pricing</Link>
-                <Link href="/about" className="text-lg font-medium p-2 hover:bg-muted rounded-md" onClick={() => setIsMobileMenuOpen(false)}>About</Link>
+                <Link 
+                  href="/" 
+                  className="text-lg font-medium p-2 hover:bg-muted rounded-md" 
+                  onClick={closeMobileMenu}
+                >
+                  Home
+                </Link>
+                
+                {/* Features Accordion */}
+                <div className="flex flex-col">
+                  <button
+                    className="text-lg font-medium p-2 hover:bg-muted rounded-md flex items-center justify-between w-full text-left"
+                    onClick={() => toggleSection('features')}
+                  >
+                    Features
+                    <ChevronDown 
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        expandedSection === 'features' ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                  {expandedSection === 'features' && (
+                    <div className="flex flex-col gap-1 pl-4 mt-2 border-l-2 border-muted">
+                      <Link
+                        href="/features/inventory"
+                        className="p-2 hover:bg-muted rounded-md"
+                        onClick={closeMobileMenu}
+                      >
+                        <div className="font-medium text-sm">Inventory Tracking</div>
+                        <p className="text-muted-foreground text-xs">Monitor stock levels in real-time.</p>
+                      </Link>
+                      <Link
+                        href="/features/suppliers"
+                        className="p-2 hover:bg-muted rounded-md"
+                        onClick={closeMobileMenu}
+                      >
+                        <div className="font-medium text-sm">Supplier Management</div>
+                        <p className="text-muted-foreground text-xs">Manage vendors and purchase orders.</p>
+                      </Link>
+                      <Link
+                        href="/features/reports"
+                        className="p-2 hover:bg-muted rounded-md"
+                        onClick={closeMobileMenu}
+                      >
+                        <div className="font-medium text-sm">Reports & Analytics</div>
+                        <p className="text-muted-foreground text-xs">Get insights into sales and inventory trends.</p>
+                      </Link>
+                      <Link
+                        href="/features/multi-user"
+                        className="p-2 hover:bg-muted rounded-md"
+                        onClick={closeMobileMenu}
+                      >
+                        <div className="font-medium text-sm">Multi-User Access</div>
+                        <p className="text-muted-foreground text-xs">Collaborate with your whole team.</p>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                {/* Resources Accordion */}
+                <div className="flex flex-col">
+                  <button
+                    className="text-lg font-medium p-2 hover:bg-muted rounded-md flex items-center justify-between w-full text-left"
+                    onClick={() => toggleSection('resources')}
+                  >
+                    Resources
+                    <ChevronDown 
+                      className={`h-4 w-4 transition-transform duration-200 ${
+                        expandedSection === 'resources' ? 'rotate-180' : ''
+                      }`}
+                    />
+                  </button>
+                  {expandedSection === 'resources' && (
+                    <div className="flex flex-col gap-1 pl-4 mt-2 border-l-2 border-muted">
+                      <Link
+                        href="/blog"
+                        className="p-2 hover:bg-muted rounded-md"
+                        onClick={closeMobileMenu}
+                      >
+                        <div className="font-medium text-sm">Blog</div>
+                        <p className="text-muted-foreground text-xs">Tips and insights on inventory management.</p>
+                      </Link>
+                      <Link
+                        href="/docs"
+                        className="p-2 hover:bg-muted rounded-md"
+                        onClick={closeMobileMenu}
+                      >
+                        <div className="font-medium text-sm">Documentation</div>
+                        <p className="text-muted-foreground text-xs">Learn how to set up and use Nooryx.</p>
+                      </Link>
+                      <Link
+                        href="/faq"
+                        className="p-2 hover:bg-muted rounded-md"
+                        onClick={closeMobileMenu}
+                      >
+                        <div className="font-medium text-sm">FAQs</div>
+                        <p className="text-muted-foreground text-xs">Answers to common questions.</p>
+                      </Link>
+                      <Link
+                        href="/case-studies"
+                        className="p-2 hover:bg-muted rounded-md"
+                        onClick={closeMobileMenu}
+                      >
+                        <div className="font-medium text-sm">Case Studies</div>
+                        <p className="text-muted-foreground text-xs">See how businesses use Nooryx.</p>
+                      </Link>
+                    </div>
+                  )}
+                </div>
+
+                <Link 
+                  href="/pricing" 
+                  className="text-lg font-medium p-2 hover:bg-muted rounded-md" 
+                  onClick={closeMobileMenu}
+                >
+                  Pricing
+                </Link>
+                
+                <Link 
+                  href="/about" 
+                  className="text-lg font-medium p-2 hover:bg-muted rounded-md" 
+                  onClick={closeMobileMenu}
+                >
+                  About Us
+                </Link>
+
+                <Link 
+                  href="/contact" 
+                  className="text-lg font-medium p-2 hover:bg-muted rounded-md" 
+                  onClick={closeMobileMenu}
+                >
+                  Contact
+                </Link>
             </nav>
+            
             <div className="h-px bg-border my-2" />
+            
             <div className="flex flex-col gap-2">
                 {isAuthenticated ? (
                   <Button 
                     variant="default" 
                     className="w-full justify-start cursor-pointer" 
                     onClick={() => {
-                      setIsMobileMenuOpen(false)
+                      closeMobileMenu()
                       router.push('/core/dashboard')
                     }}
                   >

@@ -1,6 +1,5 @@
-// @/components/docs-sidebar.tsx
-
 'use client';
+
 import { ExternalLink } from 'lucide-react';
 import { usePathname } from 'fumadocs-core/framework';
 import {
