@@ -19,7 +19,7 @@ import { isActive } from '../lib/is-active';
 import { type ScrollAreaProps } from '@radix-ui/react-scroll-area';
 import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
 import type * as PageTree from 'fumadocs-core/page-tree';
-import { useTreeContext, useTreePath } from 'fumadocs-ui/contexts/tree';
+import { useTreeContext } from 'fumadocs-ui/contexts/tree';
 import { useMediaQuery } from 'fumadocs-core/utils/use-media-query';
 import { Presence } from '@radix-ui/react-presence';
 
@@ -118,7 +118,7 @@ export function SidebarContentMobile({
       <Presence present={open}>
         <div
           data-state={state}
-          className="fixed z-40 inset-0 backdrop-blur-xs data-[state=open]:animate-fd-fade-in data-[state=closed]:animate-fd-fade-out"
+          className="fixed z-50 inset-0 backdrop-blur-xs data-[state=open]:animate-fd-fade-in data-[state=closed]:animate-fd-fade-out"
           onClick={() => setOpen(false)}
         />
       </Presence>
@@ -129,7 +129,7 @@ export function SidebarContentMobile({
             {...props}
             data-state={state}
             className={cn(
-              'fixed text-[0.9375rem] flex flex-col shadow-lg border-s end-0 inset-y-0 w-[85%] max-w-[380px] z-40 bg-fd-background data-[state=open]:animate-fd-sidebar-in data-[state=closed]:animate-fd-sidebar-out',
+              'fixed text-[0.9375rem] flex flex-col shadow-lg border-e start-0 inset-y-0 w-[85%] max-w-[380px] z-50 bg-fd-background data-[state=open]:animate-in data-[state=open]:slide-in-from-left-full data-[state=closed]:animate-out data-[state=closed]:slide-out-to-left-full duration-300',
               !present && 'invisible',
               className,
             )}

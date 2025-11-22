@@ -262,31 +262,36 @@ export function DocsLayout({
       <NavProvider transparentMode={transparentMode}>
         {nav.enabled !== false &&
           (nav.component ?? (
-            <Navbar className="h-(--fd-nav-height) on-root:[--fd-nav-height:56px] md:on-root:[--fd-nav-height:0px] md:hidden">
-              <Link
-                href={nav.url ?? '/'}
-                className="inline-flex items-center gap-2.5 font-semibold"
-              >
-                {nav.title}
-              </Link>
-              <div className="flex-1">{nav.children}</div>
-              {searchToggle.enabled !== false &&
-                (searchToggle.components?.sm ?? (
-                  <SearchToggle className="p-2" hideIfDisabled />
-                ))}
+            // Note: The Navbar inside here is the "Docs Mobile Bar" which appears under the guest nav.
+            <Navbar className="h-(--fd-nav-height) on-root:[--fd-nav-height:56px] md:on-root:[--fd-nav-height:0px] md:hidden px-4">
+              
+              {/* Sidebar trigger */}
               {sidebarEnabled && (
                 <SidebarTrigger
                   className={cn(
                     buttonVariants({
                       color: 'ghost',
                       size: 'icon-sm',
-                      className: 'p-2',
+                      className: 'p-2 mr-2',
                     }),
                   )}
                 >
                   <SidebarIcon />
                 </SidebarTrigger>
               )}
+
+              {/* Search toggle */}
+              {searchToggle.enabled !== false &&
+                (searchToggle.components?.sm ?? (
+                  <SearchToggle className="p-2" hideIfDisabled />
+                ))}
+
+               <Link
+                href={nav.url ?? '/'}
+                className="inline-flex items-center gap-2.5 font-semibold ml-4"
+              >
+                {nav.title}
+              </Link>
             </Navbar>
           ))}
         <LayoutBody

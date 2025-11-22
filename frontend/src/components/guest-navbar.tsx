@@ -15,11 +15,12 @@ import {
 import { Button } from "@/components/ui/button"
 import { useAuth } from "@/lib/auth"
 import { useRouter } from "next/navigation"
-import { MoveRight } from "lucide-react"
+import { MoveRight, Menu } from "lucide-react"
 
 export default function GuestNavbar() {
   const [isScrolled, setIsScrolled] = useState(false)
-  const { isAuthenticated } = useAuth()
+  const [isMobileMenuOpen, setIsMobileMenuOpen] = useState(false)
+  const { isAuthenticated } = useAuth ? useAuth() : { isAuthenticated: false }
   const router = useRouter()
 
   useEffect(() => {
@@ -32,15 +33,17 @@ export default function GuestNavbar() {
 
   return (
     <header
-      className="fixed top-0 left-0 right-0 z-50 bg-background/60 backdrop-blur-md transition-all duration-200"
+      className="fixed top-0 left-0 right-0 z-40 bg-background/60 backdrop-blur-md transition-all duration-200 h-20"
       style={{
         borderBottom: isScrolled
           ? "0.1px solid var(--navbar-border)"
           : "0.1px solid transparent"
       }}
     >
-      <div className="mx-auto max-w-screen-2xl flex items-center justify-start h-20 px-6 gap-8">
-        <Link href="/" className="flex items-center">
+      <div className="mx-auto max-w-screen-2xl flex items-center justify-between h-full px-6">
+        
+        {/* Logo */}
+        <Link href="/" className="flex items-center gap-2">
             <Image
             src="/mock-logo-full.svg"
             alt="Mock Logo"
@@ -50,90 +53,94 @@ export default function GuestNavbar() {
             />
         </Link>
 
-        <NavigationMenu viewport={false}>
-          <NavigationMenuList>
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                <Link href="/">Home</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
+        {/* Desktop Menu */}
+        <div className="hidden md:block">
+            <NavigationMenu viewport={false}>
+            <NavigationMenuList>
+                <NavigationMenuItem>
+                <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                    <Link href="/">Home</Link>
+                </NavigationMenuLink>
+                </NavigationMenuItem>
 
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Features</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid gap-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
-                    <li className="row-span-4">
-                        <NavigationMenuLink asChild>
-                        <Link
-                            className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-6 no-underline outline-hidden select-none focus:shadow-md"
-                            href="/"
-                        >
-                            <div className="mt-4 mb-2 text-lg font-medium">
-                            Real-Time Visibility
-                            </div>
-                            <p className="text-muted-foreground text-sm leading-tight">
-                            Everything you need to manage inventory and operations in one powerful platform.
-                            </p>
-                        </Link>
-                        </NavigationMenuLink>
-                    </li>
-                  <ListItem href="/features/inventory" title="Inventory Tracking">
-                    Monitor stock levels in real-time.
-                  </ListItem>
-                  <ListItem href="/features/suppliers" title="Supplier Management">
-                    Manage vendors and purchase orders.
-                  </ListItem>
-                  <ListItem href="/features/reports" title="Reports & Analytics">
-                    Get insights into sales and inventory trends.
-                  </ListItem>
-                  <ListItem href="/features/multi-user" title="Multi-User Access">
-                    Collaborate with your whole team.
-                  </ListItem>
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
+                <NavigationMenuItem>
+                <NavigationMenuTrigger>Features</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                    <ul className="grid gap-2 md:w-[400px] lg:w-[500px] lg:grid-cols-[.75fr_1fr]">
+                        <li className="row-span-4">
+                            <NavigationMenuLink asChild>
+                            <Link
+                                className="from-muted/50 to-muted flex h-full w-full flex-col justify-end rounded-md bg-linear-to-b p-6 no-underline outline-hidden select-none focus:shadow-md"
+                                href="/"
+                            >
+                                <div className="mt-4 mb-2 text-lg font-medium">
+                                Real-Time Visibility
+                                </div>
+                                <p className="text-muted-foreground text-sm leading-tight">
+                                Everything you need to manage inventory and operations in one powerful platform.
+                                </p>
+                            </Link>
+                            </NavigationMenuLink>
+                        </li>
+                    <ListItem href="/features/inventory" title="Inventory Tracking">
+                        Monitor stock levels in real-time.
+                    </ListItem>
+                    <ListItem href="/features/suppliers" title="Supplier Management">
+                        Manage vendors and purchase orders.
+                    </ListItem>
+                    <ListItem href="/features/reports" title="Reports & Analytics">
+                        Get insights into sales and inventory trends.
+                    </ListItem>
+                    <ListItem href="/features/multi-user" title="Multi-User Access">
+                        Collaborate with your whole team.
+                    </ListItem>
+                    </ul>
+                </NavigationMenuContent>
+                </NavigationMenuItem>
 
-            <NavigationMenuItem>
-              <NavigationMenuTrigger>Resources</NavigationMenuTrigger>
-              <NavigationMenuContent>
-                <ul className="grid w-[300px] gap-4">
-                  <ListItem href="/blog" title="Blog">
-                    Tips and insights on inventory management.
-                  </ListItem>
-                  <ListItem href="/docs" title="Documentation">
-                    Learn how to set up and use Nooryx.
-                  </ListItem>
-                  <ListItem href="/faq" title="FAQs">
-                    Answers to common questions.
-                  </ListItem>
-                  <ListItem href="/case-studies" title="Case Studies">
-                    See how businesses use Nooryx.
-                  </ListItem>
-                </ul>
-              </NavigationMenuContent>
-            </NavigationMenuItem>
+                <NavigationMenuItem>
+                <NavigationMenuTrigger>Resources</NavigationMenuTrigger>
+                <NavigationMenuContent>
+                    <ul className="grid w-[300px] gap-4">
+                    <ListItem href="/blog" title="Blog">
+                        Tips and insights on inventory management.
+                    </ListItem>
+                    <ListItem href="/docs" title="Documentation">
+                        Learn how to set up and use Nooryx.
+                    </ListItem>
+                    <ListItem href="/faq" title="FAQs">
+                        Answers to common questions.
+                    </ListItem>
+                    <ListItem href="/case-studies" title="Case Studies">
+                        See how businesses use Nooryx.
+                    </ListItem>
+                    </ul>
+                </NavigationMenuContent>
+                </NavigationMenuItem>
 
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                <Link href="/pricing">Pricing</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
+                <NavigationMenuItem>
+                <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                    <Link href="/pricing">Pricing</Link>
+                </NavigationMenuLink>
+                </NavigationMenuItem>
 
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                <Link href="/about">About Us</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
+                <NavigationMenuItem>
+                <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                    <Link href="/about">About Us</Link>
+                </NavigationMenuLink>
+                </NavigationMenuItem>
 
-            <NavigationMenuItem>
-              <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
-                <Link href="/contact">Contact</Link>
-              </NavigationMenuLink>
-            </NavigationMenuItem>
-          </NavigationMenuList>
-        </NavigationMenu>
+                <NavigationMenuItem>
+                <NavigationMenuLink asChild className={navigationMenuTriggerStyle()}>
+                    <Link href="/contact">Contact</Link>
+                </NavigationMenuLink>
+                </NavigationMenuItem>
+            </NavigationMenuList>
+            </NavigationMenu>
+        </div>
 
-        <div className="flex items-center gap-3 ml-auto">
+        {/* Desktop Actions */}
+        <div className="hidden md:flex items-center gap-3">
           {isAuthenticated ? (
             <Button variant="outline" className="cursor-pointer" onClick={() => router.push('/core/dashboard')}>
               Go to App
@@ -150,25 +157,49 @@ export default function GuestNavbar() {
             </>
           )}
         </div>
+
+        {/* Mobile Trigger */}
+        <Button 
+            variant="ghost" 
+            size="icon" 
+            className="md:hidden"
+            onClick={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
+        >
+            <Menu />
+        </Button>
+      </div>
+
+      {/* Mobile Menu Content */}
+      {isMobileMenuOpen && (
+        <div className="absolute top-20 left-0 right-0 bg-background border-b p-6 md:hidden flex flex-col gap-4 animate-in slide-in-from-top-2">
+            <nav className="flex flex-col gap-2">
+                <Link href="/" className="text-lg font-medium p-2 hover:bg-muted rounded-md" onClick={() => setIsMobileMenuOpen(false)}>Home</Link>
+                <Link href="/features" className="text-lg font-medium p-2 hover:bg-muted rounded-md" onClick={() => setIsMobileMenuOpen(false)}>Features</Link>
+                <Link href="/pricing" className="text-lg font-medium p-2 hover:bg-muted rounded-md" onClick={() => setIsMobileMenuOpen(false)}>Pricing</Link>
+                <Link href="/about" className="text-lg font-medium p-2 hover:bg-muted rounded-md" onClick={() => setIsMobileMenuOpen(false)}>About</Link>
+            </nav>
+            <div className="h-px bg-border my-2" />
+            <div className="flex flex-col gap-2">
+                <Button variant="outline" className="w-full justify-start" asChild>
+                    <Link href="/login">Log In</Link>
+                </Button>
+                <Button className="w-full justify-start" asChild>
+                    <Link href="/demo">Get Started</Link>
+                </Button>
+            </div>
         </div>
+      )}
     </header>
   )
 }
 
-function ListItem({
-  title,
-  children,
-  href,
-  ...props
-}: React.ComponentPropsWithoutRef<"li"> & { href: string }) {
+function ListItem({ title, children, href, ...props }: any) {
   return (
     <li {...props}>
       <NavigationMenuLink asChild>
         <Link href={href}>
           <div className="text-sm leading-none font-medium">{title}</div>
-          <p className="text-muted-foreground line-clamp-2 text-sm leading-snug">
-            {children}
-          </p>
+          <p className="text-muted-foreground line-clamp-2 text-sm leading-snug">{children}</p>
         </Link>
       </NavigationMenuLink>
     </li>
