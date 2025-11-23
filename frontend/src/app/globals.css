@@ -175,3 +175,38 @@
     @apply bg-background text-foreground;
   }
 }
+
+.sidebar-scrollbar {
+  overflow-y: auto;
+}
+
+/* Force WebKit (Chrome/Safari/Edge) to render a fixed-width track */
+.sidebar-scrollbar::-webkit-scrollbar {
+  width: 6px;
+  display: block;
+}
+
+/* The Track - keep transparent */
+.sidebar-scrollbar::-webkit-scrollbar-track {
+  background: transparent;
+}
+
+/* The Thumb - Always visible */
+.sidebar-scrollbar::-webkit-scrollbar-thumb {
+  /* Visible Grey immediately. No hover required. */
+  background-color: rgba(120, 120, 120, 0.4); 
+  border-radius: 99px;
+}
+
+/* Hover effect for the thumb itself */
+.sidebar-scrollbar::-webkit-scrollbar-thumb:hover {
+  background-color: rgba(120, 120, 120, 0.7);
+}
+
+/* Firefox fallback */
+.sidebar-scrollbar {
+  scrollbar-width: thin;
+  /* First value is Thumb (grey), Second is Track (transparent) */
+  scrollbar-color: rgba(120, 120, 120, 0.4) transparent;
+}
+

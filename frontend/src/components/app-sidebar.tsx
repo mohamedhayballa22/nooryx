@@ -18,6 +18,7 @@ import {
   SidebarMenuSubButton,
   SidebarHeader,
   SidebarFooter,
+  useSidebar,
 } from "@/components/ui/sidebar"
 
 import {
@@ -37,10 +38,9 @@ import {
 import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { 
   HomeSimple, BoxIso, ClockRotateRight, 
-  Bell, Settings, HelpCircle,
-  NavArrowUp, LogOut, User, Coins,
-  NavArrowDown, Globe, Package, Group,
-  Lock, CreditCard
+  Bell, Settings, NavArrowUp, LogOut, 
+  User, Coins, NavArrowDown, Globe,
+  Package, Group, Lock, CreditCard, OpenBook
  } from "iconoir-react"
 import { useUserAccount } from "@/app/core/settings/account/hooks/use-account"
 import { SignOutConfirmDialog } from "./signout-dialog";
@@ -65,8 +65,65 @@ const settingsSubItems = [
   { title: "Billing & Plan", url: "/core/settings/billing", icon: CreditCard },
 ]
 
-const systemItems = [
-  { title: "Help & Docs", url: "#", icon: HelpCircle },
+// Documentation Tree Mapping
+const docsStructure = [
+  {
+    header: "Introduction",
+    url: "/docs",
+    items: [
+      { title: "The Core Philosophy", url: "/docs/philosophy" },
+    ]
+  },
+  {
+    header: "Getting Started",
+    url: "/docs/getting-started",
+    items: [
+      { title: "Creating Your Workspace", url: "/docs/getting-started/workspace" },
+      { title: "Inviting Team", url: "/docs/getting-started/team" },
+      { title: "First Transaction", url: "/docs/getting-started/quickstart" },
+    ]
+  },
+  {
+    header: "Core Concepts & Data",
+    url: "/docs/core-concepts",
+    items: [
+      { title: "SKUs", url: "/docs/core-concepts/skus" },
+      { title: "Managing Locations", url: "/docs/core-concepts/locations" },
+      { title: "Understanding Stock State", url: "/docs/core-concepts/stock-states" },
+      { title: "Valuation Methods", url: "/docs/core-concepts/valuation" },
+    ]
+  },
+  {
+    header: "Workflows & Transactions",
+    url: "/docs/workflows",
+    items: [
+      { title: "Receiving Stock", url: "/docs/workflows/receive-stock" },
+      { title: "Shipping Stock", url: "/docs/workflows/ship-stock" },
+      { title: "Internal Transfers", url: "/docs/workflows/transfer-stock" },
+      { title: "Adjusting Stock", url: "/docs/workflows/stock-adjustments" },
+      { title: "Managing Reservations", url: "/docs/workflows/reservations" },
+    ]
+  },
+  {
+    header: "Monitoring, Analysis & Alerts",
+    url: "/docs/monitoring",
+    items: [
+      { title: "The Nooryx Dashboard", url: "/docs/monitoring/dashboard" },
+      { title: "Activity and Accountability", url: "/docs/monitoring/audit-trail" },
+      { title: "Configurable Alerting System", url: "/docs/monitoring/alerts" },
+      { title: "Global Search & Quick Find", url: "/docs/monitoring/search" },
+    ]
+  },
+  {
+    header: "Settings & Administration",
+    url: "/docs/settings",
+    items: [
+      { title: "Team Management", url: "/docs/settings/team" },
+      { title: "General", url: "/docs/settings/general" },
+      { title: "Account & Security", url: "/docs/settings/account-security" },
+      { title: "Billing & Subscription", url: "/docs/settings/billing" },
+    ]
+  }
 ]
 
 export function AppSidebar() {
@@ -76,10 +133,11 @@ export function AppSidebar() {
   const userEmail = data?.user.email
   const [showSignOutDialog, setShowSignOutDialog] = React.useState(false)
   const { count: unreadCount, hasInitialData } = useUnreadCount()
+  const displayCount = unreadCount > 9 ? "9+" : unreadCount.toString();
   const router = useRouter()
   const queryClient = useQueryClient()
+  const { state, setOpen } = useSidebar() // Add this hook
 
-  // Track previous unread count without causing re-renders
   const prevUnreadRef = React.useRef(unreadCount);
 
   React.useEffect(() => {
@@ -93,7 +151,6 @@ export function AppSidebar() {
             label: "View Alerts", 
             onClick: () => {
               router.push("/core/alerts")
-              // Invalidate alerts queries when user clicks to view alerts
               queryClient.invalidateQueries({ queryKey: ["alerts", "list"]})
             }
           },
@@ -105,6 +162,14 @@ export function AppSidebar() {
 
     prevUnreadRef.current = unreadCount;
   }, [unreadCount, hasInitialData, router, queryClient]);
+
+  // Handler to expand sidebar when icon is clicked in collapsed state
+  const handleExpandOnClick = (e: React.MouseEvent) => {
+    if (state === "collapsed") {
+      e.preventDefault()
+      setOpen(true)
+    }
+  }
 
   return (
     <Sidebar collapsible="icon">
@@ -125,23 +190,42 @@ export function AppSidebar() {
       </SidebarHeader>
 
       {/* Main Menu */}
-      <SidebarContent>
+      <SidebarContent className="sidebar-scrollbar">
         <SidebarGroup>
           <SidebarGroupContent>
             <SidebarMenu>
               {mainItems.map((item) => (
                 <SidebarMenuItem key={item.title}>
                   <SidebarMenuButton asChild>
-                    <Link href={item.url} className="relative flex items-center">
-                      <div className="relative">
-                        <item.icon className="w-5 h-5" />
-                        {item.title === "Alerts" && unreadCount > 0 && (
-                          <span className="absolute -top-1 -right-1 flex h-4 w-4 items-center justify-center rounded-full bg-red-600 text-[10px] font-bold text-white">
-                            {unreadCount}
-                          </span>
-                        )}
-                      </div>
-                      <span className="ml-2">{item.title}</span>
+                    <Link href={item.url} className="flex items-center group/link">
+                      <item.icon className="h-6 w-6" />
+                      <span>{item.title}</span>
+                      {item.title === "Alerts" && unreadCount > 0 && (
+                        <span
+                          className="
+                            absolute
+                            top-0
+                            left-[0.8rem]
+                            group-data-[collapsible=icon]/sidebar-wrapper:left-1/2
+                            group-data-[collapsible=icon]/sidebar-wrapper:-translate-x-1/2
+
+                            flex
+                            h-4
+                            min-w-[1rem]
+                            items-center
+                            justify-center
+                            px-1
+                            rounded-full
+                            bg-red-600
+                            text-[10px]
+                            font-bold
+                            text-white
+                            whitespace-nowrap
+                          "
+                        >
+                          {displayCount}
+                        </span>
+                      )}
                     </Link>
                   </SidebarMenuButton>
                 </SidebarMenuItem>
@@ -155,13 +239,14 @@ export function AppSidebar() {
           <SidebarGroupLabel>System</SidebarGroupLabel>
           <SidebarGroupContent>
             <SidebarMenu>
-              {/* Settings with Submenu */}
+              
+              {/* Settings Collapsible */}
               <Collapsible defaultOpen className="group/collapsible">
                 <SidebarMenuItem>
                   <CollapsibleTrigger asChild>
-                    <SidebarMenuButton className="w-full">
+                    <SidebarMenuButton className="w-full cursor-pointer" onClick={handleExpandOnClick}>
                       <Settings className="w-5 h-5" />
-                      <span className="ml-2">Settings</span>
+                      <span >Settings</span>
                       <NavArrowDown className="ml-auto h-4 w-4 transition-transform group-data-[state=open]/collapsible:rotate-180" />
                     </SidebarMenuButton>
                   </CollapsibleTrigger>
@@ -172,7 +257,7 @@ export function AppSidebar() {
                           <SidebarMenuSubButton asChild>
                             <Link href={subItem.url} className="flex items-center">
                               <subItem.icon className="w-5 h-5" />
-                              <span className="ml-2">{subItem.title}</span>
+                              <span >{subItem.title}</span>
                             </Link>
                           </SidebarMenuSubButton>
                         </SidebarMenuSubItem>
@@ -181,20 +266,70 @@ export function AppSidebar() {
                   </CollapsibleContent>
                 </SidebarMenuItem>
               </Collapsible>
+            </SidebarMenu>
+          </SidebarGroupContent>
+        </SidebarGroup>
 
-              {/* Other System Items */}
-              {systemItems.map((item) => (
-                <SidebarMenuItem key={item.title}>
-                  <SidebarMenuButton asChild>
-                    <Link href={item.url} className="relative flex items-center">
-                      <div className="relative">
-                        <item.icon className="w-5 h-5" />
+        <SidebarGroup>
+          <SidebarGroupLabel>Help & Docs</SidebarGroupLabel>
+          <SidebarGroupContent>
+            <SidebarMenu>
+              {/* Single collapsed item */}
+              <SidebarMenuItem className="group-data-[collapsible=icon]:block hidden">
+                <SidebarMenuButton 
+                  className="flex items-center cursor-pointer"
+                  onClick={handleExpandOnClick}
+                >
+                  <OpenBook className="w-5 h-5" />
+                  <span>Documentation</span>
+                </SidebarMenuButton>
+              </SidebarMenuItem>
+
+              {/* Expanded items */}
+              <div className="group-data-[collapsible=icon]:hidden">
+                {docsStructure.map((section) => (
+                  <Collapsible key={section.header} className="group/section">
+                    <SidebarMenuItem>
+                      <div className="flex items-center w-full">
+                        <SidebarMenuButton asChild className="flex-1">
+                          <Link 
+                            href={section.url} 
+                            target="_blank" 
+                            rel="noopener noreferrer"
+                            className="flex items-center"
+                          >
+                            <OpenBook className="w-5 h-5" />
+                            <span >{section.header}</span>
+                          </Link>
+                        </SidebarMenuButton>
+                        <CollapsibleTrigger asChild>
+                          <button className="p-2 hover:bg-accent rounded-md cursor-pointer">
+                            <NavArrowDown className="h-4 w-4 transition-transform group-data-[state=open]/section:rotate-180" />
+                          </button>
+                        </CollapsibleTrigger>
                       </div>
-                      <span className="ml-2">{item.title}</span>
-                    </Link>
-                  </SidebarMenuButton>
-                </SidebarMenuItem>
-              ))}
+                      <CollapsibleContent>
+                        <SidebarMenuSub>
+                          {section.items.map((docItem) => (
+                            <SidebarMenuSubItem key={docItem.title}>
+                              <SidebarMenuSubButton asChild>
+                                <Link 
+                                  href={docItem.url} 
+                                  target="_blank" 
+                                  rel="noopener noreferrer"
+                                  className="flex items-center text-sm pl-6"
+                                >
+                                  <span>{docItem.title}</span>
+                                </Link>
+                              </SidebarMenuSubButton>
+                            </SidebarMenuSubItem>
+                          ))}
+                        </SidebarMenuSub>
+                      </CollapsibleContent>
+                    </SidebarMenuItem>
+                  </Collapsible>
+                ))}
+              </div>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
