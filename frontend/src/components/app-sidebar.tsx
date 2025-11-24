@@ -80,7 +80,7 @@ const docsStructure = [
     items: [
       { title: "Creating Your Workspace", url: "/docs/getting-started/workspace" },
       { title: "Inviting Team", url: "/docs/getting-started/team" },
-      { title: "First Transaction", url: "/docs/getting-started/quickstart" },
+      { title: "First Transaction", url: "/docs/getting-started/first-transaction" },
     ]
   },
   {
@@ -90,7 +90,7 @@ const docsStructure = [
       { title: "SKUs", url: "/docs/core-concepts/skus" },
       { title: "Managing Locations", url: "/docs/core-concepts/locations" },
       { title: "Understanding Stock State", url: "/docs/core-concepts/stock-states" },
-      { title: "Valuation Methods", url: "/docs/core-concepts/valuation" },
+      { title: "Valuation", url: "/docs/core-concepts/valuation" },
     ]
   },
   {
