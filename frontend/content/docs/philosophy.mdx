@@ -1,6 +1,6 @@
 ---
 title: The Core Philosophy
-description: The Ledger & The State - Auditable architecture for perfect inventory.
+description: Auditable architecture for perfect inventory.
 ---
 
 import { Database, TrendingUp, Layers } from 'lucide-react';
@@ -9,26 +9,21 @@ import LedgerStateVisual from '@/components/ledger-state-visual';
 The foundational principle of Nooryx is that inventory management is a branch of **transactional accounting**. Your physical stock is a highly liquid financial asset, and it must be managed with the same rigor you apply to your bank account.
 
 This belief drives our entire architecture, which is built on two inseparable components: **The Ledger** (the source of truth) and **The State** (the current reality).
+This relationship between history and the current reality becomes much clearer when you visualize it. The interactive illustration below shows how sequential ledger entries mathematically produce the current state.
 
 <LedgerStateVisual />
 
-## The Ledger: The Immutable Source of Truth
+## The Ledger
 
 The Ledger is the heart of Nooryx. It is a permanent, sequential record of every stock-related action that has ever occurred in your organization.
 
 ### Why a Ledger?
 
-Traditional inventory systems often rely on **overwrite operations**: when you receive 10 units and then ship 2, the old "On Hand" number (10) is simply replaced with the new one (8). This approach is fast but **fragile and unauditable**. If the number is wrong, you have no way to trace *why*.
+Traditional inventory systems often rely on **overwrite operations**: when you receive 10 units and then ship 2, the old "On Hand" number (10) is simply replaced with the new one (8). This approach is fast but fragile and unauditable. If the number is wrong, you have no way to trace *why*, *when*, or *who* made the mistake.
 
-Nooryx operates differently. A Ledger entry is created for every event, such as:
+Nooryx operates differently. A Ledger entry is created for every event. Once recorded, a Ledger entry **can never be deleted or modified**. If a mistake is made (e.g., you logged the wrong quantity), you don't edit the original entry; you create a new, corrective entry (a reversal or adjustment) that explicitly documents the correction.
 
-* **Receiving:** `+10 units` (Type: Purchase Order Receipt)
-* **Shipping:** `-2 units` (Type: Sales Order Fulfillment)
-* **Adjustment:** `+1 unit` (Type: Cycle Count Correction)
-
-Once recorded, a Ledger entry **can never be deleted or modified**. If a mistake is made (e.g., you logged the wrong quantity), you don't edit the original entry; you create a new, corrective entry (a reversal or adjustment) that explicitly documents the correction.
-
-## The State: The Calculated Reality
+## The State
 
 The State is your real-time, current inventory position. This architecture delivers two powerful advantages:
 

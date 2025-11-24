@@ -1,20 +1,22 @@
 ---
 title: Introduction
-description: The operating system for modern inventory.
+description: Operational truth for modern inventory.
 ---
 
 import { Callout } from 'fumadocs-ui/components/callout';
 import { Card, Cards } from 'fumadocs-ui/components/card';
-import { Box, Layers, ShieldCheck, TrendingUp } from 'lucide-react';
+import { Warehouse, Layers, Lock } from 'lucide-react';
+import { Coins } from 'iconoir-react';
+import Link from 'next/link'
 
 **Nooryx is a high-definition inventory management platform designed for teams who demand precision, speed, and clarity.**
 
-We built Nooryx because the standard for inventory software has been too low for too long. Growing brands have been forced to choose between fragile spreadsheets or bloated, legacy ERPs that feel like they were built in the 90s.
+We built Nooryx because traditional inventory software forces growing brands to compromise. You are often stuck choosing between the fragility of spreadsheets or the rigidity of bloated, legacy ERPs. The standard for inventory software has been too low for too long.
 
-Nooryx bridges that gap. It is a **sharp tool**—a dedicated, ledger-based system that solves the painful reality of tracking physical goods with the same rigor you expect from your financial software.
+Nooryx eliminates that trade-off. We provide an architectural solution that delivers the swift, intuitive user experience of a modern application alongside the rigorous, transparent audit trails demanded by high-stakes operations.
 
-<Callout type="info" title="The Core Philosophy: Ledger & State">
-  To ensure perfect accuracy, Nooryx treats inventory not just as a number, but as an **immutable, transactional ledger**—like a bank account. Every stock movement is treated as a financial transaction. Read our **[Core Philosophy](/welcome/philosophy)** to understand the architecture that guarantees auditability and precision.
+<Callout type="info" title="The Core Philosophy">
+  Nooryx treats inventory as a vital business asset rather than a static number. We utilize an **immutable, transactional ledger** to record every movement. This approach guarantees that your stock levels are always traceable and auditable. Read our <Link href="/docs/philosophy">**Core Philosophy**</Link> to understand the architecture behind this precision.
 </Callout>
 
 ## What makes Nooryx different?
@@ -25,56 +27,55 @@ We focus on the specific, complex problems of inventory state management. We don
   <Card
     icon={<Layers />}
     title="Ledger-Based Truth"
-    href="/welcome/philosophy"
+    href="/docs/philosophy"
   >
-    We don't just overwrite numbers. Every change in stock is an auditable event. You can trace the history of a single SKU from receipt to shipment with zero gaps.
+    We never just overwrite numbers. Every change in stock is a recorded event. You can trace the entire history of a single SKU from receipt to shipment with zero gaps in the data.
   </Card>
   <Card
-    icon={<ShieldCheck />}
+    icon={<Lock />}
     title="Smart Reservations"
-    href="/core-concepts/reservations"
+    href="/docs/workflows/reservations"
   >
-    Stop overselling. Nooryx distinguishes between **On Hand** (physical) and **Available** (sellable) stock, holding items for orders before they leave the door.
+    Nooryx distinguishes between **On Hand** (physical) and **Available** (sellable) stock, holding items for orders before they leave the door to avoid overselling.
   </Card>
   <Card
-    icon={<TrendingUp />}
-    title="Dynamic Valuation"
-    href="/valuation/methods"
+    icon={<Coins strokeWidth={1.5}/>}
+    title="Accurate Valuation"
+    href="/docs/core-concepts/valuation"
   >
-    Understand your true holding costs. Switch between **FIFO**, **LIFO**, and **WAC** (Weighted Average Cost) to view your inventory value through the lens that fits your strategy.
+    Understand your true holding costs. Choose from **FIFO**, **LIFO**, and **WAC** (Weighted Average Cost) to view your inventory value through the lens that fits your strategy.
   </Card>
   <Card
-    icon={<Box />}
+    icon={<Warehouse />}
     title="Multi-Location Native"
-    href="/guides/locations"
+    href="docs/core-concepts/locations"
   >
-    Manage global stock effortlessly. Whether it's a warehouse in Madrid or a retail backroom in NYC, get a unified view of your assets in real-time.
+    Scale your footprint without friction. Manage global stock across multiple warehouses or retail locations with a unified, real-time view of your assets.
   </Card>
 </Cards>
 
 ## What Nooryx is (and isn't)
 
-To get the most out of Nooryx, it helps to understand where we fit in your stack.
+To get the most out of Nooryx, it helps to understand exactly where we fit in your infrastructure.
 
 ### Nooryx is...
-* **Deterministic:** Inputs produce predictable outputs. No magic numbers.
-* **Collaborative:** Built for teams, with granular permissions, audit trails, and activity feeds.
-* **Fast:** Keyboard-driven workflows, instant search, and a UI that respects your time.
-* **A State Machine:** We handle the complexity of `Available`, `Reserved`, `Damaged`, and `In-Transit` states so you don't have to.
+* **An Operational Inventory Engine:** A system purpose-built to manage the true lifecycle of your stock.
+* **Deterministic:** Inputs produce predictable outputs. We rely on logic, not magic numbers.
+* **Collaborative:** Designed for teams, enabling real-time, concurrent access to your inventory data.
+* **Blazingly Fast:** Engineered for sub-second interactions.
 
 ### Nooryx is not...
-* **A Website Builder:** We integrate with your sales channels (Shopify, etc.), we don't replace them.
-* **A General Purpose ERP:** We don't do HR or Payroll. We do Inventory perfectly.
-* **A Spreadsheet:** Spreadsheets are flexible but fragile. Nooryx imposes the necessary structure to scale without breaking.
+* **A Website Builder:** We integrate deeply with your different channels rather than trying to replace them.
+* **A General Purpose ERP:** We don't manage HR or Payroll. We are dedicated to perfecting Inventory.
+* **A Spreadsheet:** Spreadsheets allow for hidden errors and broken formulas. Nooryx imposes the necessary structure to ensure data integrity at scale.
 
 ## Getting Started
 
 If you are new to Nooryx, we recommend starting with the fundamentals of how we handle stock movement.
 
-1.  **[The Core Philosophy: Ledger & State](/welcome/philosophy)**: Understand the immutable record behind every number.
-2.  **[Core Concepts](/concepts/sku-and-variants)**: Learn how we structure Products, SKUs, and Locations.
-3.  **[Importing Data](/guides/import)**: Bring your existing stock levels into Nooryx.
+1.  <Link href="/docs/philosophy">**The Core Philosophy**</Link>: Understand the immutable record behind every number.
+2.  <Link href="/core-concepts">**Core Concepts**</Link>: Learn how we structure Products, SKUs, and Locations.
 
 <Callout title="Ready to dive in?">
-  Check out the **[Quick Start Guide](/getting-started)** to set up your organization, invite your team, and log your first shipment in under 5 minutes.
+  Check out the <Link href="/docs/getting-started">**Getting Started Guide**</Link> to set up your organization, invite your team, and log your first transaction in under 5 minutes.
 </Callout>
