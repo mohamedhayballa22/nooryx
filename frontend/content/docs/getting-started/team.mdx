@@ -1,0 +1,50 @@
+---
+title: Inviting Your Team
+description: Bring collaborators into your workspace—with a guided demo you can try directly in the docs.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import Link from 'next/link';
+import { EmptyTeamStateDemo } from '@/components/docs/empty-team-state-demo';
+
+Inventory is a team sport. Nooryx lets you invite teammates to collaborate on stock operations, maintain accuracy, and keep your ledger auditable end-to-end.
+
+## How to Invite Members in Nooryx
+
+In your workspace:
+
+1. Navigate to **Settings → Team & Access**.  
+2. Select **Invite New Member**.  
+3. Enter your teammate’s email address.  
+4. Confirm the action.
+
+The user will receive an email with a secure link to join your organization.
+
+If you’d like to try the flow right now, use the demo below:
+
+<EmptyTeamStateDemo />
+
+## What the Demo Shows
+
+The interactive demo above mirrors what you’ll see inside the app when your team list is empty:
+
+- Entering an email prompts a simulated invite action.  
+- You’ll see the same visual feedback states as inside Nooryx—successful invite, invalid email, or other common cases.  
+- Since this is documentation-only, nothing is sent, stored, or logged.
+
+## User Roles
+
+**During the current release, all invited members are granted Admin privileges.**  
+This means every user gets full access to read the ledger, write transactions, and modify organization settings.
+
+Until granular roles are introduced, we recommend inviting only trusted core teammates.
+
+Role-based permissions are **actively in development** and coming very soon. We're taking the time to build a system that’s secure, intuitive, and aligned with Nooryx’s standards.
+
+## Notifications & Alerts
+
+Whenever a new member joins—or when critical inventory events happen—you’ll see them in the **Alerts** section of the sidebar.
+
+<Callout type="info" title="Configuring Inventory Alerts">
+  Stock-level alerts are configured **per SKU** during receiving. They can be customized and updated at any time. See the <Link href="/docs/monitoring/alerts">**Alerting System Guide**</Link> for details.
+</Callout>
