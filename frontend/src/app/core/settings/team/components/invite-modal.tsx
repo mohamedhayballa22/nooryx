@@ -116,7 +116,7 @@ export function InviteModal({ isOpen, onOpenChange }: InviteModalProps) {
         {state === "form" ? (
           <>
             <div className="space-y-2">
-              <DialogTitle className="text-lg font-medium">Invite User</DialogTitle>
+              <DialogTitle className="text-lg font-medium">Invite New Member</DialogTitle>
               <DialogDescription className="text-sm text-muted-foreground">
                 Send an invitation to join your workspace.
               </DialogDescription>
