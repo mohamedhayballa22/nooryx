@@ -33,7 +33,9 @@ app = FastAPI(
     title="Nooryx",
     generate_unique_id_function=custom_generate_unique_id,
     debug=settings.ENVIRONMENT == "dev",
-    docs_url="/api-docs",
+    docs_url= None if settings.ENVIRONMENT != "dev" else "/api-docs",
+    redoc_url= None if settings.ENVIRONMENT != "dev" else "/redoc",
+    openapi_url= None if settings.ENVIRONMENT != "dev" else "/openapi.json"
 )
 
 # Correlation/Request tracking
