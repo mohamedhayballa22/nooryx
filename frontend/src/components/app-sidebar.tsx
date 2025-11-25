@@ -80,7 +80,7 @@ const docsStructure = [
     items: [
       { title: "Creating Your Workspace", url: "/docs/getting-started/workspace" },
       { title: "Inviting Team", url: "/docs/getting-started/team" },
-      { title: "First Transaction", url: "/docs/getting-started/first-transaction" },
+      { title: "Receiving Stock", url: "/docs/getting-started/receiving-stock" },
     ]
   },
   {
@@ -97,7 +97,6 @@ const docsStructure = [
     header: "Workflows & Transactions",
     url: "/docs/workflows",
     items: [
-      { title: "Receiving Stock", url: "/docs/workflows/receive-stock" },
       { title: "Shipping Stock", url: "/docs/workflows/ship-stock" },
       { title: "Internal Transfers", url: "/docs/workflows/transfer-stock" },
       { title: "Adjusting Stock", url: "/docs/workflows/stock-adjustments" },
