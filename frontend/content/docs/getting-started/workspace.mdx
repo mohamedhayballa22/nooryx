@@ -1,0 +1,56 @@
+---
+title: Creating Your Workspace
+description: Set up your organization and configure settings.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import Link from 'next/link';
+
+Your Workspace is the container for your organization’s data, team members, and inventory. When you sign up, Nooryx guides you through configuring your organization’s identity and a few foundational operating rules.
+
+This is a short, one-time setup that establishes how your workspace behaves going forward.
+
+## What you configure during setup
+
+When creating your workspace, you will be asked for three key pieces of information:
+
+### **Organization Name**
+A simple label used throughout the interface and reports. You can update this at any time.
+
+### **Currency**
+This determines how monetary values are displayed across valuation, cost records, and reporting.  
+You’ll only choose this once — after your workspace begins transacting, the currency becomes fixed to preserve consistency in your financial history.
+
+### **Valuation Method**
+You can choose from **FIFO**, **LIFO**, or **WAC**. This defines how Nooryx calculates the value of your stock.  
+The choice shapes how cost records are produced and how your inventory is valued. Like currency, this cannot be changed once your ledger has activity.
+
+<Callout type="warning" title="These Choices Are Permanent">
+  Currency and valuation method are locked in once your workspace starts transacting.  
+  This protects the integrity of your ledger and ensures your financial history remains consistent.  
+  For the full rationale, see <Link href="/docs/core-concepts/valuation">**Valuation**</Link>.
+</Callout>
+
+
+## Form Fields Overview
+
+You’ll see a short form during onboarding with:
+
+- **Organization name**
+- **Currency selector**
+- **Valuation method selector**
+
+After completing these fields, your workspace is created instantly — no implementation delay required.
+
+## About Organization & User Settings
+
+In addition to the core identity fields above, Nooryx also supports a range of optional settings that govern how your workspace behaves:
+
+- **Organization Settings:** defaults for alerts, low-stock thresholds, and reorder points.
+- **User Settings:** local preferences such as interface locale, pagination size, and date format.
+
+These aren’t configured during workspace creation, but it’s good to know they exist. You can adjust them later. See <Link href="/docs/settings">**Settings**</Link> for a more detailed guide.
+
+## What’s next?
+
+Once your workspace is created, you’re ready to bring your team in and start collaborating.
