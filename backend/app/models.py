@@ -297,7 +297,7 @@ class Organization(Base):
     __tablename__ = "orgs"
 
     org_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
-    name = Column(String, nullable=False, unique=True)
+    name = Column(String, nullable=False)
     valuation_method = Column(String, nullable=False, default="WAC", doc="FIFO, LIFO, WAC")
     currency = Column(String(3), nullable=False)
 

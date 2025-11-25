@@ -36,13 +36,6 @@ async def register_new_org(
     org_data = payload.org
     user_data = payload.user
 
-    # Check if org name already exists
-    existing_org = await session.scalar(
-        select(Organization).where(Organization.name == org_data.name)
-    )
-    if existing_org:
-        raise HTTPException(status_code=400, detail="Organization name already exists")
-
     # Create Organization
     new_org = Organization(
         org_id=uuid4(),
