@@ -15,7 +15,7 @@ from sqlalchemy import (
 from sqlalchemy.dialects.postgresql import UUID, JSONB
 from sqlalchemy.orm import relationship
 from sqlalchemy.ext.hybrid import hybrid_property
-import uuid
+from uuid6 import uuid7
 from app.core.db import Base
 from fastapi_users.db import SQLAlchemyBaseUserTableUUID
 
@@ -38,10 +38,49 @@ class SKU(Base):
     states = relationship("State", back_populates="sku")
     cost_records = relationship("CostRecord", back_populates="sku")
     organization = relationship("Organization", back_populates="skus")
+    barcodes = relationship("Barcode", back_populates="sku", cascade="all, delete-orphan")
 
     __table_args__ = (
         Index('ix_skus_org_code_prefix', 'org_id', 'code'),
         Index('ix_skus_org_name_trgm', func.lower(name), postgresql_using='gin', postgresql_ops={'lower': 'gin_trgm_ops'}),
+    )
+
+
+class Barcode(Base):
+    """
+    Maps scannable codes (UPC, EAN, QR) to specific SKUs.
+    Allows many barcodes to point to one SKU, but a barcode must be unique per Org.
+    """
+    __tablename__ = "barcodes"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid7)
+    org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False)
+    
+    # Target SKU
+    sku_code = Column(String, nullable=False, doc="The SKU code this barcode resolves to.")
+    
+    # Barcode Details
+    value = Column(String, nullable=False, doc="The actual scanned string (e.g. 123456789012).")
+    barcode_type = Column(String, nullable=False, default="UPC-A", doc="UPC, EAN-13, CODE128, QR, INTERNAL.")
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+
+    # Relationships
+    organization = relationship("Organization", back_populates="barcodes")
+    sku = relationship("SKU", back_populates="barcodes")
+
+    __table_args__ = (
+        # Link to SKU using the Composite Key (code + org_id)
+        ForeignKeyConstraint(
+            ['sku_code', 'org_id'],
+            ['skus.code', 'skus.org_id'],
+            ondelete="CASCADE"
+        ),
+        # Ensure a specific barcode string is unique within the organization
+        UniqueConstraint('org_id', 'value', name='uq_barcodes_org_value'),
+        
+        # Index for fast scanner lookups
+        Index('ix_barcodes_lookup', 'org_id', 'value'),
     )
 
 
@@ -50,7 +89,7 @@ class Location(Base):
     
     __tablename__ = "locations"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False, index=True)
     name = Column(String(100), nullable=False)
 
@@ -72,7 +111,7 @@ class Transaction(Base):
 
     __tablename__ = "transactions"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), index=True, nullable=False)
     sku_code = Column(String, nullable=False)
     location_id = Column(UUID(as_uuid=True), nullable=False)
@@ -252,7 +291,7 @@ class CostRecord(Base):
 
     __tablename__ = "cost_records"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False, index=True)
     sku_code = Column(String, nullable=False)
     location_id = Column(UUID(as_uuid=True), nullable=False)
@@ -296,7 +335,7 @@ class Organization(Base):
     
     __tablename__ = "orgs"
 
-    org_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    org_id = Column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     name = Column(String, nullable=False)
     valuation_method = Column(String, nullable=False, default="WAC", doc="FIFO, LIFO, WAC")
     currency = Column(String(3), nullable=False)
@@ -310,6 +349,7 @@ class Organization(Base):
     transactions = relationship("Transaction", back_populates="organization", cascade="all, delete-orphan", overlaps="sku,transactions")
     states = relationship("State", back_populates="organization", cascade="all, delete-orphan", overlaps="sku,states")
     cost_records = relationship("CostRecord", back_populates="organization", cascade="all, delete-orphan", overlaps="cost_records,sku,transaction")
+    barcodes = relationship("Barcode", back_populates="organization", cascade="all, delete-orphan")
 
     subscription = relationship("Subscription", uselist=False, back_populates="organization")
     settings = relationship("OrganizationSettings", uselist=False, back_populates="organization", cascade="all, delete-orphan")
@@ -345,7 +385,7 @@ class Subscription(Base):
     
     __tablename__ = "subscriptions"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     org_id = Column(UUID(as_uuid=True), ForeignKey("orgs.org_id", ondelete="CASCADE"), nullable=False, unique=True)
     plan_name = Column(String, nullable=True)
     status = Column(String, nullable=False, default="inactive")
@@ -363,7 +403,7 @@ class RefreshToken(Base):
     
     __tablename__ = "refresh_tokens"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     user_id = Column(UUID(as_uuid=True), nullable=False, index=True)
     token_hash = Column(String(64), nullable=False, index=True, doc="SHA-256 hash of the refresh token.")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
@@ -420,7 +460,7 @@ class Alert(Base):
     
     __tablename__ = "alerts"
 
-    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid.uuid4)
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid7)
     org_id = Column(
         UUID(as_uuid=True), 
         ForeignKey("orgs.org_id", ondelete="CASCADE"), 
