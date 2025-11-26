@@ -420,7 +420,8 @@ class TransactionService:
             'cost_price',
             'alerts',
             'reorder_point',
-            'low_stock_threshold'
+            'low_stock_threshold',
+            'barcode',
             })
         
         # Normalize sku_code to uppercase

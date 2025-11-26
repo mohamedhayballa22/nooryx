@@ -9,6 +9,7 @@ from app.schemas.actions import (
     ReceiveTxn, ShipTxn, AdjustTxn, 
     ReserveTxn, UnreserveTxn, TransferTxn
 )
+from app.services.barcodes import register_barcode
 
 router = APIRouter()
 
@@ -41,8 +42,19 @@ async def receive_stock(
         user_id=current_user.id,
         background_tasks=background_tasks
     )
-    
+
     applied_txn, updated_state = await service.apply_transaction(txn)
+    
+    # Register barcode if provided
+    if hasattr(txn.barcode, 'value') and txn.barcode.value:
+        await register_barcode(
+            db=db,
+            org_id=current_user.org_id,
+            value=txn.barcode.value,
+            sku_code=txn.sku_code,
+            format=getattr(txn.barcode, 'format', None)
+        )
+    
     await db.commit()
     
     service.schedule_low_stock_resolution()
@@ -73,6 +85,17 @@ async def ship_stock(
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
+
+    # Register barcode if provided
+    if hasattr(txn.barcode, 'value') and txn.barcode.value:
+        await register_barcode(
+            db=db,
+            org_id=current_user.org_id,
+            value=txn.barcode.value,
+            sku_code=txn.sku_code,
+            format=getattr(txn.barcode, 'format', None)
+        )
+
     await db.commit()
 
     service.schedule_low_stock_check()
@@ -100,6 +123,17 @@ async def adjust_stock(
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
+
+    # Register barcode if provided
+    if hasattr(txn.barcode, 'value') and txn.barcode.value:
+        await register_barcode(
+            db=db,
+            org_id=current_user.org_id,
+            value=txn.barcode.value,
+            sku_code=txn.sku_code,
+            format=getattr(txn.barcode, 'format', None)
+        )
+
     await db.commit()
 
     if txn.qty < 0:
@@ -131,6 +165,17 @@ async def reserve_stock(
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
+
+    # Register barcode if provided
+    if hasattr(txn.barcode, 'value') and txn.barcode.value:
+        await register_barcode(
+            db=db,
+            org_id=current_user.org_id,
+            value=txn.barcode.value,
+            sku_code=txn.sku_code,
+            format=getattr(txn.barcode, 'format', None)
+        )
+
     await db.commit()
     
     service.schedule_low_stock_check()
@@ -159,6 +204,17 @@ async def unreserve_stock(
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
+
+    # Register barcode if provided
+    if hasattr(txn.barcode, 'value') and txn.barcode.value:
+        await register_barcode(
+            db=db,
+            org_id=current_user.org_id,
+            value=txn.barcode.value,
+            sku_code=txn.sku_code,
+            format=getattr(txn.barcode, 'format', None)
+        )
+
     await db.commit()
     
     service.schedule_low_stock_resolution()
@@ -183,6 +239,17 @@ async def transfer_stock(
     )
     
     out_txn, in_txn, source_state, target_state = await service.apply_transfer(txn)
+
+    # Register barcode if provided
+    if hasattr(txn.barcode, 'value') and txn.barcode.value:
+        await register_barcode(
+            db=db,
+            org_id=current_user.org_id,
+            value=txn.barcode.value,
+            sku_code=txn.sku_code,
+            format=getattr(txn.barcode, 'format', None)
+        )
+
     await db.commit()
     
     # Extract cost from metadata for response
