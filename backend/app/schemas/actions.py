@@ -3,12 +3,19 @@ from typing import Optional, Dict, Any, Literal
 from decimal import Decimal
 
 
+class Barcode(BaseModel):
+    """Schema for barcode registration."""
+    value: str = Field(..., description="The barcode string value")
+    format: str = Field(..., description="SKU code to associate with the barcode")
+    
+
 class BaseTxn(BaseModel):
     """Base transaction schema with common fields."""
     sku_code: str = Field(..., description="SKU code identifier")
     location: str = Field(..., description="Location name where transaction occurs")
     reference: Optional[str] = Field(None, description="External reference (PO, invoice, order ID)")
     txn_metadata: Optional[Dict[str, Any]] = Field(None, description="Additional context")
+    barcode: Optional[Barcode] = None
     
     @field_validator('sku_code')
     @classmethod
@@ -90,6 +97,7 @@ class TransferTxn(BaseModel):
     action: Literal["transfer"] = "transfer"
     sku_code: str
     qty: int = Field(gt=0, description="Quantity to transfer (must be positive)")
+    barcode: Optional[Barcode] = None
     
     location: str = Field(description="Source location name")
     target_location: str = Field(description="Destination location name")
