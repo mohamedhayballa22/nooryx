@@ -66,7 +66,7 @@ class Barcode(Base):
     
     # Barcode Details
     value = Column(String, nullable=False, doc="The actual scanned string (e.g. 123456789012).")
-    barcode_type = Column(String, nullable=False, default="UPC-A", doc="UPC, EAN-13, CODE128, QR, INTERNAL.")
+    barcode_format = Column(String, nullable=False, default="UPC-A", doc="UPC, EAN-13, CODE128, QR, INTERNAL.")
     
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
