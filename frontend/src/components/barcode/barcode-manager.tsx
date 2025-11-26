@@ -51,6 +51,12 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
       }
     : undefined
 
+  // Only pass barcode context if no SKU was found
+  const barcodeContext = scannedBarcode && !sku ? {
+    barcode_value: scannedBarcode,
+    barcode_format: barcodeFormat ?? "Unknown"
+  } : undefined
+
   return (
     <>
       {/* Barcode Scanner Modal */}
@@ -76,8 +82,9 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
         <ReceiveForm
           open
           onOpenChange={(open) => !open && handleFormClose()}
-          invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
+          invalidateQueries={["inventory", "transactions", "trend", "valuation", "barcode"]}
           skuContext={skuContext}
+          barcodeContext={barcodeContext}
         />
       )}
 
@@ -85,8 +92,9 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
         <ShipForm
           open
           onOpenChange={(open) => !open && handleFormClose()}
-          invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
+          invalidateQueries={["inventory", "transactions", "trend", "valuation", "barcode"]}
           skuContext={skuContext}
+          barcodeContext={barcodeContext}
         />
       )}
 
@@ -94,8 +102,9 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
         <ReserveForm
           open
           onOpenChange={(open) => !open && handleFormClose()}
-          invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
+          invalidateQueries={["inventory", "transactions", "trend", "valuation", "barcode"]}
           skuContext={skuContext}
+          barcodeContext={barcodeContext}
         />
       )}
 
@@ -103,8 +112,9 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
         <UnreserveForm
           open
           onOpenChange={(open) => !open && handleFormClose()}
-          invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
+          invalidateQueries={["inventory", "transactions", "trend", "valuation", "barcode"]}
           skuContext={skuContext}
+          barcodeContext={barcodeContext}
         />
       )}
 
@@ -112,8 +122,9 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
         <TransferForm
           open
           onOpenChange={(open) => !open && handleFormClose()}
-          invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
+          invalidateQueries={["inventory", "transactions", "trend", "valuation", "barcode"]}
           skuContext={skuContext}
+          barcodeContext={barcodeContext}
         />
       )}
 
@@ -121,8 +132,9 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
         <AdjustForm
           open
           onOpenChange={(open) => !open && handleFormClose()}
-          invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
+          invalidateQueries={["inventory", "transactions", "trend", "valuation", "barcode"]}
           skuContext={skuContext}
+          barcodeContext={barcodeContext}
         />
       )}
     </>
