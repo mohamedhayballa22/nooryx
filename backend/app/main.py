@@ -14,7 +14,7 @@ from app.middleware.correlation import CorrelationIdMiddleware
 from app.routers import (
     actions, inventory, transactions, reports, 
     search, valuation, team, settings as settings_router,
-    billing, alerts
+    billing, alerts, barcodes
     )
 from app.routers.auth import session, org
 from app.core.auth.users import fastapi_users, auth_backend
@@ -60,6 +60,7 @@ app.add_middleware(
 # Include Routers
 app.include_router(actions.router, tags=["Stock Actions"], prefix="/api")
 app.include_router(search.router, tags=["Search"], prefix="/api/search")
+app.include_router(barcodes.router, tags=["Barcodes"], prefix="/api/barcodes")
 app.include_router(inventory.router, tags=["Inventory"], prefix="/api")
 app.include_router(transactions.router, tags=["Transactions"], prefix="/api")
 app.include_router(reports.router, tags=["Reports"], prefix="/api/reports")
