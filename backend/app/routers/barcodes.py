@@ -3,8 +3,6 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
 from pydantic import BaseModel
-from datetime import datetime
-from uuid import UUID
 from app.core.auth.dependencies import get_current_user
 from app.core.auth.tenant_dependencies import get_tenant_session
 from app.models import User, SKU, Barcode
@@ -14,12 +12,10 @@ router = APIRouter()
 
 class LookupResponse(BaseModel):
     code: str
-    org_id: UUID
     name: str
     alerts: bool
     low_stock_threshold: int
     reorder_point: int
-    created_at: datetime
     
     class Config:
         from_attributes = True
