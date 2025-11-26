@@ -5,6 +5,10 @@ export interface BaseTxn {
   sku_code: string;
   location: string;
   txn_metadata?: Record<string, any>;
+  barcode?: {
+    value: string;
+    format: string;
+  };
 }
 
 export interface ReceiveTxn extends BaseTxn {
@@ -48,6 +52,10 @@ export interface TransferTxn {
   location: string; // source
   target_location: string; // destination
   txn_metadata?: Record<string, any>;
+  barcode?: {
+    value: string;
+    format: string;
+  };
 }
 
 export type TransactionPayload =
