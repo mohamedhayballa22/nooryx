@@ -210,3 +210,18 @@
   scrollbar-color: rgba(120, 120, 120, 0.4) transparent;
 }
 
+@keyframes scan {
+  0% {
+    top: 0;
+  }
+  50% {
+    top: 100%;
+  }
+  100% {
+    top: 0;
+  }
+}
+
+.animate-scan {
+  animation: scan 2s ease-in-out infinite;
+}
