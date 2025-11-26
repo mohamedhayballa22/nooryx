@@ -125,7 +125,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
           {isLowStock && lowStockMetadata && (
             <>
               <div className="space-y-2">
-                {(lowStockMetadata.details || []).map((detail) => (
+                {(lowStockMetadata.details || []).slice().reverse().map((detail) => (
                   <div
                     key={detail.sku_code}
                     className="rounded-md bg-muted/50 p-3 flex items-center justify-between text-sm"
