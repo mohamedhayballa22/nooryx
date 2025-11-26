@@ -17,7 +17,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { DataToolbar } from "@/components/data-toolbar"
 import { PaginationControls } from "@/components/app-pagination"
 import { Button } from "@/components/ui/button"
-import { Settings } from "lucide-react"
+import { ScanBarcode, Settings } from "lucide-react"
 
 import {
   DropdownMenu,
@@ -35,6 +35,7 @@ import { UnreserveForm } from "@/components/forms/unreserve-form"
 import { TransferForm } from "@/components/forms/transfer-form"
 import { UpdateSkuForm } from "@/components/forms/updatesku/update-sku-form"
 import { NavArrowDownSolid } from "iconoir-react"
+import { BarcodeManager } from "../barcode/barcode-manager"
 
 interface DataTableProps<TData, TValue> {
   columns: ColumnDef<TData, TValue>[]
@@ -89,6 +90,7 @@ export function DataTable<TData, TValue>({
   const [columnVisibility, setColumnVisibility] = useState<VisibilityState>({})
   const [isFormOpen, setIsFormOpen] = useState(false)
   const [activeForm, setActiveForm] = useState<string | null>(null)
+  const [scannerOpen, setScannerOpen] = useState(false)
 
   const handlePaginationChange: OnChangeFn<PaginationState> = (updaterOrValue) => {
     const newPagination =
@@ -136,6 +138,15 @@ export function DataTable<TData, TValue>({
           actions={
             <div className="flex items-center gap-2">
               <div className="flex items-stretch border rounded-md overflow-hidden">
+                <Button
+                variant="ghost"
+                className="rounded-none border-0 hover:bg-accent"
+                onClick={() => setScannerOpen(true)}
+              >
+                <ScanBarcode className="h-4 w-4 mr-2" />
+                Scan
+              </Button>
+              <div className="w-px bg-border" />
                 <Button 
                   variant="ghost"
                   className="rounded-none border-0 hover:bg-accent"
@@ -291,6 +302,11 @@ export function DataTable<TData, TValue>({
         open={activeForm === "adjust"}
         onOpenChange={(open) => !open && setActiveForm(null)}
         invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
+      />
+
+      <BarcodeManager
+        open={scannerOpen}
+        onOpenChange={setScannerOpen}
       />
     </>
   )
