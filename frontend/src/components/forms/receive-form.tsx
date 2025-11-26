@@ -3,7 +3,7 @@
 import React from "react"
 import { BaseTransactionForm } from "./transaction-forms"
 import { receiveFormConfig } from "./transaction-forms/form-configs"
-import type { LocationContext, SkuContext, ReceiveFormValues } from "./transaction-forms/types"
+import type { LocationContext, SkuContext, ReceiveFormValues, BarcodeContext } from "./transaction-forms/types"
 import { useUserSettings } from "@/hooks/use-user-settings"
 
 type ReceiveFormProps = {
@@ -15,6 +15,7 @@ type ReceiveFormProps = {
   sizeClass?: string
   skuContext?: SkuContext
   locationContext?: LocationContext
+  barcodeContext?: BarcodeContext
 }
 
 export function ReceiveForm(props: ReceiveFormProps) {
@@ -22,6 +23,8 @@ export function ReceiveForm(props: ReceiveFormProps) {
 
   const configWithDefaults = React.useMemo(() => {
     const newDefaultValues = { ...receiveFormConfig.defaultValues }
+
+    console.log('SKU CONTEXT IN RECEIVE FORM: ', props.skuContext)
 
     if (!props.skuContext) {
       newDefaultValues.alerts =

@@ -83,6 +83,12 @@ export interface LocationContext {
   location: string
 }
 
+// Context for barcode-specific forms
+export interface BarcodeContext {
+  barcode_value: string
+  barcode_format: string
+}
+
 export interface FormConfig<T extends FormValues = FormValues> {
   action: TransactionAction
   title: string
@@ -93,7 +99,7 @@ export interface FormConfig<T extends FormValues = FormValues> {
   fields: FieldConfig[]
   defaultValues: T
   // Dynamic default values based on SKU/location context
-  getDefaultValues?: (skuContext?: SkuContext, locationContext?: LocationContext) => T
+  getDefaultValues?: (skuContext?: SkuContext, locationContext?: LocationContext, barcodeContext?: BarcodeContext) => T
   transformPayload: (data: T) => TransactionPayload
   successMessage: (data: T) => { title: string; description: string }
 }

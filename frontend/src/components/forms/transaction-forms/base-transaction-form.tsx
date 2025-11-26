@@ -19,7 +19,7 @@ import {
 import { toast } from "sonner"
 import { useTxn } from "../hooks/use-txn"
 import { FormField } from "./form-fields"
-import type { FormConfig, FormValues, SkuContext, LocationContext } from "./types"
+import type { FormConfig, FormValues, SkuContext, LocationContext, BarcodeContext } from "./types"
 
 interface BaseTransactionFormProps<T extends FormValues> {
   config: FormConfig<T>
@@ -31,6 +31,7 @@ interface BaseTransactionFormProps<T extends FormValues> {
   sizeClass?: string
   skuContext?: SkuContext
   locationContext?: LocationContext
+  barcodeContext?: BarcodeContext
 }
 
 export function BaseTransactionForm<T extends FormValues>({
@@ -43,6 +44,7 @@ export function BaseTransactionForm<T extends FormValues>({
   sizeClass = "max-w-lg",
   skuContext,
   locationContext,
+  barcodeContext,
 }: BaseTransactionFormProps<T>) {
   const [localOpen, setLocalOpen] = useState(false)
   const isControlled = typeof open === "boolean"
@@ -53,8 +55,8 @@ export function BaseTransactionForm<T extends FormValues>({
   }
 
   // Use SKU-specific and/or location-specific default values if context is provided
-  const defaultValues = (skuContext || locationContext) && config.getDefaultValues
-    ? config.getDefaultValues(skuContext, locationContext)
+  const defaultValues = (skuContext || locationContext || barcodeContext) && config.getDefaultValues
+    ? config.getDefaultValues(skuContext, locationContext, barcodeContext)
     : config.defaultValues
 
   const methods = useForm<T>({
@@ -62,51 +64,61 @@ export function BaseTransactionForm<T extends FormValues>({
     mode: "onChange",
   })
 
-  const { handleSubmit, reset } = methods
-  const { mutate: postTxn, isPending } = useTxn({ invalidateQueries })
+    const { handleSubmit, reset } = methods
+    const { mutate: postTxn, isPending } = useTxn({ invalidateQueries })
+  
+    const onValid = (data: T) => {
+      const payload = config.transformPayload(data)
+      if (barcodeContext) {
+        payload.barcode = {
+          value: barcodeContext.barcode_value,
+          format: barcodeContext.barcode_format,
+        }
+      }
 
-  const onValid = (data: T) => {
-    const payload = config.transformPayload(data)
-
-    postTxn(payload, {
-      onSuccess: () => {
-        onSubmit?.(payload)
-        onSuccess?.()
-        reset()
-        setShow(false)
-
-        const message = config.successMessage(data)
-        toast.success(message.title, {
-          description: message.description,
-        })
-      },
-    })
-  }
-
-  const getActionText = (action: string) => {
-    const actionMap: Record<string, string> = {
-      receive: "Receiving",
-      ship: "Shipping",
-      reserve: "Reserving",
-      unreserve: "Unreserving",
-      adjust: "Adjusting",
-      transfer: "Transferring",
+      console.log('PAYLOAD BEFORE SUBMIT: ', payload)
+  
+      postTxn(payload, {
+        onSuccess: () => {
+          onSubmit?.(payload)
+          onSuccess?.()
+          reset()
+          setShow(false)
+  
+          const message = config.successMessage(data)
+          toast.success(message.title, {
+            description: message.description,
+          })
+        },
+      })
     }
-    return actionMap[action.toLowerCase()] || `${action.charAt(0).toUpperCase() + action.slice(1)}ing`
-  }
-
-  // Get dynamic title and description
-  const title = config.getTitle ? config.getTitle(skuContext) : config.title
-  const description = config.getDescription 
-    ? config.getDescription(skuContext) 
-    : config.description
-
-  // Filter out SKU fields if context is provided
-  const fieldsToFilter = skuContext ? Object.keys(skuContext) : []
-  const fieldsToShow = config.fields.filter(
-    (f) => !fieldsToFilter.includes(f.name)
-  )
-
+  
+    const getActionText = (action: string) => {
+      const actionMap: Record<string, string> = {
+        receive: "Receiving",
+        ship: "Shipping",
+        reserve: "Reserving",
+        unreserve: "Unreserving",
+        adjust: "Adjusting",
+        transfer: "Transferring",
+      }
+      return actionMap[action.toLowerCase()] || `${action.charAt(0).toUpperCase() + action.slice(1)}ing`
+    }
+  
+    // Get dynamic title and description
+    const title = config.getTitle ? config.getTitle(skuContext) : config.title
+    const description = config.getDescription 
+      ? config.getDescription(skuContext) 
+      : config.description
+  
+    // Filter out SKU fields if context is provided
+    const fieldsToFilter = [
+      ...(skuContext ? Object.keys(skuContext) : []),
+      ...(barcodeContext ? Object.keys(barcodeContext) : []),
+    ]
+    const fieldsToShow = config.fields.filter(
+      (f) => !fieldsToFilter.includes(f.name)
+    )
   // Separate notes and alerts fields from other fields
   const notesField = fieldsToShow.find((f) => f.name === "notes")
   const alertsField = fieldsToShow.find((f) => f.name === "alerts")

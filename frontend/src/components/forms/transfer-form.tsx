@@ -3,7 +3,7 @@
 import React from "react"
 import { BaseTransactionForm } from "./transaction-forms"
 import { transferFormConfig } from "./transaction-forms/form-configs"
-import type { LocationContext, SkuContext, TransferFormValues } from "./transaction-forms/types"
+import type { LocationContext, SkuContext, TransferFormValues, BarcodeContext } from "./transaction-forms/types"
 
 type TransferFormProps = {
   open?: boolean
@@ -14,6 +14,7 @@ type TransferFormProps = {
   sizeClass?: string
   skuContext?: SkuContext
   locationContext?: LocationContext
+  barcodeContext?: BarcodeContext
 }
 
 export function TransferForm(props: TransferFormProps) {

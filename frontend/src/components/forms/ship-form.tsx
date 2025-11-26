@@ -3,7 +3,7 @@
 import React from "react"
 import { BaseTransactionForm } from "./transaction-forms"
 import { shipFormConfig } from "./transaction-forms/form-configs"
-import type { LocationContext, ShipFormValues, SkuContext } from "./transaction-forms/types"
+import type { LocationContext, ShipFormValues, SkuContext, BarcodeContext } from "./transaction-forms/types"
 
 type ShipFormProps = {
   open?: boolean
@@ -14,6 +14,7 @@ type ShipFormProps = {
   sizeClass?: string
   skuContext?: SkuContext
   locationContext?: LocationContext
+  barcodeContext?: BarcodeContext
 }
 
 export function ShipForm(props: ShipFormProps) {

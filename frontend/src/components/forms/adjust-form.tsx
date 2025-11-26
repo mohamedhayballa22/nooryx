@@ -3,7 +3,7 @@
 import React from "react"
 import { BaseTransactionForm } from "./transaction-forms"
 import { adjustFormConfig } from "./transaction-forms/form-configs"
-import type { AdjustFormValues, LocationContext, SkuContext } from "./transaction-forms/types"
+import type { AdjustFormValues, LocationContext, SkuContext, BarcodeContext } from "./transaction-forms/types"
 
 type AdjustFormProps = {
   open?: boolean
@@ -14,6 +14,7 @@ type AdjustFormProps = {
   sizeClass?: string
   skuContext?: SkuContext
   locationContext?: LocationContext
+  barcodeContext?: BarcodeContext
 }
 
 export function AdjustForm(props: AdjustFormProps) {
