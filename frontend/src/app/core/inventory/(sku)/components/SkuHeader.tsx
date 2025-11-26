@@ -23,8 +23,6 @@ import { UnreserveForm } from "@/components/forms/unreserve-form"
 import { TransferForm } from "@/components/forms/transfer-form"
 import { UpdateSkuForm } from "@/components/forms/updatesku/update-sku-form"
 import type { InventorySnapshot } from "@/lib/api/inventory"
-import { BarcodeManager } from "@/components/barcode/barcode-manager"
-import { ScanBarcode } from "lucide-react"
 
 interface Props {
   data: InventorySnapshot
@@ -36,7 +34,6 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
   const { sku_code, name, alerts, low_stock_threshold, reorder_point, status, locations, location_names } = data
   const [isReceiveFormOpen, setIsReceiveFormOpen] = useState(false)
   const [activeForm, setActiveForm] = useState<string | null>(null)
-  const [scannerOpen, setScannerOpen] = useState(false)
 
   const skuContext = {
     sku_code: sku_code,
@@ -74,15 +71,6 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
 
           <div className="flex items-center gap-2">
             <div className="flex items-stretch border rounded-md overflow-hidden">
-              <Button
-                variant="ghost"
-                className="rounded-none border-0 hover:bg-accent"
-                onClick={() => setScannerOpen(true)}
-              >
-                <ScanBarcode className="h-4 w-4 mr-2" />
-                Scan
-              </Button>
-              <div className="w-px bg-border" />
               <Button 
                 variant="ghost"
                 className="rounded-none border-0 hover:bg-accent"
@@ -207,11 +195,6 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
         invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
         skuContext={skuContext}
         locationContext={locationContext}
-      />
-
-      <BarcodeManager
-        open={scannerOpen}
-        onOpenChange={setScannerOpen}
       />
     </>
   )
