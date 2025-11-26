@@ -1,0 +1,4 @@
+{
+  "title": "Monitoring, Analysis & Alerts",
+  "pages": ["dashboard", "audit-trail", "alerts", "search"]
+}

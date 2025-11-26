@@ -1,0 +1,53 @@
+---
+title: Receiving Stock
+description: Record your first inventory movement to bring your workspace to life.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import Link from 'next/link';
+
+In Nooryx, you do not need to create a "Product" before you receive it. We combine creation and receipt into a single, fluid workflow. This allows you to move stock from the dock to the shelf without administrative friction.
+
+## The Receiving Flow
+
+1.  Navigate to the **Inventory** page in the sidebar.
+2.  Click the **Receive Stock** button in the top-right corner.
+3.  A form will slide out. This is where you define the **State** of the new inventory.
+
+### Input Fields & Validation
+
+Nooryx enforces strict data quality at the point of entry. We reject ambiguous data to prevent "ghost inventory" later.
+
+| Field | Requirement | Why is this strict? |
+| :--- | :--- | :--- |
+| **SKU Code** | `A-Z`, `0-9`, `-` only. | Spaces and special characters break barcode scanners and integration APIs. |
+| **SKU Name** | Max 80 chars. | Keeps reports and pick-lists readable. |
+| **Location** | Required. | Inventory cannot exist in a void. It must have a physical coordinate. |
+| **Quantity** | Min `1`. | You cannot receive zero or negative stock. |
+| **Cost Price** | Min `0.01`. | Inventory is an asset; it must have a value for the Ledger. |
+| **Notes** | Optional. | Use this field to record any relevant information. |
+
+<Callout type="warn" title="SKU Codes">
+  SKU Codes are unique identifiers. Once created, the **SKU Code cannot be edited**, only archived. Ensure your naming convention is consistent (e.g., `CHR-GRY-FAB`). See the <Link href="/docs/core-concepts/skus">**SKU Guide**</Link> for details.
+</Callout>
+
+### Configuring Alerts
+
+At the bottom of the form, you can toggle **Alerts**. This defines when Nooryx should bother you about this item in the future.
+
+* **Reorder Point:** The quantity at which you need to buy more.
+* **Low Stock Threshold:** The quantity at which you consider stock to be "low". It'll be displayed with an orange badge in the UI.
+
+*Note: Both values must be whole numbers (integers).* See the <Link href="/docs/monitoring/alerts">**Alerting System Guide**</Link> for details.
+
+Once you click **Receive**:
+
+1.  **Validation:** Nooryx checks all rules (e.g., ensures Cost Price is not 0).
+2.  **State Update:** The current inventory state is updated to reflect the new stock.
+3.  **Ledger Entry:** A `Receive` transaction is written to the immutable ledger.
+4.  **Feedback:** You will see a **Success Toast** notification.
+5.  **Visual Confirmation:** A new row immediately appears in your Inventory.
+
+All of this happens in under half a second.
+
+You can click on the new row in the inventory to open the **Master SKU Page**. Here you can view the full history, the current state or adjust settings.

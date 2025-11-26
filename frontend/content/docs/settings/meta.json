@@ -1,0 +1,4 @@
+{
+  "title": "Settings & Administration",
+  "pages": ["general", "account-security", "billing"]
+}
