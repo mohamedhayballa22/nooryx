@@ -76,8 +76,6 @@ export function BaseTransactionForm<T extends FormValues>({
         }
       }
 
-      console.log('PAYLOAD BEFORE SUBMIT: ', payload)
-  
       postTxn(payload, {
         onSuccess: () => {
           onSubmit?.(payload)

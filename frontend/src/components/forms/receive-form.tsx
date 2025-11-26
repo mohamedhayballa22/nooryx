@@ -24,8 +24,6 @@ export function ReceiveForm(props: ReceiveFormProps) {
   const configWithDefaults = React.useMemo(() => {
     const newDefaultValues = { ...receiveFormConfig.defaultValues }
 
-    console.log('SKU CONTEXT IN RECEIVE FORM: ', props.skuContext)
-
     if (!props.skuContext) {
       newDefaultValues.alerts =
         settings?.alerts ?? newDefaultValues.alerts
