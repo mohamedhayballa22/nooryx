@@ -38,7 +38,12 @@ class SKU(Base):
     states = relationship("State", back_populates="sku")
     cost_records = relationship("CostRecord", back_populates="sku")
     organization = relationship("Organization", back_populates="skus")
-    barcodes = relationship("Barcode", back_populates="sku", cascade="all, delete-orphan")
+    barcodes = relationship(
+        "Barcode",
+        back_populates="sku",
+        cascade="all, delete-orphan",
+        overlaps="organization,sku"
+    )
 
     __table_args__ = (
         Index('ix_skus_org_code_prefix', 'org_id', 'code'),
@@ -66,8 +71,16 @@ class Barcode(Base):
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     # Relationships
-    organization = relationship("Organization", back_populates="barcodes")
-    sku = relationship("SKU", back_populates="barcodes")
+    organization = relationship(
+        "Organization",
+        back_populates="barcodes",
+        overlaps="sku,barcodes"
+    )
+    sku = relationship(
+        "SKU",
+        back_populates="barcodes",
+        overlaps="organization,barcodes"
+    )
 
     __table_args__ = (
         # Link to SKU using the Composite Key (code + org_id)
@@ -349,7 +362,12 @@ class Organization(Base):
     transactions = relationship("Transaction", back_populates="organization", cascade="all, delete-orphan", overlaps="sku,transactions")
     states = relationship("State", back_populates="organization", cascade="all, delete-orphan", overlaps="sku,states")
     cost_records = relationship("CostRecord", back_populates="organization", cascade="all, delete-orphan", overlaps="cost_records,sku,transaction")
-    barcodes = relationship("Barcode", back_populates="organization", cascade="all, delete-orphan")
+    barcodes = relationship(
+        "Barcode",
+        back_populates="organization",
+        cascade="all, delete-orphan",
+        overlaps="sku,organization,barcodes"
+    )
 
     subscription = relationship("Subscription", uselist=False, back_populates="organization")
     settings = relationship("OrganizationSettings", uselist=False, back_populates="organization", cascade="all, delete-orphan")
