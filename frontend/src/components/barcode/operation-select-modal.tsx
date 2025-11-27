@@ -20,17 +20,6 @@ interface OperationSelectModalProps {
     name: string
   } | null
   barcode: string
-}
-
-interface OperationSelectModalProps {
-  open: boolean
-  onOpenChange: (open: boolean) => void
-  onSelectOperation: (operation: string) => void
-  skuInfo?: {
-    code: string
-    name: string
-  } | null
-  barcode: string
   isLoading?: boolean
 }
 
@@ -61,7 +50,6 @@ export function OperationSelectModal({
         </DialogHeader>
 
         {isLoading ? (
-          // Loading skeleton
           <div className="mb-4 p-3 bg-muted/50 rounded-lg border">
             <div className="animate-pulse">
               <div className="h-3 w-20 bg-muted-foreground/20 rounded mb-2" />
@@ -72,18 +60,18 @@ export function OperationSelectModal({
         ) : skuInfo ? (
           <div className="mb-4 p-3 bg-muted/50 rounded-lg border">
             <p className="text-xs text-muted-foreground mb-1">Scanned SKU</p>
-            <p className="font-semibold">{skuInfo.code}</p>
-            <p className="text-sm text-muted-foreground">{skuInfo.name}</p>
+            <p className="font-semibold break-words">{skuInfo.code}</p>
+            <p className="text-sm text-muted-foreground break-words">{skuInfo.name}</p>
           </div>
         ) : (
           <div className="mb-4 p-3 bg-yellow-50 dark:bg-yellow-900/20 rounded-lg border border-yellow-200 dark:border-yellow-800">
             <p className="text-xs text-yellow-800 dark:text-yellow-200 mb-1">
               Unknown Barcode
             </p>
-            <p className="font-mono text-sm">{barcode}</p>
+            <p className="font-mono text-sm break-all">{barcode}</p>
             <p className="text-xs text-muted-foreground mt-1">
               No SKU currently uses this barcode.
-              Choose an operation and select or create a SKU — we’ll attach the barcode automatically.
+              Choose an operation and select or create a SKU — we'll attach the barcode automatically.
             </p>
           </div>
         )}
@@ -93,18 +81,22 @@ export function OperationSelectModal({
             <Button
               key={operation.id}
               variant="outline"
-              className="h-auto flex-col items-start p-4 hover:bg-accent"
+              className="h-auto min-h-[100px] flex flex-col items-start justify-start p-4 hover:bg-accent whitespace-normal text-left"
               onClick={() => {
                 onSelectOperation(operation.id)
                 onOpenChange(false)
               }}
               disabled={isLoading}
             >
-              <operation.icon className="h-5 w-5 mb-2" />
-              <span className="font-medium text-sm">{operation.label}</span>
-              <span className="text-xs text-muted-foreground font-normal mt-1">
-                {operation.description}
-              </span>
+              <div className="flex flex-col items-start w-full min-w-0">
+                <operation.icon className="h-5 w-5 mb-2 flex-shrink-0" />
+                <span className="font-medium text-sm w-full break-words">
+                  {operation.label}
+                </span>
+                <span className="text-xs text-muted-foreground font-normal mt-1 w-full break-words leading-tight hyphens-auto">
+                  {operation.description}
+                </span>
+              </div>
             </Button>
           ))}
         </div>
