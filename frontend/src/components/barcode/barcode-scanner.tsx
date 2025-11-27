@@ -44,6 +44,7 @@ export function BarcodeScanner({ open, onOpenChange, onScanSuccess }: BarcodeSca
   const readerRef = useRef<BrowserMultiFormatReader | null>(null)
   const controlsRef = useRef<any>(null)
   const hardwareScanInputRef = useRef<HTMLInputElement>(null)
+  const audioContextRef = useRef<AudioContext | null>(null)
   
   const [scanMethod, setScanMethod] = useState<ScanMethod>(null)
   const [showMethodPicker, setShowMethodPicker] = useState(false)
@@ -51,6 +52,69 @@ export function BarcodeScanner({ open, onOpenChange, onScanSuccess }: BarcodeSca
   const [error, setError] = useState<string | null>(null)
   const [manualBarcode, setManualBarcode] = useState("")
   const [manualError, setManualError] = useState<string | null>(null)
+
+  // Initialize AudioContext on user interaction
+  useEffect(() => {
+    const initAudio = () => {
+      if (!audioContextRef.current) {
+        audioContextRef.current = new (window.AudioContext || (window as any).webkitAudioContext)()
+      }
+    }
+
+    // Initialize on first user interaction
+    document.addEventListener('click', initAudio, { once: true })
+    document.addEventListener('touchstart', initAudio, { once: true })
+
+    return () => {
+      document.removeEventListener('click', initAudio)
+      document.removeEventListener('touchstart', initAudio)
+    }
+  }, [])
+
+  // Cleanup AudioContext on unmount
+  useEffect(() => {
+    return () => {
+      if (audioContextRef.current?.state !== 'closed') {
+        audioContextRef.current?.close()
+      }
+    }
+  }, [])
+
+  // Play beep sound using Web Audio API
+  const playBeep = () => {
+    try {
+      const audioContext = audioContextRef.current
+      if (!audioContext) return
+
+      // Resume context if suspended (required for autoplay policies)
+      if (audioContext.state === 'suspended') {
+        audioContext.resume()
+      }
+
+      // Create oscillator for beep sound
+      const oscillator = audioContext.createOscillator()
+      const gainNode = audioContext.createGain()
+
+      oscillator.connect(gainNode)
+      gainNode.connect(audioContext.destination)
+
+      // Configure beep: 800Hz frequency, short duration
+      oscillator.frequency.value = 800
+      oscillator.type = 'sine'
+
+      // Envelope for smooth sound (avoid clicks)
+      const now = audioContext.currentTime
+      gainNode.gain.setValueAtTime(0, now)
+      gainNode.gain.linearRampToValueAtTime(0.3, now + 0.01) // Quick attack
+      gainNode.gain.exponentialRampToValueAtTime(0.01, now + 0.15) // Decay
+
+      oscillator.start(now)
+      oscillator.stop(now + 0.15)
+    } catch (err) {
+      console.warn('Failed to play beep sound:', err)
+      // Silently fail - audio is not critical
+    }
+  }
 
   // Load saved preference on mount
   useEffect(() => {
@@ -135,6 +199,10 @@ export function BarcodeScanner({ open, onOpenChange, onScanSuccess }: BarcodeSca
             const barcode = result.getText()
             const formatEnum = result.getBarcodeFormat()
             const format = BarcodeFormat[formatEnum]
+            
+            // Play beep sound on successful scan
+            playBeep()
+            
             onScanSuccess(barcode, format)
             stopScanning()
             onOpenChange(false)
