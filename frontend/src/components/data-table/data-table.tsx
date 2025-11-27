@@ -144,7 +144,7 @@ export function DataTable<TData, TValue>({
                 onClick={() => setScannerOpen(true)}
               >
                 <ScanBarcode className="h-4 w-4 mr-2" />
-                Scan
+                Scan Barcode
               </Button>
               <div className="w-px bg-border" />
                 <Button 
