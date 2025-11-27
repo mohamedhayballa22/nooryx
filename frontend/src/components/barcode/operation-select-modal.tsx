@@ -31,7 +31,6 @@ interface OperationSelectModalProps {
     name: string
   } | null
   barcode: string
-  barcodeFormat?: string
   isLoading?: boolean
 }
 
@@ -41,7 +40,6 @@ export function OperationSelectModal({
   onSelectOperation,
   skuInfo,
   barcode,
-  barcodeFormat,
   isLoading = false
 }: OperationSelectModalProps) {
   const operations = [

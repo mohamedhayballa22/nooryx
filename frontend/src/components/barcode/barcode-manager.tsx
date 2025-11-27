@@ -73,7 +73,6 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
         onSelectOperation={handleSelectOperation}
         skuInfo={sku ? { code: sku.code, name: sku.name } : null}
         barcode={scannedBarcode}
-        barcodeFormat={barcodeFormat}
         isLoading={isLoading}
       />
 
