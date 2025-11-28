@@ -112,11 +112,49 @@ class TransactionService:
                     currency
                 )
             
-            # 1. Validate/create SKU - auto-create for receives, validate for others
+            # 1. Validate/create SKU
             await self._ensure_sku_exists(txn_payload)
             
             # 2. Validate and get/create location
             location = await self._get_or_create_location(txn_payload.location)
+            
+            # Determine cost
+            cost_price_minor = None
+
+            # A. User provided explicit cost
+            if hasattr(txn_payload, 'cost_price') and txn_payload.cost_price is not None:
+                currency = await self._get_org_currency()
+                cost_price_minor = self.currency_service.to_minor_units(
+                    txn_payload.cost_price,
+                    currency
+                )
+            
+            # B. Adjustment with NO cost -> Infer from Valuation Method
+            elif txn_payload.action == "adjust" and txn_payload.qty > 0:
+                try:
+                    # Infer value based on the quantity being added
+                    cost_price_minor = await self.cost_tracker.calculate_cost_basis(
+                        sku_code=txn_payload.sku_code,
+                        location_id=location.id,
+                        qty=txn_payload.qty
+                    )
+                except (TransactionBadRequest, InsufficientStockError):
+                    # No active stock? Fetch last known cost (LKC)
+                    last_known = await self.cost_tracker.get_last_known_cost(
+                        txn_payload.sku_code, 
+                        location.id
+                    )
+
+                    # If history exists, use it. If brand new item, default to 0.
+                    if last_known is not None:
+                        cost_price_minor = last_known
+                    else:
+                        cost_price_minor = 0
+
+            # C. Default Fallback
+            # If it's still None (e.g. 'receive' without cost), force it to 0.
+            if cost_price_minor is None:
+                cost_price_minor = 0
             
             # 3. Get or create inventory state with row lock
             state = await self._get_or_create_state(
@@ -166,9 +204,9 @@ class TransactionService:
             }
             
             # 6. Track costs for costing methods (FIFO/LIFO/WAC)
-            # Note: transaction.cost_price is already in minor units at this point
-            if transaction.action in ["receive", "transfer_in", "adjust"] and transaction.cost_price and transaction.qty > 0:
+            if transaction.action in ["receive", "transfer_in", "adjust"] and transaction.qty > 0:
                 await self.cost_tracker.record_cost(transaction)
+                
             elif transaction.action in ["ship", "transfer_out", "adjust"] and transaction.qty < 0:
                 await self.cost_tracker.consume_cost(transaction)
             
@@ -216,7 +254,7 @@ class TransactionService:
                 )
             
             # 1. Calculate transfer cost from source location (returns int minor units)
-            transfer_cost_minor = await self.cost_tracker.calculate_transfer_cost(
+            transfer_cost_minor = await self.cost_tracker.calculate_cost_basis(
                 sku_code=txn_payload.sku_code,
                 location_id=await self._get_location_id(txn_payload.location),
                 qty=txn_payload.qty

@@ -1,3 +1,4 @@
+from typing import Optional
 from uuid import UUID
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
@@ -49,9 +50,9 @@ class CostTracker:
         Record a cost basis for inbound transactions.
         Creates a CostRecord for FIFO/LIFO/WAC tracking.
         """
-        if not txn.cost_price:
-            # Costless items (services, etc.) do not generate records
-            return
+
+        # Any physical inventory addition MUST have a cost layer.
+        cost_price = txn.cost_price if txn.cost_price is not None else 0
 
         cost_record = CostRecord(
             org_id=self.org_id,
@@ -60,7 +61,7 @@ class CostTracker:
             transaction_id=txn.id,
             qty_in=abs(txn.qty),
             qty_remaining=abs(txn.qty),
-            cost_price=int(txn.cost_price),  # stored in minor units
+            cost_price=int(cost_price),  # stored in minor units
         )
 
         self.session.add(cost_record)
@@ -211,12 +212,14 @@ class CostTracker:
         await self.session.flush()
         return total_cost
 
-    async def calculate_transfer_cost(
+    async def calculate_cost_basis(
         self, sku_code: str, location_id: UUID, qty: int
     ) -> int:
         """
-        Calculate per-unit cost basis for transfers (minor units).
-        Uses organization's valuation method.
+        Calculate the cost basis (per unit, in minor units) for a specific quantity.
+        Used for:
+        1. Determining cost of goods sold/transferred (Outbound).
+        2. Inferring value of positive adjustments (Inbound).
         """
         valuation_method = await self.get_valuation_method()
 
@@ -229,8 +232,9 @@ class CostTracker:
 
         cost_records = await self._get_cost_records(sku_code, location_id, order_by=order_by)
         if not cost_records:
+            # If no history exists, we cannot calculate a basis.
             raise TransactionBadRequest(
-                detail=f"No cost records found for SKU '{sku_code}' at this location."
+                detail=f"No cost records found for SKU '{sku_code}' to calculate basis."
             )
 
         if valuation_method == "WAC":
@@ -257,3 +261,22 @@ class CostTracker:
             raise TransactionBadRequest(detail="No sufficient stock for transfer valuation.")
 
         return total_cost // total_qty_costed
+    
+
+    async def get_last_known_cost(self, sku_code: str, location_id: UUID) -> Optional[int]:
+        """
+        Fetch the cost of the most recent transaction for this SKU/Location,
+        regardless of whether the stock is currently present (qty_remaining >= 0).
+        Used for inferring value of 'found' items when stock is currently 0.
+        """
+        result = await self.session.execute(
+            select(CostRecord.cost_price)
+            .filter_by(
+                org_id=self.org_id,
+                sku_code=sku_code,
+                location_id=location_id
+            )
+            .order_by(CostRecord.created_at.desc())
+            .limit(1)
+        )
+        return result.scalar_one_or_none()
