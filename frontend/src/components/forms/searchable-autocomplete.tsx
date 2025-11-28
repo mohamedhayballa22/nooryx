@@ -125,6 +125,7 @@ export function SearchableAutocomplete({
         setHighlightedIndex((prev) => (prev > 0 ? prev - 1 : 0));
         break;
       case "Enter":
+      case "Tab":  // Add Tab here
         e.preventDefault();
         if (highlightedIndex === -1) {
           // No selection, try to create if allowed
@@ -153,11 +154,6 @@ export function SearchableAutocomplete({
         setIsFocused(false);
         setHighlightedIndex(-1);
         inputRef.current?.blur();
-        break;
-      case "Tab":
-        // Close dropdown and allow Tab to move to next field
-        setIsFocused(false);
-        setHighlightedIndex(-1);
         break;
     }
   };
