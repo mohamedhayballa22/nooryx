@@ -59,6 +59,7 @@ class AdjustTxn(BaseTxn):
     action: Literal["adjust"] = "adjust"
     qty: int = Field(..., ne=0, description="Adjustment delta (positive or negative)")
     txn_metadata: Dict[str, Any] = Field(..., description="Must include 'reason' field")
+    cost_price: Optional[Decimal] = Field(None, description="Cost price per unit")
     
     @field_validator('txn_metadata')
     @classmethod

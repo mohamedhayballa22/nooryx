@@ -29,6 +29,7 @@ export interface ShipFormValues extends BaseFormValues {
 
 export interface AdjustFormValues extends BaseFormValues {
   reason: string
+  cost_price?: number
 }
 
 export interface ReserveFormValues extends BaseFormValues {

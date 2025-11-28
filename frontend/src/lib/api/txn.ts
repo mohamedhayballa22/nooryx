@@ -30,6 +30,7 @@ export interface ShipTxn extends BaseTxn {
 export interface AdjustTxn extends BaseTxn {
   action: "adjust";
   qty: number; // positive or negative
+  cost_price?: number;
   txn_metadata: { reason: string; [key: string]: any };
 }
 
