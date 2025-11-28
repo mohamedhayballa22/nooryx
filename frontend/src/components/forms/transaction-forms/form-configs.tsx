@@ -69,7 +69,7 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       required: true,
       type: "number",
       validation: validationRules.costPrice,
-      description: "Learn more about valuation",
+      description: "What's this?",
       learnMoreLink: "#",
       placeholder: "0.00",
       gridColumn: "half",
@@ -297,13 +297,23 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
     },
     {
       name: "qty",
-      label: "Quantity Adjustment",
+      label: "Adjustment Quantity",
       required: true,
       type: "number",
       validation: validationRules.qtyAdjust,
       description: "Positive to add, negative to subtract.",
       placeholder: "0",
-      gridColumn: "full",
+      gridColumn: "half",
+    },
+    {
+      name: "cost_price",
+      label: "Cost Per Unit", // Will be overridden by component to include user's currency
+      type: "number",
+      validation: validationRules.costPerUnit,
+      description: "What if i leave this empty?",
+      learnMoreLink: "#",
+      placeholder: "0.00",
+      gridColumn: "half",
     },
     {
       name: "reason",
@@ -340,7 +350,7 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
     }
   },
   transformPayload: (data) => {
-    const { notes, reason, ...rest } = data
+    const { notes, reason, cost_price, ...rest } = data
     const payload: any = {
       ...rest,
       sku_code: rest.sku_code.trim().toUpperCase(),
@@ -351,6 +361,10 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
 
     if (notes && notes.trim() !== "") {
       payload.txn_metadata.notes = notes.trim()
+    }
+
+    if (cost_price != null) {
+      payload.cost_price = cost_price
     }
 
     return payload

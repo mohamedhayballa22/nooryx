@@ -51,6 +51,11 @@ export const validationRules = {
     min: { value: 0.01, message: "Must be greater than 0" },
   } as RegisterOptions,
 
+  costPerUnit: {
+    valueAsNumber: true,
+    min: { value: 0, message: "Must be a positive number" },
+  } as RegisterOptions,
+
   notes: {
     maxLength: {
       value: NOTES_MAX_LENGTH,
