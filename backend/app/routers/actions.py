@@ -9,7 +9,7 @@ from app.schemas.actions import (
     ReceiveTxn, ShipTxn, AdjustTxn, 
     ReserveTxn, UnreserveTxn, TransferTxn
 )
-from app.services.barcodes import register_barcode
+from app.services.barcodes import link_barcode
 
 router = APIRouter()
 
@@ -47,7 +47,7 @@ async def receive_stock(
     
     # Register barcode if provided
     if hasattr(txn.barcode, 'value') and txn.barcode.value:
-        await register_barcode(
+        await link_barcode(
             db=db,
             org_id=current_user.org_id,
             value=txn.barcode.value,
@@ -88,7 +88,7 @@ async def ship_stock(
 
     # Register barcode if provided
     if hasattr(txn.barcode, 'value') and txn.barcode.value:
-        await register_barcode(
+        await link_barcode(
             db=db,
             org_id=current_user.org_id,
             value=txn.barcode.value,
@@ -126,7 +126,7 @@ async def adjust_stock(
 
     # Register barcode if provided
     if hasattr(txn.barcode, 'value') and txn.barcode.value:
-        await register_barcode(
+        await link_barcode(
             db=db,
             org_id=current_user.org_id,
             value=txn.barcode.value,
@@ -168,7 +168,7 @@ async def reserve_stock(
 
     # Register barcode if provided
     if hasattr(txn.barcode, 'value') and txn.barcode.value:
-        await register_barcode(
+        await link_barcode(
             db=db,
             org_id=current_user.org_id,
             value=txn.barcode.value,
@@ -207,7 +207,7 @@ async def unreserve_stock(
 
     # Register barcode if provided
     if hasattr(txn.barcode, 'value') and txn.barcode.value:
-        await register_barcode(
+        await link_barcode(
             db=db,
             org_id=current_user.org_id,
             value=txn.barcode.value,
@@ -242,7 +242,7 @@ async def transfer_stock(
 
     # Register barcode if provided
     if hasattr(txn.barcode, 'value') and txn.barcode.value:
-        await register_barcode(
+        await link_barcode(
             db=db,
             org_id=current_user.org_id,
             value=txn.barcode.value,
