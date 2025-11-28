@@ -1,11 +1,10 @@
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
 from sqlalchemy.dialects.postgresql import insert
 from app.models import Barcode
 import uuid
 
 
-async def register_barcode(
+async def link_barcode(
     db: AsyncSession,
     org_id: uuid.UUID,
     value: str,
