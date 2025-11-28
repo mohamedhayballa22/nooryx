@@ -3,6 +3,7 @@
 import { useState } from "react"
 import { BarcodeScanner } from "./barcode-scanner"
 import { OperationSelectModal } from "./operation-select-modal"
+import { MapBarcodeModal } from "./map-barcode-modal"
 import { ReceiveForm } from "@/components/forms/receive-form"
 import { ShipForm } from "@/components/forms/ship-form"
 import { ReserveForm } from "@/components/forms/reserve-form"
@@ -10,6 +11,8 @@ import { UnreserveForm } from "@/components/forms/unreserve-form"
 import { TransferForm } from "@/components/forms/transfer-form"
 import { AdjustForm } from "@/components/forms/adjust-form"
 import { useBarcodeLookup } from "@/hooks/use-barcode-lookup"
+import { type Option } from "../forms/searchable-autocomplete"
+import { useSkuSearch } from "../forms/hooks/use-sku-search"
 
 interface BarcodeManagerProps {
   open: boolean
@@ -20,7 +23,12 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
   const [scannedBarcode, setScannedBarcode] = useState<string>("")
   const [barcodeFormat, setBarcodeFormat] = useState<string | undefined>(undefined)
   const [showOperationSelect, setShowOperationSelect] = useState(false)
+  const [showMapBarcode, setShowMapBarcode] = useState(false)
   const [activeOperation, setActiveOperation] = useState<string | null>(null)
+
+  // SKU search for mapping
+  const [skuSearchQuery, setSkuSearchQuery] = useState("")
+  const { data: searchResults, isLoading: isSearching } = useSkuSearch(skuSearchQuery)
 
   const { sku, isLoading } = useBarcodeLookup(scannedBarcode)
 
@@ -34,11 +42,22 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
     setActiveOperation(operation)
   }
 
+  const handleMapBarcode = () => {
+    setShowMapBarcode(true)
+  }
+
+  const handleBackToOperations = () => {
+    setShowMapBarcode(false)
+    setShowOperationSelect(true)
+  }
+
   const handleFormClose = () => {
     setActiveOperation(null)
     setScannedBarcode("")
     setBarcodeFormat(undefined)
     setShowOperationSelect(false)
+    setShowMapBarcode(false)
+    setSkuSearchQuery("")
   }
 
   const skuContext = sku
@@ -57,6 +76,9 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
     barcode_format: barcodeFormat ?? "Unknown"
   } : undefined
 
+  // Convert SKU search results to options
+  const skuOptions: Option[] = searchResults ?? []
+
   return (
     <>
       {/* Barcode Scanner Modal */}
@@ -71,9 +93,27 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
         open={showOperationSelect}
         onOpenChange={setShowOperationSelect}
         onSelectOperation={handleSelectOperation}
+        onMapBarcode={!sku ? handleMapBarcode : undefined}
         skuInfo={sku ? { code: sku.code, name: sku.name } : null}
         barcode={scannedBarcode}
         isLoading={isLoading}
+      />
+
+      {/* Map Barcode Modal */}
+      <MapBarcodeModal
+        open={showMapBarcode}
+        onOpenChange={(open) => {
+          setShowMapBarcode(open)
+          if (!open) {
+            setSkuSearchQuery("")
+          }
+        }}
+        barcode={scannedBarcode}
+        barcodeFormat={barcodeFormat}
+        skuOptions={skuOptions}
+        isLoadingSkus={isSearching}
+        onSearchChange={setSkuSearchQuery}
+        onBackToOperations={handleBackToOperations}
       />
 
       {/* Conditionally-Mounted Forms */}
