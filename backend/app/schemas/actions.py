@@ -11,7 +11,7 @@ class Barcode(BaseModel):
 
 class BaseTxn(BaseModel):
     """Base transaction schema with common fields."""
-    sku_code: str = Field(..., description="SKU code identifier")
+    sku_code: str = Field(..., min_length=3, description="SKU code identifier")
     location: str = Field(..., description="Location name where transaction occurs")
     reference: Optional[str] = Field(None, description="External reference (PO, invoice, order ID)")
     txn_metadata: Optional[Dict[str, Any]] = Field(None, description="Additional context")
@@ -96,7 +96,7 @@ class TransferTxn(BaseModel):
     Cost is automatically determined by organization's valuation method.
     """
     action: Literal["transfer"] = "transfer"
-    sku_code: str
+    sku_code: str = Field(..., min_length=3, description="SKU code identifier")
     qty: int = Field(gt=0, description="Quantity to transfer (must be positive)")
     barcode: Optional[Barcode] = None
     
@@ -118,7 +118,7 @@ class TransferOutTxn(BaseModel):
     Generated automatically by transfer operation.
     """
     action: Literal["transfer_out"] = "transfer_out"
-    sku_code: str
+    sku_code: str = Field(..., min_length=3, description="SKU code identifier")
     sku_name: str | None = None
     qty: int = Field(lt=0, description="Quantity leaving location (must be negative)")
     
@@ -139,7 +139,7 @@ class TransferInTxn(BaseModel):
     Generated automatically by transfer operation with calculated cost.
     """
     action: Literal["transfer_in"] = "transfer_in"
-    sku_code: str
+    sku_code: str = Field(..., min_length=3, description="SKU code identifier")
     sku_name: str | None = None
     qty: int = Field(gt=0, description="Quantity arriving at location (must be positive)")
     alerts: bool
