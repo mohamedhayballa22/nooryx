@@ -1,4 +1,4 @@
 {
   "title": "Workflows & Transactions",
-  "pages": ["ship-stock", "transfer-stock", "stock-adjustments", "reservations"]
+  "pages": ["barcode-scanning", "ship-stock", "transfer-stock", "stock-adjustments", "reservations"]
 }
