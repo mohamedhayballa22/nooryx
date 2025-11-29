@@ -52,7 +52,6 @@ async def send_invitation_email(
     try:
         # Construct URLs
         invitation_url = f"{settings.FRONTEND_URL}/invitation?token={token}"
-        web_version_url = f"{settings.FRONTEND_URL}/emails/invitation/{token}"
         
         # Render HTML template
         try:
@@ -61,7 +60,6 @@ async def send_invitation_email(
                 org_name=org_name,
                 inviter_name=inviter_name,
                 invitation_url=invitation_url,
-                web_version_url=web_version_url,
                 expires_at=expires_at.strftime("%B %d, %Y at %I:%M %p UTC"),
                 support_email=settings.SUPPORT_EMAIL,
             )
@@ -83,8 +81,6 @@ This invitation expires on {expires_at.strftime("%B %d, %Y at %I:%M %p UTC")}
 ---
 
 If you weren't expecting this invitation, you can safely ignore this email.
-
-View this email in your browser: {web_version_url}
 
 Questions? Contact us at {settings.SUPPORT_EMAIL}
         """.strip()
