@@ -301,7 +301,7 @@ class TransactionService:
                 location=txn_payload.target_location,
                 cost_price=transfer_cost_decimal,
                 alerts=getattr(txn_payload, 'alerts', True),
-                reorder_point=getattr(txn_payload, 'reorder_point', 15),
+                reorder_point=getattr(txn_payload, 'reorder_point', 10),
                 low_stock_threshold=getattr(txn_payload, 'low_stock_threshold', 10),
                 txn_metadata={
                     **txn_metadata,
@@ -353,7 +353,7 @@ class TransactionService:
             if txn_payload.action in ["receive", "transfer_in"]:
                 # Extract alert settings from payload if available (receive action)
                 alerts = getattr(txn_payload, 'alerts', True)
-                reorder_point = getattr(txn_payload, 'reorder_point', 15)
+                reorder_point = getattr(txn_payload, 'reorder_point', 10)
                 low_stock_threshold = getattr(txn_payload, 'low_stock_threshold', 10)
                 
                 sku = SKU(
