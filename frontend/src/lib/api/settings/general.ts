@@ -19,6 +19,7 @@ export interface UserGeneralSettingsUpdate {
   date_format?: string;
   role?: string;
   alerts?: boolean;
+  org_name?: string;
 }
 
 export async function getUserSettings(): Promise<UserGeneralSettings> {

@@ -163,11 +163,12 @@ async def update_settings(
     Creates settings records if they don't exist.
     Only updates provided fields.
     """
-
     # Check if any fields were provided
     update_data = settings_update.model_dump(exclude_unset=True)
     if not update_data:
         return
+    
+    print(f"Received settings update: {update_data}")
 
     # Organization-level settings
     org_fields = {"default_low_stock_threshold", "default_reorder_point", "alerts"}
@@ -192,6 +193,15 @@ async def update_settings(
             .values(role=update_data["role"])
         )
         await db.execute(user_update_stmt)
+
+    # Update organization name
+    if "org_name" in update_data:
+        org_update_stmt = (
+            update(Organization)
+            .where(Organization.org_id == user.org_id)
+            .values(name=update_data["org_name"])
+        )
+        await db.execute(org_update_stmt)
     
     # Update or create OrganizationSettings
     if org_updates:

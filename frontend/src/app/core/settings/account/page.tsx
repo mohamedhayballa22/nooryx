@@ -38,6 +38,7 @@ function parseDeviceInfo(ua: string | null) {
 export default function AccountSecurityPage() {
   const { data, error, isLoading } = useUserAccount()
   const [editRoleOpen, setEditRoleOpen] = useState(false)
+  const [editOrgNameOpen, setEditOrgNameOpen] = useState(false)
   const [deleteSessionOpen, setDeleteSessionOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
@@ -135,7 +136,19 @@ export default function AccountSecurityPage() {
           <SettingsSubSection title="Organization">
             <SettingRow 
               label="Organization name" 
-              control={<span className="text-sm">{organization.name}</span>} 
+              control={
+                <div className="flex items-center gap-2">
+                  <span className="text-sm">{organization.name}</span>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="h-8 w-8 p-0"
+                    onClick={() => setEditOrgNameOpen(true)}
+                  >
+                    <EditPencil className="h-4 w-4" />
+                  </Button>
+                </div>
+              } 
             />
             <SettingRow
               label="Created on"
@@ -263,6 +276,24 @@ export default function AccountSecurityPage() {
         description="Are you sure you want to end this session? You will be logged out on that device."
         onDelete={() => selectedSession && handleSessionDelete(selectedSession)}
       />
+
+      {/* Edit Organization Name Dialog */}
+      <SettingsEditDialog
+        open={editOrgNameOpen}
+        onOpenChange={setEditOrgNameOpen}
+        title="Edit organization name"
+        description="Update your organization's name"
+        initialValue={organization.name}
+        settingKey="org_name"
+      >
+        {(value, onChange) => (
+          <Input
+            value={value}
+            onChange={(e) => onChange(e.target.value)}
+            placeholder="e.g., Acme Corporation"
+          />
+        )}
+      </SettingsEditDialog>
     </>
   )
 }

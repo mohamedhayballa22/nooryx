@@ -50,6 +50,7 @@ class SettingsUpdateRequest(BaseModel):
     date_format: Optional[str] = None
     role: Optional[str] = None
     alerts: Optional[bool] = None
+    org_name: Optional[str] = None
 
 
 class SettingsResponse(BaseModel):
