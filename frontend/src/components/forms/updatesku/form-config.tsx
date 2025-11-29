@@ -31,7 +31,7 @@ export const updateSkuFormConfig: UpdateSkuFormConfig = {
       name: "alerts",
       label: "Alerts",
       type: "switch",
-      description: "System sends alerts when SKU falls below configured quantity threshold.",
+      description: "System sends alerts when SKU falls below configured reorder point.",
       gridColumn: "full",
       subFields: [
         {

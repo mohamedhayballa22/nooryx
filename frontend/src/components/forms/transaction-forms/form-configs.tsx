@@ -78,7 +78,7 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       name: "alerts",
       label: "Alerts",
       type: "switch",
-      description: "System sends alerts when SKU falls below configured quantity threshold.",
+      description: "System sends alerts when SKU falls below configured reorder point.",
       gridColumn: "full",
       subFields: [ // Nested fields for alerts
         {
