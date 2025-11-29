@@ -372,6 +372,16 @@ class TransactionService:
                     detail=f"SKU '{txn_payload.sku_code}' not found. Cannot perform '{txn_payload.action}' on non-existent SKU.",
                     sku_code=txn_payload.sku_code
                 )
+        else:
+            # Update existing SKU if new values are provided in payload
+            if hasattr(txn_payload, 'alerts') and txn_payload.alerts is not None:
+                sku.alerts = txn_payload.alerts
+            if hasattr(txn_payload, 'reorder_point') and txn_payload.reorder_point is not None:
+                sku.reorder_point = txn_payload.reorder_point
+            if hasattr(txn_payload, 'low_stock_threshold') and txn_payload.low_stock_threshold is not None:
+                sku.low_stock_threshold = txn_payload.low_stock_threshold
+            
+            await self.session.flush()
     
     async def _get_or_create_location(self, location_name: str) -> Location:
         """Get existing location or create new one for the organization."""

@@ -157,7 +157,7 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
       <ReceiveForm
         open={isReceiveFormOpen || activeForm === "receive"}
         onOpenChange={(open) => !open && (setIsReceiveFormOpen(false), setActiveForm(null))}
-        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation", "search", "skus"]}
         skuContext={skuContext}
         locationContext={locationContext}
       />

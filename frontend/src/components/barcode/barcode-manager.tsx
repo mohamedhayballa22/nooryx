@@ -121,7 +121,7 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
         <ReceiveForm
           open
           onOpenChange={(open) => !open && handleFormClose()}
-          invalidateQueries={["inventory", "transactions", "trend", "valuation", "barcode"]}
+          invalidateQueries={["inventory", "transactions", "trend", "valuation", "barcode", "search", "skus"]}
           skuContext={skuContext}
           barcodeContext={barcodeContext}
         />

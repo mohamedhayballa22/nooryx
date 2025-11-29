@@ -276,7 +276,7 @@ export function DataTable<TData, TValue>({
       <ReceiveForm
         open={isFormOpen || activeForm === "receive"}
         onOpenChange={(open) => !open && (setIsFormOpen(false), setActiveForm(null))}
-        invalidateQueries={["inventory", "transactions", "trend", "valuation"]}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation", "search", "skus"]}
       />
       <ShipForm
         open={activeForm === "ship"}
