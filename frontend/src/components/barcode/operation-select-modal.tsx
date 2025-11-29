@@ -8,10 +8,10 @@ import {
   Lock, 
   Unlock, 
   ArrowLeftRight, 
-  Settings,
   Link,
   AlertCircle
 } from "lucide-react"
+import { DeliveryTruck, Edit } from "iconoir-react"
 
 interface OperationSelectModalProps {
   open: boolean
@@ -37,11 +37,11 @@ export function OperationSelectModal({
 }: OperationSelectModalProps) {
   const operations = [
     { id: "receive", label: "Receive", icon: Package, description: "Add stock" },
-    { id: "ship", label: "Ship", icon: Truck, description: "Remove stock" },
+    { id: "ship", label: "Ship", icon: (props: any) => <DeliveryTruck {...props} strokeWidth={2} />, description: "Remove stock" },
     { id: "reserve", label: "Reserve", icon: Lock, description: "Reserve stock for orders" },
     { id: "unreserve", label: "Unreserve", icon: Unlock, description: "Release reserved stock" },
     { id: "transfer", label: "Transfer", icon: ArrowLeftRight, description: "Move between locations" },
-    { id: "adjust", label: "Adjust", icon: Settings, description: "Manual adjustment" },
+    { id: "adjust", label: "Adjust", icon: (props: any) => <Edit {...props} strokeWidth={2} />, description: "Manual adjustment" },
   ]
 
   const truncate = (val: string, limit = 25) =>

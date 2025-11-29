@@ -14,15 +14,14 @@ import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
 import { useMobile } from "@/hooks/use-mobile"
 import { useFormatting } from "@/hooks/use-formatting"
-import React from "react"
 
 import { TransactionItem } from "@/lib/api/inventory"
 import { Skeleton } from "@/components/ui/skeleton"
 import { 
-  Plus, Lock, LockSlash, 
-  DeliveryTruck, Edit, Upload, 
+  BoxIso, DeliveryTruck, Edit, Upload, 
   OpenBook, InfoCircle, OpenNewWindow, 
   ArrowRight, Puzzle } from "iconoir-react"
+import { Lock, Unlock } from "lucide-react"
 
 export function AuditTrail({
   items,
@@ -35,11 +34,11 @@ export function AuditTrail({
   const { formatDate, formatCurrency, formatQuantity } = useFormatting()
 
   const actionIcons: Record<string, any> = {
-    added: Plus,
+    added: BoxIso,
     shipped: DeliveryTruck,
-    reserved: Lock,
+    reserved: (props: any) => <Lock {...props} strokeWidth={1.5} />,
     adjusted: Edit,
-    unreserved: LockSlash,
+    unreserved: (props: any) => <Unlock {...props} strokeWidth={1.5} />,
     "transferred in": Upload,
     "transferred out": Upload,
   }
