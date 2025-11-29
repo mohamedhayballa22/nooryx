@@ -205,14 +205,16 @@ export const shipFormConfig: FormConfig<ShipFormValues> = {
     {
       name: "ship_from",
       label: "Ship From",
+      required: true,
       type: "select",
+      validation: validationRules.shipFrom,
       options: [
-        { value: "auto", label: "Auto" },
-        { value: "reserved", label: "Reserved" },
         { value: "available", label: "Available" },
+        { value: "reserved", label: "Reserved" },
       ],
-      description: "Inventory bucket to ship from.",
-      placeholder: "Select ship from...",
+      description: "What's this?",
+      learnMoreLink: "#",
+      placeholder: "Bucket to ship from",
       gridColumn: "half",
     },
     {
@@ -227,7 +229,6 @@ export const shipFormConfig: FormConfig<ShipFormValues> = {
     sku_code: "",
     location: "",
     qty: 0,
-    ship_from: "auto",
     notes: "",
   },
   getDefaultValues: (skuContext, locationContext) => {
@@ -235,7 +236,6 @@ export const shipFormConfig: FormConfig<ShipFormValues> = {
       sku_code: skuContext?.sku_code || "",
       location: locationContext?.location || "",
       qty: 0,
-      ship_from: "auto" as const,
       notes: "",
     }
   },

@@ -33,6 +33,10 @@ export const validationRules = {
     },
   } as RegisterOptions,
 
+  shipFrom: {
+    required: "Ship From is required",
+  } as RegisterOptions,
+
   qty: (min: number = 1) => ({
     required: "Quantity is required",
     valueAsNumber: true,

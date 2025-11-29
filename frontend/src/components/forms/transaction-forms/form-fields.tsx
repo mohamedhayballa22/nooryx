@@ -279,7 +279,21 @@ function SelectField({ config }: FormFieldProps) {
         />
       </FieldContent>
       {config.description && (
-        <FieldDescription>{config.description}</FieldDescription>
+        <FieldDescription>
+          {config.learnMoreLink ? ( // Add a check for config.learnMoreLink
+            <a
+              href={config.learnMoreLink}
+              target="_blank"
+              rel="noopener noreferrer"
+              className="inline-flex items-center text-sm hover:underline cursor-pointer"
+            >
+              {config.description}
+              <OpenNewWindow className="ml-1 h-4 w-4" />
+            </a>
+          ) : (
+            config.description
+          )}
+        </FieldDescription>
       )}
     </Field>
   )
