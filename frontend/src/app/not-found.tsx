@@ -31,7 +31,7 @@ export default function NotFound() {
         <p className="text-muted-foreground mb-8 text-lg">
           We checked the shelves twice. Nothing here by that name.
         </p>
-        <Button asChild size="lg" className="text-lg">
+        <Button asChild size="lg">
           <Link href="/">Head Home</Link>
         </Button>
       </motion.div>
