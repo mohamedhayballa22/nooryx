@@ -4,14 +4,15 @@ import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/u
 import { Button } from "@/components/ui/button"
 import { 
   Package, 
-  Truck, 
   Lock, 
   Unlock, 
   ArrowLeftRight, 
-  Link,
-  AlertCircle
+  LinkIcon,
+  AlertCircle,
+  ChevronRight
 } from "lucide-react"
 import { DeliveryTruck, Edit } from "iconoir-react"
+import Link from "next/link"
 
 interface OperationSelectModalProps {
   open: boolean
@@ -65,11 +66,19 @@ export function OperationSelectModal({
             </div>
           </div>
         ) : skuInfo ? (
-          <div className="p-3 bg-muted/30 rounded-lg border border-border/50">
-            <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Scanned SKU</p>
-            <p className="font-semibold text-sm break-words">{skuInfo.code}</p>
-            <p className="text-sm text-muted-foreground break-words">{skuInfo.name}</p>
-          </div>
+          <Link 
+            href={`/core/inventory?sku=${encodeURIComponent(skuInfo.code)}`}
+            className="block p-3 bg-muted/30 rounded-lg border border-border/50 hover:bg-muted/50 hover:border-foreground/20 transition-all duration-200 group"
+          >
+            <div className="flex items-start justify-between gap-2">
+              <div className="flex-1 min-w-0">
+                <p className="text-xs font-medium text-muted-foreground uppercase tracking-wider mb-0.5">Scanned SKU</p>
+                <p className="font-semibold text-sm break-words">{skuInfo.code}</p>
+                <p className="text-sm text-muted-foreground break-words">{skuInfo.name}</p>
+              </div>
+              <ChevronRight className="h-4 w-4 text-muted-foreground group-hover:text-foreground transition-colors flex-shrink-0 mt-0.5" />
+            </div>
+          </Link>
         ) : (
           <div className="space-y-4">
             <div className="group relative flex flex-col items-center justify-center p-6 rounded-lg border border-border/50 bg-muted/20 text-center transition-colors">
@@ -99,7 +108,7 @@ export function OperationSelectModal({
                     onOpenChange(false)
                   }}
                 >
-                  <Link className="h-3 w-3 mr-2" />
+                  <LinkIcon className="h-3 w-3 mr-2" />
                   Link to Existing SKU
                 </Button>
               )}
