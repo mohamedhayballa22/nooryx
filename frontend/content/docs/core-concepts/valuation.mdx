@@ -1,6 +1,138 @@
 ---
 title: Valuation
-description: FIFO, LIFO, and WAC cost tracking explained
+description: Inventory valuation methods (FIFO, LIFO, WAC) explained with practical comparisons
 ---
 
-Comprehensive guide to cost tracking and valuation method selection.
+import Link from 'next/link'
+import { Callout } from 'fumadocs-ui/components/callout'
+import { ValuationSimulator } from '@/components/docs/valuation/valuation-simulator'
+
+Inventory valuation determines how a system assigns cost to on-hand stock and how it calculates the cost of goods sold when items leave inventory. It matters because purchase prices change, batches arrive at different costs and valuation rules directly affect margins, reporting accuracy and auditability. This page introduces the main valuation models used in inventory management, explains how cost layers work and shows how different methods produce different financial outcomes. At the end, we outline how this applies inside Nooryx.
+
+## Why valuation methods exist
+
+Inventory rarely arrives at one stable cost. Suppliers, freight, discounts and market changes often result in units for the same SKU coming in at different prices. When those units are later shipped, the system needs to decide which units — and therefore which costs — should be considered consumed.
+
+Consider the following sequence:
+
+1. Receive 100 units at $10 
+2. Receive 50 units at $12  
+3. Receive 80 units at $9  
+
+Your on-hand inventory is now:
+
+- 100 units at $10  
+- 50 units at $12  
+- 80 units at $9  
+
+If you ship **120 units**, the question becomes:
+
+**Which units did you just ship? The $10 units? The $12 ones? A mix?**
+
+Different answers lead to different inventory values and different COGS results. That is why multiple valuation models exist. Each model defines a clear rule for deciding which units leave the system.
+
+Before these rules can work, the system needs a way to keep the different cost groups separated internally. This is where cost layers come in.
+
+## Cost layers
+
+A **cost layer** is a group of units that share the same unit cost. Layers preserve a clean record of how inventory was acquired so valuation rules can be applied consistently. Cost layers are always tracked per SKU. Each product maintains its own independent set of layers so costs never mix between different items.
+
+When you receive stock, a new layer is created unless an existing layer has the exact same cost. When you ship stock, units are removed from layers according to the valuation method. Layers keep costs from mixing and allow each method to apply its own order of consumption.
+
+You can think of layers as ordered buckets of units. The valuation method defines how units flow out of those buckets.
+
+## The valuation methods Nooryx supports
+
+Nooryx supports three common valuation models. They differ only in how they choose which layer(s) supply outgoing units.
+
+### FIFO
+
+**First In First Out**. Oldest layers are consumed first.
+
+Key behavior:
+
+- Oldest cost flows out first  
+- Newer costs remain in inventory longer  
+- Produces predictable and intuitive COGS
+
+### LIFO
+
+**Last In First Out**. Newest layers are consumed first.
+
+Key behavior:
+
+- Most recent cost flows out first  
+- Older costs remain in inventory  
+- Often used when recent prices reflect current market conditions (depending on accounting rules)
+
+### WAC
+
+**Weighted Average Cost**. All layers are blended into a single rolling average.
+
+Key behavior:
+
+- System maintains one cost for all units  
+- Every receive recalculates the weighted average  
+- All shipments use the same average cost  
+- Produces smooth COGS and simplified reporting
+
+## Interactive example
+
+Use the simulator to see how layers are created, merged and consumed. Switch between FIFO, LIFO and WAC to compare their behavior in the same sequence of receives and shipments.
+
+<ValuationSimulator />
+
+## How valuation shapes financial outcomes
+
+Valuation methods produce different financial results even when the underlying stock movements are identical. The differences appear most clearly when purchase prices change over time.
+
+When costs rise, **FIFO** assigns older, cheaper units to shipments. COGS goes down and the remaining inventory value goes up. **LIFO** does the opposite: newer, more expensive units flow out first, raising COGS and lowering the value of what stays in stock. **WAC** pulls both batches into a single rolling average, softening price swings into a blended cost.
+
+When supplier costs vary from batch to batch, the methods diverge again. **FIFO** preserves the full cost structure in remaining layers, keeping older prices visible. **LIFO** holds older, sometimes outdated costs in inventory while pushing recent ones through COGS. **WAC** converts the variability into a single cost that hides the spread.
+
+Consider a business restocking between seasons:
+
+- Receive 200 units at $20
+- Receive 150 units at $26
+- Ship 180 units for customer orders
+
+| Method | Calculation Basis | Cost of Goods Sold (COGS) | Ending Inventory Value
+| :--- | :--- | :--- | :--- |
+| **FIFO** | (180 units at $20) | **$3,600.00** | **$4,300.00**
+| **LIFO** | (150 at $26) + (30 at $20) | **$4,500.00** | **$3,400.00**
+| **WAC** | (180 units at $22.5714) | **$4,062.86** | **$3,837.14**
+
+The choice of method shifts COGS and inventory value by hundreds of dollars without any change to physical operations. These differences give each method a distinct financial “profile,” which is why choosing the right model early matters.
+
+## How Nooryx applies valuation
+
+- Nooryx creates and maintains cost layers automatically.
+- Shipments, adjustments and transfers consume units from layers according to the selected method.  
+- WAC maintains one rolling average; FIFO and LIFO preserve individual layers.  
+- The chosen valuation method becomes **permanent once you begin transacting**.
+
+<Callout type="warning">
+Set your valuation method before recording any receives or shipments. Changing methods after activity exists may not be possible.
+</Callout>
+
+## Summary
+
+- Select your valuation method deliberately at setup as it's permanent once you start transacting
+- FIFO suits most operations seeking predictable cost flow  
+- LIFO should reflect actual business conditions and regulatory allowance  
+- WAC is useful when simplicity and smooth COGS are priorities  
+- Always enter accurate unit costs during receives  
+- Use the ledger and stock state pages to validate cost activity
+
+## Next steps
+
+Learn how stock movements interact with valuation:
+
+- <Link href="/docs/shipping-stock">Shipping Stock</Link>  
+- <Link href="/docs/adjusting-stock">Adjusting Stock</Link>  
+- <Link href="/docs/understanding-stock-state">Understanding Stock State</Link>  
+
+Explore how Nooryx tracks every event:
+
+- <Link href="/docs/philosophy">The Core Philosophy</Link>
+- <Link href="/docs/monitoring/audit-trail">Activity and Accountability</Link>
