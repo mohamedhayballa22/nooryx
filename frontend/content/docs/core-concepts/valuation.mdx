@@ -111,6 +111,35 @@ The choice of method shifts COGS and inventory value by hundreds of dollars with
 - WAC maintains one rolling average; FIFO and LIFO preserve individual layers.  
 - The chosen valuation method becomes **permanent once you begin transacting**.
 
+### How adjustments work
+
+Adjustments follow the same cost rules as shipments and receives:
+
+- **Positive adjustments** increase on-hand stock and create a new layer or merge with an existing layer when the cost matches.  
+- **Negative adjustments** remove units following the valuation method and update COGS because cost leaves inventory.  
+
+Adjustments never retroactively modify past layers.
+
+### How transfers work
+
+Transfers move the units and their costs without changing valuation:
+
+- No new layers are created  
+- No revaluation occurs  
+- Units keep their original cost as they move between locations  
+
+A transfer cannot be used to alter COGS or reset cost history.
+
+### When inventory reaches zero
+
+If a SKU’s quantity reaches zero, Nooryx clears all layers for that SKU. The next receive starts a new cost structure. This applies to all three valuation methods, including WAC.
+
+### Operational stock is unaffected by valuation
+
+Valuation changes only how costs are assigned. It does not change on-hand, reserved or available quantities and cannot block or enable stock movements.
+
+If cost is missing, Nooryx will prompt you to enter it during the receive but valuation never blocks shipments.
+
 <Callout type="warning">
 Set your valuation method before recording any receives or shipments. Changing methods after activity exists may not be possible.
 </Callout>
