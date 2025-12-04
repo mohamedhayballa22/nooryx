@@ -301,7 +301,7 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
       required: true,
       type: "number",
       validation: validationRules.qtyAdjust,
-      description: "Positive to add, negative to subtract.",
+      description: "+ to add, - to subtract.",
       placeholder: "0",
       gridColumn: "half",
     },
