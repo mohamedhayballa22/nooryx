@@ -1,10 +1,12 @@
 from datetime import datetime, timezone
-from sqlalchemy import select, func
+from typing import Annotated
+from sqlalchemy import select, func, exists
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi_pagination import Page
+from fastapi_pagination.ext.sqlalchemy import apaginate
 
 from app.models import User, Organization, CostRecord, SKU, Transaction
-from sqlalchemy import exists
 from app.schemas.valuation import (
     InventoryValuationRow,
     ValuationHeader,
@@ -12,16 +14,15 @@ from app.schemas.valuation import (
 )
 from app.core.auth.dependencies import get_current_user
 from app.core.db import get_session
-from fastapi_pagination.ext.sqlalchemy import apaginate
-from fastapi_pagination import Page
 from app.services.currency_service import CurrencyService
 
 router = APIRouter()
 
+
 @router.get("/skus", response_model=Page[InventoryValuationRow])
 async def get_inventory_valuation(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_session),
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_session)],
 ):
     """
     Return a paginated SKU-wise valuation breakdown for an organization.
@@ -68,7 +69,7 @@ async def get_inventory_valuation(
                 avg_cost=currency_service.to_major_units(
                     (row.total_value // row.total_qty) if row.total_qty else 0, 
                     currency
-                    ),
+                ),
                 total_value=currency_service.to_major_units(row.total_value, currency),
                 currency=currency,
             )
@@ -79,13 +80,34 @@ async def get_inventory_valuation(
 
 @router.get("", response_model=ValuationHeader)
 async def get_valuation(
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_session),
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_session)],
+    sku_code: Annotated[
+        str | None, 
+        Query(
+            description="Optional SKU code to filter valuation for a specific item",
+        )
+    ] = None,
 ):
     """
-    Return organization-wide valuation summary:
-    total inventory value, currency, valuation method, and timestamp.
+    Return organization-wide valuation summary (or for a specific SKU).
+    
+    Returns total inventory value, currency, valuation method, and timestamp.
+    Can be filtered by SKU code to get valuation for a specific item.
     """
+
+    # Validate SKU if provided
+    if sku_code:
+        sku_exists_query = select(exists().where(
+            (SKU.code == sku_code) & 
+            (SKU.org_id == user.org_id)
+        ))
+        sku_exists = await db.scalar(sku_exists_query)
+        if not sku_exists:
+            raise HTTPException(
+                status_code=404, 
+                detail=f"SKU '{sku_code}' not found in your workspace"
+            )
 
     # Fetch org valuation method & currency
     result = await db.execute(
@@ -100,19 +122,23 @@ async def get_valuation(
 
     valuation_method, currency = org
 
-    # Sum all remaining cost record values
-    value_result = await db.execute(
+    # Sum all remaining cost record values (with optional SKU filter)
+    value_query = (
         select(func.sum(CostRecord.qty_remaining * CostRecord.unit_cost_minor))
         .where(CostRecord.org_id == user.org_id)
         .where(CostRecord.qty_remaining > 0)
     )
-
+    
+    if sku_code:
+        value_query = value_query.where(CostRecord.sku_code == sku_code)
+    
+    value_result = await db.execute(value_query)
     total_value_minor = value_result.scalar() or 0
 
     currency_service = CurrencyService()
     total_value_major = currency_service.to_major_units(total_value_minor, currency)
 
-    # Optional: map valuation method to its full name
+    # Map valuation method to its full name
     method_map = {
         "FIFO": "First-In, First-Out",
         "LIFO": "Last-In, First-Out",
@@ -125,25 +151,46 @@ async def get_valuation(
         method=valuation_method,
         method_full_name=method_map.get(valuation_method, valuation_method),
         timestamp=datetime.now(timezone.utc).isoformat(),
+        sku_code=sku_code,  # Include in response if filtered
     )
 
 
 @router.get("/cogs", response_model=COGSResponse)
 async def get_cogs(
-    sku_code: str | None = None,
-    start_date: datetime | None = None,
-    end_date: datetime | None = None,
-    user: User = Depends(get_current_user),
-    db: AsyncSession = Depends(get_session),
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_session)],
+    sku_code: Annotated[
+        str | None, 
+        Query(
+            description="Optional SKU code to calculate COGS for a specific item",
+        )
+    ] = None,
+    start_date: Annotated[
+        datetime | None,
+        Query(
+            description="Start date for COGS calculation period (ISO 8601 format)",
+        )
+    ] = None,
+    end_date: Annotated[
+        datetime | None,
+        Query(
+            description="End date for COGS calculation period (ISO 8601 format)",
+        )
+    ] = None,
 ):
     """
     Calculate total Cost of Goods Sold (COGS) for a specific period.
     
-    - **sku_code**: Optional. Filters COGS for a specific item. Validates existence.
-    - **start_date/end_date**: Optional. Defines the time window.
+    COGS is calculated based on shipment transactions ('ship' action) and can be
+    filtered by SKU code and/or date range.
+    
+    **Parameters:**
+    - **sku_code**: Filter COGS for a specific item
+    - **start_date**: Beginning of the calculation period (inclusive)
+    - **end_date**: End of the calculation period (inclusive)
     """
     
-    # 1. Validate SKU Existence (Hardening)
+    # Validate SKU existence
     if sku_code:
         sku_exists_query = select(exists().where(
             (SKU.code == sku_code) & 
@@ -151,31 +198,35 @@ async def get_cogs(
         ))
         sku_exists = await db.scalar(sku_exists_query)
         if not sku_exists:
-            raise HTTPException(status_code=404, detail=f"SKU '{sku_code}' not found.")
+            raise HTTPException(
+                status_code=404, 
+                detail=f"SKU '{sku_code}' not found in your organization"
+            )
 
-    # 2. Fetch Organization Currency
-    # We need this to format the BigInt minor units into a float
-    currency_query = select(Organization.currency).where(Organization.org_id == user.org_id)
+    # Fetch organization currency
+    currency_query = select(Organization.currency).where(
+        Organization.org_id == user.org_id
+    )
     currency_result = await db.execute(currency_query)
     currency_row = currency_result.first()
     
     if not currency_row:
-        raise HTTPException(status_code=404, detail="Organization configuration not found.")
+        raise HTTPException(
+            status_code=404, 
+            detail="Organization configuration not found"
+        )
     
     currency = currency_row[0]
 
-    # 3. Build the COGS Query
-    # Logic: COGS is generated when items leave via 'ship' action.
+    # Build the COGS query
     query = (
-        select(
-            func.sum(func.coalesce(Transaction.total_cost_minor, 0))
-        )
+        select(func.sum(func.coalesce(Transaction.total_cost_minor, 0)))
         .where(Transaction.org_id == user.org_id)
-        .where(Transaction.action == 'ship') # Only count shipments as COGS
-        .where(Transaction.total_cost_minor.is_not(None)) # Safety check
+        .where(Transaction.action == 'ship')  # Only shipments count as COGS
+        .where(Transaction.total_cost_minor.is_not(None))
     )
 
-    # Apply Filters
+    # Apply filters
     if sku_code:
         query = query.where(Transaction.sku_code == sku_code)
 
@@ -185,11 +236,11 @@ async def get_cogs(
     if end_date:
         query = query.where(Transaction.created_at <= end_date)
 
-    # 4. Execute
+    # Execute query
     result = await db.execute(query)
     total_cogs_minor = result.scalar() or 0
 
-    # 5. Format Output
+    # Format output
     currency_service = CurrencyService()
     total_cogs_major = currency_service.to_major_units(total_cogs_minor, currency)
 
