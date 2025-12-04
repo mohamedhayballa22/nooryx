@@ -1,0 +1,97 @@
+---
+title: Understanding Stock State
+description: The three quantities that define your inventory reality.
+---
+
+import Link from 'next/link';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { TransactionSimulator } from '@/components/docs/core-concepts/transaction-simulator';
+import { Badge } from '@/components/ui/badge';
+
+The <Link href="/docs/philosophy">Core Philosophy</Link> introduced state as the sum of all recorded history. In practice, inventory requires a more detailed model to handle the gap between an order being created and the goods leaving the warehouse. Relying on a single quantity creates ambiguity when units are spoken for but still physically present. Nooryx resolves this by tracking three quantities for every SKU at every location.
+
+1. **On Hand:** What is physically present  
+2. **Reserved:** What is committed to orders  
+3. **Available:** What can still be sold
+
+These values give you an accurate view of your inventory at any moment. They can be viewed per location, per SKU, or aggregated across all locations.
+
+## The Core Equation
+
+`Available = On Hand - Reserved`
+
+Nooryx calculates this in real time based on the underlying ledger.
+
+## On Hand
+
+**On Hand** is the number of units physically present at a location. A physical count should match this quantity.
+
+### What increases On Hand
+- Receiving stock  
+- Positive adjustments during cycle counts (<Link href="/docs/workflows/stock-adjustments">Adjustments</Link>)  
+- Incoming transfers from other locations  
+- Customer returns once inspected and restocked  
+
+### What decreases On Hand
+- Shipping orders  
+- Negative adjustments (damage, loss, shrinkage)  
+- Outgoing transfers to other locations  
+
+<Callout type="info">
+On Hand reflects the physical quantity on the shelf. It is location-specific and rolls up cleanly when viewing totals across multiple locations.
+</Callout>
+
+## Reserved
+
+**Reserved** is inventory allocated to orders but not yet shipped. These units remain physically present but cannot be sold again.
+
+### Why reservations matter
+
+If you sell an SKU across multiple channels, reservations prevent overselling. When an order is created, Nooryx increases the Reserved quantity. On Hand stays the same, and Available decreases so other channels cannot allocate the same units.
+
+### Reservation workflow
+
+1. An order is created → Reserved increases  
+2. Warehouse picks and packs → Reserved remains the same  
+3. Order ships → Reserved decreases and On Hand decreases  
+
+When shipping, Nooryx asks whether to ship from the Reserved quantity or the Available quantity. Shipping from Available reduces On Hand directly.
+
+### Cancelled orders
+
+If an order is cancelled before shipment, its reservation should be released. This returns those units to the Available pool.
+
+<Callout type="warn">
+If reservations are not released for cancelled orders, Available will be lower than it should be. This can cause false stockouts.
+</Callout>
+
+## Available
+
+**Available** represents what you can sell or allocate right now. It is a calculated value and is never stored directly. Nooryx prevents any operation that would push Available below zero.
+
+## Try It in the Simulator
+
+Use the interactive illustration below to see how receiving, reserving, and shipping affect the three quantities.
+
+<TransactionSimulator />
+
+## Stock Status Indicators
+
+Nooryx uses the Available quantity and the Low Stock Threshold (set in Settings) to determine stock status.
+
+| Status | Condition | Meaning |
+|--------|-----------|----------|
+| <Badge className="px-2 text-xs font-medium border-transparent bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300">In Stock</Badge> | `Available > Low Stock Threshold` | Normal levels |
+| <Badge className="px-2 text-xs font-medium border-transparent bg-orange-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300">Low Stock</Badge> | `0 < Available ≤ Low Stock Threshold` | Reorder soon |
+| <Badge className="border-transparent bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300">Out of Stock</Badge> | `Available = 0` | Nothing can be sold |
+
+## Next Steps
+
+Learn how the primary workflows change these quantities:
+
+- <Link href="/docs/workflows/reservations">Reservations</Link> – Allocate units to orders  
+- <Link href="/docs/workflows/ship-stock">Shipping Stock</Link> – Move units out of On Hand and Reserved  
+- <Link href="/docs/workflows/stock-adjustments">Adjustments</Link> – Correct On Hand counts  
+- <Link href="/docs/workflows/transfer-stock">Transfers</Link> – Move inventory between locations  
+
+These workflows follow consistent, auditable rules to ensure that stock state always reflects reality.
