@@ -86,9 +86,6 @@ class TransactionService:
         """
         Apply a transaction: persist txn row, update inventory state, and track costs.
         
-        Note: The cost_price in the txn_payload should be in major currency units (Decimal) if provided.
-        This method automatically converts it to minor units (int) for internal storage.
-        
         Args:
             txn_payload: Transaction payload from the API
             
@@ -103,15 +100,6 @@ class TransactionService:
             CurrencyError: Invalid currency configuration
         """
         try:
-            # Convert cost_price from major units (Decimal) to minor units (int) if present
-            cost_price_minor = None
-            if hasattr(txn_payload, 'cost_price') and txn_payload.cost_price:
-                currency = await self._get_org_currency()
-                cost_price_minor = self.currency_service.to_minor_units(
-                    txn_payload.cost_price,
-                    currency
-                )
-            
             # 1. Validate/create SKU
             await self._ensure_sku_exists(txn_payload)
             
@@ -119,13 +107,13 @@ class TransactionService:
             location = await self._get_or_create_location(txn_payload.location)
             
             # Determine cost
-            cost_price_minor = None
+            unit_cost_minor = None
 
             # A. User provided explicit cost
-            if hasattr(txn_payload, 'cost_price') and txn_payload.cost_price is not None:
+            if hasattr(txn_payload, 'unit_cost_major') and txn_payload.unit_cost_major is not None:
                 currency = await self._get_org_currency()
-                cost_price_minor = self.currency_service.to_minor_units(
-                    txn_payload.cost_price,
+                unit_cost_minor = self.currency_service.to_minor_units(
+                    txn_payload.unit_cost_major,
                     currency
                 )
             
@@ -133,7 +121,7 @@ class TransactionService:
             elif txn_payload.action == "adjust" and txn_payload.qty > 0:
                 try:
                     # Infer value based on the quantity being added
-                    cost_price_minor = await self.cost_tracker.calculate_cost_basis(
+                    unit_cost_minor = await self.cost_tracker.calculate_cost_basis(
                         sku_code=txn_payload.sku_code,
                         location_id=location.id,
                         qty=txn_payload.qty
@@ -147,14 +135,14 @@ class TransactionService:
 
                     # If history exists, use it. If brand new item, default to 0.
                     if last_known is not None:
-                        cost_price_minor = last_known
+                        unit_cost_minor = last_known
                     else:
-                        cost_price_minor = 0
+                        unit_cost_minor = 0
 
             # C. Default Fallback
             # If it's still None (e.g. 'receive' without cost), force it to 0.
-            if cost_price_minor is None:
-                cost_price_minor = 0
+            if unit_cost_minor is None:
+                unit_cost_minor = 0
             
             # 3. Get or create inventory state with row lock
             state = await self._get_or_create_state(
@@ -169,12 +157,12 @@ class TransactionService:
             if txn_payload.action == "ship":
                 txn_payload.qty = -abs(txn_payload.qty)
             
-            # 4. Create transaction record (with cost_price in minor units)
+            # 4. Create transaction record
             transaction = await self._create_transaction(
                 txn_payload, 
                 location.id,
                 state.on_hand,
-                cost_price_minor
+                unit_cost_minor
             )
 
             available_after = available_before + transaction.qty
@@ -206,12 +194,36 @@ class TransactionService:
             # 6. Track costs for costing methods (FIFO/LIFO/WAC)
             if transaction.action in ["receive", "transfer_in", "adjust"] and transaction.qty > 0:
                 await self.cost_tracker.record_cost(transaction)
-                
+
+            # ---------------------------------------------------------------------
+            # IMPORTANT: Outbound transactions overwrite total_cost_minor
+            # ---------------------------------------------------------------------
+            # Outbound actions (`ship`, `transfer_out`, negative `adjust`) do NOT
+            # receive cost information in the API payload. Because of this, the
+            # unit_cost_minor passed into `_create_transaction()` is always None,
+            # which forces `_create_transaction()` to record the transaction with
+            # total_cost_minor = 0.
+            #
+            # However, outbound transactions *must* carry the actual total cost
+            # consumed according to the organization’s valuation method
+            # (FIFO/LIFO/WAC). That information is only available *after* the
+            # transaction row exists, because `consume_cost()` needs the persisted
+            # transaction to determine which cost layers are consumed.
+            #
+            # `consume_cost()` returns the *extended* cost (qty × unit cost), not
+            # a per-unit value. Therefore we explicitly overwrite the initially
+            # stored zero value here with the actual total consumed cost.
+            #
+            # Do NOT remove this overwrite or attempt to "pre-fill" outbound
+            # unit costs earlier. Outbound costs cannot be computed before calling
+            # `consume_cost()`, and `_create_transaction()` will always compute
+            # an incorrect (zero) total for outbound transactions.
+            # ---------------------------------------------------------------------
             elif transaction.action in ["ship", "transfer_out", "adjust"] and transaction.qty < 0:
                 total_consumed_cost = await self.cost_tracker.consume_cost(transaction)
-                
+
                 if total_consumed_cost is not None and transaction.qty != 0:
-                    transaction.cost_price = total_consumed_cost
+                    transaction.total_cost_minor = total_consumed_cost
             
             return transaction, state
             
@@ -256,8 +268,8 @@ class TransactionService:
                     sku_code=txn_payload.sku_code
                 )
             
-            # 1. Calculate transfer cost from source location (returns int minor units)
-            transfer_cost_minor = await self.cost_tracker.calculate_cost_basis(
+            # 1. Calculate transfer unit cost from source location (returns int minor units)
+            transfer_unit_cost_minor = await self.cost_tracker.calculate_cost_basis(
                 sku_code=txn_payload.sku_code,
                 location_id=await self._get_location_id(txn_payload.location),
                 qty=txn_payload.qty
@@ -265,8 +277,8 @@ class TransactionService:
             
             # Convert to major units for human-readable metadata display
             currency = await self._get_org_currency()
-            transfer_cost_display = self.currency_service.format_amount(
-                transfer_cost_minor,
+            transfer_unit_cost_display = self.currency_service.format_amount(
+                transfer_unit_cost_minor,
                 currency
             )
             
@@ -279,7 +291,7 @@ class TransactionService:
                 txn_metadata={
                     **txn_payload.txn_metadata,
                     'target_location': txn_payload.target_location,
-                    'transfer_cost_per_unit': float(transfer_cost_display)
+                    'transfer_cost_per_unit': float(transfer_unit_cost_display)
                 }
             )
             
@@ -287,8 +299,8 @@ class TransactionService:
             
             # 3. Convert minor units back to Decimal major units for transfer_in payload
             # (apply_transaction will convert it back to minor units for storage)
-            transfer_cost_decimal = self.currency_service.to_major_units(
-                transfer_cost_minor,
+            transfer_unit_cost_major = self.currency_service.to_major_units(
+                transfer_unit_cost_minor,
                 currency
             )
 
@@ -302,14 +314,14 @@ class TransactionService:
                 sku_name=sku_name,
                 qty=abs(txn_payload.qty),
                 location=txn_payload.target_location,
-                cost_price=transfer_cost_decimal,
+                unit_cost_major=transfer_unit_cost_major,
                 alerts=getattr(txn_payload, 'alerts', True),
                 reorder_point=getattr(txn_payload, 'reorder_point', 10),
                 low_stock_threshold=getattr(txn_payload, 'low_stock_threshold', 10),
                 txn_metadata={
                     **txn_metadata,
                     'source_location': txn_payload.location,
-                    'transfer_cost_per_unit': float(transfer_cost_display)
+                    'transfer_cost_per_unit': float(transfer_unit_cost_display)
                 }
             )
             
@@ -451,7 +463,7 @@ class TransactionService:
         txn_payload: TransactionPayload,
         location_id: UUID,
         qty_before: int,
-        cost_price_minor: Optional[int] = None
+        unit_cost_minor: Optional[int] = None
     ) -> Transaction:
         """
         Create and persist transaction record.
@@ -460,15 +472,15 @@ class TransactionService:
             txn_payload: Transaction payload from the API
             location_id: Location UUID
             qty_before: Quantity before transaction
-            cost_price_minor: Cost price already converted to minor units (int)
+            unit_cost_minor: Unit Cost price already converted to minor units (int)
             
         Returns:
-            Persisted Transaction instance with cost_price in minor units
+            Persisted Transaction instance with unit_cost_minor in minor units
         """
         txn_dict = txn_payload.model_dump(exclude={
             'location', 
             'sku_name', 
-            'cost_price',
+            'unit_cost_major',
             'alerts',
             'reorder_point',
             'low_stock_threshold',
@@ -480,15 +492,15 @@ class TransactionService:
         
         # Multiply by quantity to get TOTAL cost
         total_cost_minor = None
-        if cost_price_minor is not None:
-            total_cost_minor = cost_price_minor * abs(txn_payload.qty)
+        if unit_cost_minor is not None:
+            total_cost_minor = unit_cost_minor * abs(txn_payload.qty)
         
         transaction = Transaction(
             org_id=self.org_id,
             location_id=location_id,
             qty_before=qty_before,
             created_by=self.user_id,
-            cost_price=total_cost_minor,
+            total_cost_minor=total_cost_minor,
             **txn_dict
         )
         
