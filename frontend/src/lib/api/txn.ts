@@ -15,7 +15,7 @@ export interface ReceiveTxn extends BaseTxn {
   action: "receive";
   sku_name: string;
   qty: number; // positive
-  cost_price: number; // positive
+  unit_cost_major: number;
 }
 
 export interface ShipTxn extends BaseTxn {
@@ -30,7 +30,7 @@ export interface ShipTxn extends BaseTxn {
 export interface AdjustTxn extends BaseTxn {
   action: "adjust";
   qty: number; // positive or negative
-  cost_price?: number;
+  unit_cost_major?: number;
   txn_metadata: { reason: string; [key: string]: any };
 }
 
