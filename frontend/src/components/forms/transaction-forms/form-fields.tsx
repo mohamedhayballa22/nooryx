@@ -187,7 +187,7 @@ function NumberField({ config }: FormFieldProps) {
       <FieldContent>
         <Input
           type="number"
-          step={config.name === "cost_price" ? "0.01" : "1"}
+          step={config.name === "unit_cost_major" ? "0.01" : "1"}
           placeholder={config.placeholder || "0"}
           {...register(config.name, config.validation)}
         />

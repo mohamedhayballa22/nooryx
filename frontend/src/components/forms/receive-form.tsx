@@ -35,7 +35,7 @@ export function ReceiveForm(props: ReceiveFormProps) {
     }
 
     const fields = receiveFormConfig.fields.map((field) =>
-      field.name === "cost_price"
+      field.name === "unit_cost_major"
         ? {
             ...field,
             label: `Cost Price Per Unit${

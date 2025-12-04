@@ -28,7 +28,7 @@ export function AdjustForm(props: AdjustFormProps) {
 
   const configWithDefaults = React.useMemo(() => {
     const fields = adjustFormConfig.fields.map((field) =>
-      field.name === "cost_price"
+      field.name === "unit_cost_major"
         ? {
             ...field,
             label: `Cost Per Unit${

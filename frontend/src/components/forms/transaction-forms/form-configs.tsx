@@ -64,7 +64,7 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       gridColumn: "half",
     },
     {
-      name: "cost_price",
+      name: "unit_cost_major",
       label: "Cost Price Per Unit", // Will be overridden by component to include user's currency
       required: true,
       type: "number",
@@ -116,7 +116,7 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
     sku_name: "",
     location: "",
     qty: 0,
-    cost_price: 0,
+    unit_cost_major: 0,
     alerts: true,
     reorder_point: 0,
     low_stock_threshold: 0,
@@ -128,7 +128,7 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       sku_name: skuContext?.sku_name || "",
       location: locationContext?.location || "",
       qty: 0,
-      cost_price: 0,
+      unit_cost_major: 0,
       alerts: skuContext?.alerts ?? true,
       reorder_point: skuContext?.reorder_point || 0,
       low_stock_threshold: skuContext?.low_stock_threshold || 0,
@@ -306,7 +306,7 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
       gridColumn: "half",
     },
     {
-      name: "cost_price",
+      name: "unit_cost_major",
       label: "Cost Per Unit", // Will be overridden by component to include user's currency
       type: "number",
       validation: validationRules.costPerUnit,
@@ -350,7 +350,7 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
     }
   },
   transformPayload: (data) => {
-    const { notes, reason, cost_price, ...rest } = data
+    const { notes, reason, unit_cost_major, ...rest } = data
     const payload: any = {
       ...rest,
       sku_code: rest.sku_code.trim().toUpperCase(),
@@ -363,8 +363,8 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
       payload.txn_metadata.notes = notes.trim()
     }
 
-    if (cost_price != null) {
-      payload.cost_price = cost_price
+    if (unit_cost_major != null) {
+      payload.unit_cost_major = unit_cost_major
     }
 
     return payload

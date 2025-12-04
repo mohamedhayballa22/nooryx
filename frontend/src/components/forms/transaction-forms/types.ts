@@ -17,7 +17,7 @@ export interface BaseFormValues {
 
 export interface ReceiveFormValues extends BaseFormValues {
   sku_name: string
-  cost_price: number
+  unit_cost_major: number
   alerts: boolean
   reorder_point: number
   low_stock_threshold: number
@@ -29,7 +29,7 @@ export interface ShipFormValues extends BaseFormValues {
 
 export interface AdjustFormValues extends BaseFormValues {
   reason: string
-  cost_price?: number
+  unit_cost_major?: number
 }
 
 export interface ReserveFormValues extends BaseFormValues {
