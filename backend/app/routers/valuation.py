@@ -44,7 +44,7 @@ async def get_inventory_valuation(
             CostRecord.sku_code.label("sku_code"),
             SKU.name.label("name"),
             func.sum(CostRecord.qty_remaining).label("total_qty"),
-            func.sum(CostRecord.qty_remaining * CostRecord.cost_price).label("total_value"),
+            func.sum(CostRecord.qty_remaining * CostRecord.unit_cost_minor).label("total_value"),
         )
         .join(SKU, (SKU.code == CostRecord.sku_code) & (SKU.org_id == CostRecord.org_id))
         .where(CostRecord.org_id == user.org_id)
@@ -100,7 +100,7 @@ async def get_valuation(
 
     # Sum all remaining cost record values
     value_result = await db.execute(
-        select(func.sum(CostRecord.qty_remaining * CostRecord.cost_price))
+        select(func.sum(CostRecord.qty_remaining * CostRecord.unit_cost_minor))
         .where(CostRecord.org_id == user.org_id)
         .where(CostRecord.qty_remaining > 0)
     )
