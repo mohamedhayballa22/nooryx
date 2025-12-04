@@ -52,11 +52,10 @@ class CostTracker:
         """
 
         # Any physical inventory addition MUST have a cost layer.
-        cost_price = txn.cost_price if txn.cost_price is not None else 0
+        total_cost_minor = txn.total_cost_minor if txn.total_cost_minor is not None else 0
         
-        # Convert to cost_price per unit
-        if cost_price is not None:
-            cost_price = cost_price // abs(txn.qty)
+        # Convert to cost per unit
+        unit_cost_minor = total_cost_minor // abs(txn.qty)
 
         cost_record = CostRecord(
             org_id=self.org_id,
@@ -65,7 +64,7 @@ class CostTracker:
             transaction_id=txn.id,
             qty_in=abs(txn.qty),
             qty_remaining=abs(txn.qty),
-            cost_price=int(cost_price),  # stored in minor units
+            unit_cost_minor=int(unit_cost_minor),
         )
 
         self.session.add(cost_record)
@@ -83,7 +82,7 @@ class CostTracker:
             return
 
         total_qty = sum(cr.qty_remaining for cr in cost_records)
-        total_value = sum(cr.qty_remaining * cr.cost_price for cr in cost_records)
+        total_value = sum(cr.qty_remaining * cr.unit_cost_minor for cr in cost_records)
         if total_qty <= 0:
             return
 
@@ -99,7 +98,7 @@ class CostTracker:
             location_id=location_id,
             qty_in=total_qty,
             qty_remaining=total_qty,
-            cost_price=avg_cost,
+            unit_cost_minor=avg_cost,
         )
         self.session.add(merged_record)
         await self.session.flush()
@@ -112,10 +111,6 @@ class CostTracker:
         valuation_method = await self.get_valuation_method()
         units_to_consume = abs(txn.qty)
         
-        # Convert to cost_price per unit
-        if txn.cost_price is not None:
-            txn.cost_price = txn.cost_price // abs(txn.qty)
-
         if valuation_method == "FIFO":
             return await self._consume_fifo(txn, units_to_consume)
         elif valuation_method == "LIFO":
@@ -148,7 +143,7 @@ class CostTracker:
             raise InsufficientStockError(detail="No cost basis found for WAC consumption")
 
         total_qty = sum(cr.qty_remaining for cr in cost_records)
-        total_value = sum(cr.qty_remaining * cr.cost_price for cr in cost_records)
+        total_value = sum(cr.qty_remaining * cr.unit_cost_minor for cr in cost_records)
         if total_qty <= 0:
             raise InsufficientStockError(detail="No available quantity for WAC consumption")
 
@@ -200,7 +195,7 @@ class CostTracker:
         Consume units from cost records sequentially (FIFO/LIFO).
         Updates qty_remaining and returns total cost in minor units.
         """
-        total_cost = 0
+        total_consumed_cost = 0
         remaining_to_consume = units
 
         for record in cost_records:
@@ -208,7 +203,7 @@ class CostTracker:
                 break
 
             consume_qty = min(record.qty_remaining, remaining_to_consume)
-            total_cost += consume_qty * record.cost_price
+            total_consumed_cost += consume_qty * record.unit_cost_minor
             record.qty_remaining -= consume_qty
             remaining_to_consume -= consume_qty
 
@@ -218,7 +213,7 @@ class CostTracker:
             )
 
         await self.session.flush()
-        return total_cost
+        return total_consumed_cost
 
     async def calculate_cost_basis(
         self, sku_code: str, location_id: UUID, qty: int
@@ -228,6 +223,9 @@ class CostTracker:
         Used for:
         1. Determining cost of goods sold/transferred (Outbound).
         2. Inferring value of positive adjustments (Inbound).
+        
+        Returns:
+            Unit cost (int) in minor units
         """
         valuation_method = await self.get_valuation_method()
 
@@ -246,7 +244,7 @@ class CostTracker:
             )
 
         if valuation_method == "WAC":
-            total_value = sum(cr.cost_price * cr.qty_remaining for cr in cost_records)
+            total_value = sum(cr.unit_cost_minor * cr.qty_remaining for cr in cost_records)
             total_qty = sum(cr.qty_remaining for cr in cost_records)
             if total_qty == 0:
                 raise TransactionBadRequest(detail="No inventory available for WAC valuation.")
@@ -261,7 +259,7 @@ class CostTracker:
             if remaining_to_transfer <= 0:
                 break
             qty_from_record = min(record.qty_remaining, remaining_to_transfer)
-            total_cost += record.cost_price * qty_from_record
+            total_cost += record.unit_cost_minor * qty_from_record
             total_qty_costed += qty_from_record
             remaining_to_transfer -= qty_from_record
 
@@ -278,7 +276,7 @@ class CostTracker:
         Used for inferring value of 'found' items when stock is currently 0.
         """
         result = await self.session.execute(
-            select(CostRecord.cost_price)
+            select(CostRecord.unit_cost_minor)
             .filter_by(
                 org_id=self.org_id,
                 sku_code=sku_code,
