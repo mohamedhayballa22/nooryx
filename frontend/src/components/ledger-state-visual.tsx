@@ -87,7 +87,7 @@ export default function LedgerStateVisual() {
               {state}
             </div>
             <div className="text-[10px] text-neutral-400 dark:text-neutral-500 mt-1">
-              on hand
+              On Hand
             </div>
           </div>
         </div>
