@@ -1,8 +1,87 @@
 ---
 title: Managing Locations
-description: Define and organize your physical storage locations
+description: Organize inventory across physical and logical spaces.
 ---
 
-# Managing Locations
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Accordion, Accordions } from 'fumadocs-ui/components/accordion';
+import Link from 'next/link';
 
-Guide to setting up warehouses, stores, and location hierarchies.
+Locations are the physical or logical places where you store inventory. They can be as broad as **"Main Warehouse"** or as specific as **"Aisle 2 — Shelf A3"**. Whatever makes sense for your operation.  
+
+Without location tracking, you might know you have 100 units company-wide, but you won’t know that 95 of them are in the wrong warehouse while customers wait.
+
+Each location maintains its own stock levels for every SKU. The *same* product can have different quantities at different locations. Nooryx always knows exactly how much of each product you have at each location.
+
+## Setting Up Locations
+
+Locations are created automatically the first time you use them. When receiving or transferring stock, simply type the location name. **Nooryx treats every location name as unique**.
+
+As you type, Nooryx automatically suggests existing locations so you don’t accidentally create duplicates. If the name already exists, Nooryx automatically reuses it.
+A brand-new location can only be created when stock is **coming in**, during receiving or the inbound leg of a transfer.
+Outbound actions like shipping cannot create new locations.
+
+<Callout title="Flat, not hierarchical">
+  Locations in Nooryx are not hierarchical.  
+  If you want structure, design it directly in the name (e.g., “Aisle 2 — Shelf A3”).  
+  Nooryx treats each name as a single, flat location identifier.
+</Callout>
+
+### Best Practices
+
+- **Use clear, consistent names** your whole team will recognize. Avoid cryptic abbreviations that might confuse new employees.
+- **Start simple** with 1–3 locations and add more as you scale. Don’t create unnecessary complexity early on.
+- **Name with fulfillment in mind.** “Ecommerce FC” vs. “Retail Store” makes it immediately clear which stock is meant for what.
+
+<Callout title="Don’t overthink it">
+  If you’re a single-location business, just use something like “Warehouse” or “Main Stock.”  
+  You can always add more locations later.
+</Callout>
+
+## Viewing Inventory by Location
+
+You can view inventory at the location level throughout Nooryx.
+The dashboard gives you location-level totals, each SKU page shows its distribution across locations, and all reports and tables support filtering by location.
+
+### How Locations Affect Alerts
+
+Alerts are scoped by location by default, meaning each location is monitored independently. However, alerts can be configured to act globally when needed.
+Refer to the <Link href="/docs/monitoring/alerts">**Alerting Guide**</Link> for more information.
+
+## Moving Stock Between Locations
+
+Use the **Transfer** feature to move inventory from one location to another.  
+Nooryx records this as two linked events:
+
+1. Stock leaves Location A  
+2. Stock arrives at Location B
+
+Your inventory value automatically follows your chosen accounting method (FIFO, LIFO, or WAC). No manual calculations needed.
+
+<Callout title="Learn more">
+  See the step-by-step process in [Stock Transfers](/docs/workflows/transfers).
+</Callout>
+
+## Frequently Asked Questions
+
+<Accordions>
+  <Accordion title="Can I rename a location after I've started using it?">
+    No. Location names are permanent to preserve historical data integrity.  
+    If you need to change naming conventions, create a new location and transfer stock into it.
+  </Accordion>
+
+  <Accordion title="What if I only have one location? Do I still need to track it?">
+    Yes. Even with one location, Nooryx needs a location name to record where stock lives.
+    You’ll still get the full experience without any added complexity, and you’ll be ready to expand if a second location is ever needed.
+  </Accordion>
+
+  <Accordion title="Can I delete a location?">
+    Locations with stock cannot be deleted.  
+    Once a location has no stock and you stop using it, it simply stops appearing in suggestions and filters.
+  </Accordion>
+
+  <Accordion title="How do I see all my locations?">
+    Nooryx automatically surfaces all active locations in dropdowns, tabs, and filters.  
+    There’s no separate “location management” page. Locations appear organically as you use them.
+  </Accordion>
+</Accordions>
