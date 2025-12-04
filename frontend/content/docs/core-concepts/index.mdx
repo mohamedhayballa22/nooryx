@@ -1,0 +1,37 @@
+---
+title: Core Concepts & Data
+description: The operational building blocks of Nooryx.
+---
+
+import Link from 'next/link';
+import { EntityEquation , StockLevelsIcon } from '@/components/docs/core-concepts/entity-equation';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { MapPin, Activity, Calculator } from 'lucide-react';
+import { Coins, BoxIso } from 'iconoir-react';
+
+Now that you understand Nooryx's ledger-first architecture, let's explore the practical entities you will interact with daily. Every inventory operation in Nooryx revolves around three core concepts: **what** you're tracking, **where** it lives, and **how much** you have.
+
+## The Inventory Equation
+
+Inventory doesn't exist in the abstract—it is always a specific product sitting in a specific place. The combination of these two dimensions creates a **State**: your current stock levels at that exact intersection.
+
+<EntityEquation />
+
+Understanding this relationship is essential. You never just "add stock"; you add (or create) a specific **SKU** to a specific **Location**. These two dimensions—and the state they create—are embodied in a small set of core entities, which we detail in this section.
+
+<Cards>
+  <Card icon={<BoxIso className="text-blue-500" />} title="SKUs" href="/docs/core-concepts/skus">
+    The atomic unit of inventory. Defined by a unique code and name.
+  </Card>
+  <Card icon={<MapPin className="text-purple-500" />} title="Locations" href="/docs/core-concepts/locations">
+    Physical or logical places. Stock is always location-specific.
+  </Card>
+  <Card icon={<StockLevelsIcon className="text-emerald-500" />} title="Stock State" href="/docs/core-concepts/stock-state">
+    The real-time quantities derived from the ledger. Drives "In Stock" indicators.
+  </Card>
+  <Card icon={<Coins className="text-yellow-500" />} title="Valuation" href="/docs/core-concepts/valuation">
+    The process of determining the value of your inventory.
+  </Card>
+</Cards>
+
+Once you are comfortable with these building blocks, move on to <Link href="/docs/workflows"><strong>Workflows</strong></Link> to see how daily operations bring them to life.
