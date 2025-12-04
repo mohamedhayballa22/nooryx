@@ -86,7 +86,7 @@ class TransactionService:
         """
         Apply a transaction: persist txn row, update inventory state, and track costs.
         
-        Note: If txn_payload contains cost_price, it should be in major currency units (Decimal).
+        Note: The cost_price in the txn_payload should be in major currency units (Decimal) if provided.
         This method automatically converts it to minor units (int) for internal storage.
         
         Args:
@@ -208,7 +208,10 @@ class TransactionService:
                 await self.cost_tracker.record_cost(transaction)
                 
             elif transaction.action in ["ship", "transfer_out", "adjust"] and transaction.qty < 0:
-                await self.cost_tracker.consume_cost(transaction)
+                total_consumed_cost = await self.cost_tracker.consume_cost(transaction)
+                
+                if total_consumed_cost is not None and transaction.qty != 0:
+                    transaction.cost_price = total_consumed_cost
             
             return transaction, state
             
@@ -475,12 +478,17 @@ class TransactionService:
         # Normalize sku_code to uppercase
         txn_dict['sku_code'] = txn_dict['sku_code'].upper()
         
+        # Multiply by quantity to get TOTAL cost
+        total_cost_minor = None
+        if cost_price_minor is not None:
+            total_cost_minor = cost_price_minor * abs(txn_payload.qty)
+        
         transaction = Transaction(
             org_id=self.org_id,
             location_id=location_id,
             qty_before=qty_before,
             created_by=self.user_id,
-            cost_price=cost_price_minor,  # Store as integer minor units
+            cost_price=total_cost_minor,
             **txn_dict
         )
         

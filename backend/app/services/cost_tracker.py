@@ -53,6 +53,10 @@ class CostTracker:
 
         # Any physical inventory addition MUST have a cost layer.
         cost_price = txn.cost_price if txn.cost_price is not None else 0
+        
+        # Convert to cost_price per unit
+        if cost_price is not None:
+            cost_price = cost_price // abs(txn.qty)
 
         cost_record = CostRecord(
             org_id=self.org_id,
@@ -107,6 +111,10 @@ class CostTracker:
         """
         valuation_method = await self.get_valuation_method()
         units_to_consume = abs(txn.qty)
+        
+        # Convert to cost_price per unit
+        if txn.cost_price is not None:
+            txn.cost_price = txn.cost_price // abs(txn.qty)
 
         if valuation_method == "FIFO":
             return await self._consume_fifo(txn, units_to_consume)
