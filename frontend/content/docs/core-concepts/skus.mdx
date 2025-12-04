@@ -1,6 +1,110 @@
 ---
 title: SKUs
-description: Understanding SKUs as the fundamental unit of inventory tracking
+description: The atomic unit of your inventory.
 ---
 
-Learn about SKU management, product variations, and best practices for SKU codes.
+import { Callout } from 'fumadocs-ui/components/callout';
+import Link from 'next/link';
+import { 
+  SKUAnatomyTable, 
+  MultiLocationVisual,
+  BarcodeIllustration 
+} from '@/components/docs/skus';
+import { SkuBuilder } from '@/components/docs/skus/sku-generator';
+
+An **SKU** (Stock Keeping Unit) is the fundamental building block of your inventory in Nooryx. Every physical product you track—whether it's a single item or a variant of a larger product line—gets its own unique SKU.
+
+Think of an SKU as a permanent identity card for a product. Once created, it exists across your entire organization and can be stocked in any number of locations. SKUs are created automatically during the first <Link href="/docs/getting-started/receiving-stock">**receiving**</Link> event.
+
+## What is an SKU?
+
+In Nooryx, an SKU represents a distinct, trackable item. It's defined by two core attributes:
+
+- **SKU Code**: A unique identifier (e.g., `SHIRT-BLK-M`, `TV-LED-43IN-ABC-847`, `SKU-12345`)
+- **Name**: A human-readable description (e.g., "Black T-Shirt Medium", "43-inch LED TV, Brand ABC, Model 847")
+
+<Callout type="info" title="SKUs are location-agnostic">
+  An SKU is *what* you're tracking. A <Link href="/docs/core-concepts/locations">**Location**</Link> is *where* it lives. The same SKU can exist in multiple warehouses, retail stores, or distribution centers. Nooryx tracks the quantities separately at each location.
+</Callout>
+
+<MultiLocationVisual />
+  
+1. **Create once, track everywhere**: `TSHIRT-CREW-BLK` is created only once (during the first receiving event), and is tracked in all locations
+2. **Stock independently**: Receive 50 units in Seoul, 30 in Paris
+3. **View holistically**: See total inventory across all locations or drill into specific warehouses
+
+## Why SKUs Matter
+
+If you are used to managing inventory in spreadsheets, a product often feels like whatever name you type into a cell. It works at first, but it creates a very fragile model of the world. A small change in wording, a duplicate row, or a new supplier label can silently turn one product into many versions of itself without you noticing.
+
+SKUs give every product a single, permanent identity. Instead of relying on whatever text someone typed today, the SKU becomes the anchor that all stock, history and context attach to. It separates what the product *is* from how people describe it, how it is packaged or how it is supplied.
+
+Without SKUs, your inventory model is only as reliable as the last name someone entered. With SKUs, the identity of a product is stable, even as everything around it changes. This is the foundation of clean, durable and trustworthy inventory data, and the reason every mature inventory system starts with the SKU.
+
+## SKU Anatomy
+
+Every SKU in Nooryx contains the following information:
+
+<SKUAnatomyTable />
+
+The **SKU Code** and **Name** are required when you first receive inventory. The alerting thresholds give you control over when Nooryx notifies you about stock levels, which we cover in detail in the <Link href="/docs/monitoring/alerts">**Alerting Guide**</Link>.
+
+### Best Practices for SKU Codes
+
+Your SKU codes should be:
+
+- **Consistent**: Use a logical naming convention across your catalog
+- **Readable**: Avoid cryptic abbreviations that only you understand
+- **Unique**: Each SKU code must be distinct within your organization
+- **Scalable**: Design codes that work as your inventory grows
+
+**Good examples:**
+- `CHAIR-OFC-BLK` (Office Chair, Black)
+- `MUG-CER-12OZ` (Ceramic Mug, 12oz)
+- `TV-LED-43IN-ABC-847` (43-inch LED TV, Brand ABC, Model 847)
+
+**Avoid:**
+- `12345` (no context)
+- `PROD-THING-V2-UPDATED-FINAL` (too verbose)
+- Special characters that complicate scanning or integrations
+
+<SkuBuilder />
+
+## Barcodes
+
+Barcodes are the fastest way to identify SKUs throughout Nooryx. Whether you're receiving stock, performing a count, creating a reservation, or simply searching for an item, scanning a barcode instantly resolves to the correct SKU. No typing required.
+
+Every barcode represents a physical code printed on packaging, labels, or manufacturer stickers. Because products often go through different suppliers, packaging updates, or production runs, a single SKU may accumulate multiple valid barcodes over time.
+
+### How barcodes work in Nooryx
+
+- You can link **one or more barcodes** to a single SKU  
+- But each **barcode can only belong to one SKU** within your organization  
+- Scanning a barcode anywhere in Nooryx immediately loads that SKU  
+
+For example, if your supplier switches from `0123456789012` to a new `0456789123456`, you can attach both, and both will always resolve to the same SKU. This model keeps scanning fast and unambiguous while giving you the flexibility to support alternate or legacy codes.
+
+<BarcodeIllustration />
+
+### When to add barcodes
+
+If you scan a barcode that isn’t linked to an SKU yet, Nooryx will guide you to create or select the correct SKU. Once linked, future scans resolve instantly. You can link more later.
+
+## Finding SKUs Fast
+
+Wherever you need to select an SKU in Nooryx—whether receiving stock, creating a reservation, or viewing inventory—you'll encounter our search interface.
+
+SKU search is blazingly fast and intelligently ranked:
+
+1. Exact matches on SKU code appear first
+2. Partial matches on SKU code follow
+3. Matches on product name come next
+
+Start typing any part of the SKU code or name, and results appear instantly. This works seamlessly whether you're on desktop, mobile, or using a barcode scanner.
+
+## What's Next?
+
+Now that you understand SKUs, explore how they interact with the rest of your inventory system:
+
+- <Link href="/docs/core-concepts/locations">**Managing Locations**</Link>: Learn where your SKUs live
+- <Link href="/docs/core-concepts/stock-state">**Understanding Stock State**</Link>: See the different quantities and how they are calculated
