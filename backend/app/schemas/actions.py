@@ -31,7 +31,7 @@ class ReceiveTxn(BaseTxn):
     alerts: bool
     reorder_point: Optional[int] = Field(None, gt=0)
     low_stock_threshold: int = Field(..., gt=0)
-    cost_price: Decimal = Field(..., gt=0, description="Cost price per unit received")
+    unit_cost_major: Decimal = Field(..., gt=0, description="Cost price per unit received")
     
 
 class ShipTxn(BaseTxn):
@@ -59,7 +59,7 @@ class AdjustTxn(BaseTxn):
     action: Literal["adjust"] = "adjust"
     qty: int = Field(..., ne=0, description="Adjustment delta (positive or negative)")
     txn_metadata: Dict[str, Any] = Field(..., description="Must include 'reason' field")
-    cost_price: Optional[Decimal] = Field(None, description="Cost price per unit")
+    unit_cost_major: Optional[Decimal] = Field(None, description="Cost price per unit")
     
     @field_validator('txn_metadata')
     @classmethod
@@ -147,7 +147,7 @@ class TransferInTxn(BaseModel):
     low_stock_threshold: int = Field(..., gt=0)
     
     location: str = Field(description="Destination location name")
-    cost_price: Decimal | None = Field(
+    unit_cost_major: Decimal | None = Field(
         None,
         description="Unit cost calculated from source location's valuation method"
     )
