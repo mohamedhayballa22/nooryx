@@ -135,7 +135,7 @@ class Transaction(Base):
     qty_before = Column(
         Integer, nullable=False, doc="Quantity before this transaction."
     )
-    cost_price = Column(BigInteger, nullable=True, doc="Total cost price for all units in minor units at time of txn.")
+    total_cost_minor = Column(BigInteger, nullable=True, doc="Total cost for all units in minor units at time of txn.")
 
     action = Column(
         String,
@@ -312,7 +312,7 @@ class CostRecord(Base):
 
     qty_in = Column(Integer, nullable=False, doc="Quantity received in this cost record.")
     qty_remaining = Column(Integer, nullable=False, doc="Quantity still available from this cost record.")
-    cost_price = Column(BigInteger, nullable=False, doc="Cost price per unit in minor units.")
+    unit_cost_minor = Column(BigInteger, nullable=False, doc="Cost per unit in minor units.")
     created_at = Column(DateTime(timezone=True), server_default=func.now())
 
     transaction = relationship("Transaction", back_populates="cost_records", overlaps="cost_records,sku,organization")
