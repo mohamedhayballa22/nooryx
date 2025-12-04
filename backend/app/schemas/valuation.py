@@ -1,3 +1,5 @@
+from datetime import datetime
+from typing import Optional
 from pydantic import BaseModel, ConfigDict
 from decimal import Decimal
 
@@ -21,3 +23,12 @@ class ValuationHeader(BaseModel):
     model_config = ConfigDict(
         json_encoders={Decimal: float}
     )
+
+
+class COGSResponse(BaseModel):
+    total_cogs: float
+    currency: str
+    sku_code: Optional[str] = None
+    period_start: Optional[datetime] = None
+    period_end: Optional[datetime] = None
+    
