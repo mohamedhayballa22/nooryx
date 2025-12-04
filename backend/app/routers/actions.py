@@ -252,8 +252,6 @@ async def transfer_stock(
 
     await db.commit()
     
-    # Extract cost from metadata for response
-    cost_per_unit = out_txn.txn_metadata.get('transfer_cost_per_unit')
     
     return {
         "transfer_out": _build_transaction_response(out_txn, source_state),
@@ -262,7 +260,6 @@ async def transfer_stock(
         "summary": {
             "sku_code": txn.sku_code,
             "qty_transferred": abs(txn.qty),
-            "cost_per_unit": cost_per_unit,
             "from_location": txn.location,
             "to_location": txn.target_location,
             "source_remaining": source_state.on_hand,
