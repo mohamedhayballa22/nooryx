@@ -52,9 +52,7 @@ app.add_middleware(
 
 # Rate limiting
 app.add_middleware(
-    RateLimitMiddleware,
-    default_capacity=25,
-    default_rate=5,
+    RateLimitMiddleware
 )
 
 # Include Routers
