@@ -177,7 +177,7 @@ export function COGSHeader({
           {/* Desktop: Normal dropdown */}
           <div className="hidden md:block">
             <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
-              <SelectTrigger className="h-7 w-[140px] rounded-md text-xs">
+              <SelectTrigger className="h-7 w-[140px] rounded-md text-xs cursor-pointer">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent align="end">
