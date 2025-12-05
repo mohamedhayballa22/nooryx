@@ -135,11 +135,7 @@ export function COGSHeader({
       isNegative,
       isNeutral,
       icon: isPositive ? ArrowUp : isNegative ? ArrowDown : ArrowUpDown,
-      colorClass: isPositive 
-        ? "border-transparent bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"
-        : isNegative 
-        ? "border-transparent bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
-        : "text-muted-foreground bg-muted border-border"
+      colorClass: "text-muted-foreground bg-muted border-border"
     }
   }
 
