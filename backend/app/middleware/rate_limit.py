@@ -16,15 +16,13 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
         key = f"ip:{client_ip}"
         
         # # Customize rate limits per endpoint
-        # path = request.url.path
-        # if path.startswith("/api/upload"):
-        #     capacity, rate = 10, 1
-        # elif path.startswith("/api/auth"):
-        #     capacity, rate = 5, 0.1
-        # else:
-        #     capacity, rate = self.default_capacity, self.default_rate
+        path = request.url.path
+        if path.startswith("/api/auth"):
+            capacity, rate = 5, 0.1
+        else:
+            capacity, rate = self.default_capacity, self.default_rate
         
-        allowed, info = await rate_limiter.is_allowed(key, self.default_capacity, self.default_rate)
+        allowed, info = await rate_limiter.is_allowed(key, capacity, rate)
         
         if not allowed:
             return JSONResponse(
