@@ -40,7 +40,8 @@ class RateLimitMiddleware(BaseHTTPMiddleware):
                 payload = jwt.decode(
                     token,
                     settings.SECRET_KEY,
-                    algorithms=[settings.ALGORITHM]
+                    algorithms=[settings.ALGORITHM],
+                    audience=["nooryx_users"],
                 )
                 user_id = payload.get("sub")
             except jwt.ExpiredSignatureError:
