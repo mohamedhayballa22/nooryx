@@ -1,5 +1,5 @@
 import { useQuery } from "@tanstack/react-query";
-import { getSKUValuations } from "@/lib/api/valuation";
+import { getCOGS, COGSParams } from "@/lib/api/valuation";
 import { ApiError } from "@/lib/api/client";
 
 function getErrorStatus(error: unknown): number | undefined {
@@ -9,10 +9,10 @@ function getErrorStatus(error: unknown): number | undefined {
   return undefined;
 }
 
-export function useSKUValuations(page: number, size: number) {
+export function useCOGS(params?: COGSParams) {
   const query = useQuery({
-    queryKey: ["valuation", "skus", page, size],
-    queryFn: () => getSKUValuations({ page: page + 1, size }),
+    queryKey: ["valuation", "cogs", params?.start_date ?? "all_time"],
+    queryFn: () => getCOGS(params),
     staleTime: 120_000, // 2 minutes
     refetchOnWindowFocus: false,
     retry: false,

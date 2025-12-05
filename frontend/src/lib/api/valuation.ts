@@ -26,9 +26,33 @@ export interface TotalValuation {
   timestamp: string;
 }
 
+export interface COGSResponse {
+  total_cogs: number;
+  currency: string;
+  timestamp: string;
+  delta_percentage?: number;
+  sku_code?: string;
+  period_start?: string;
+  period_end?: string;
+}
+
+export interface COGSResponse {
+  total_cogs: number;
+  currency: string;
+  timestamp: string;
+  delta_percentage?: number;
+  sku_code?: string;
+  period_start?: string;
+  period_end?: string;
+}
+
 export interface SKUValuationParams {
   page?: number;
   size?: number;
+}
+
+export interface COGSParams {
+  start_date?: string;
 }
 
 // API Functions
@@ -49,4 +73,14 @@ export async function getSKUValuations(
 
 export async function getTotalValuation(): Promise<TotalValuation> {
   return protectedApiClient<TotalValuation>("/valuation");
+}
+
+export async function getCOGS(params?: COGSParams): Promise<COGSResponse> {
+  const queryParams = new URLSearchParams();
+  if (params?.start_date) {
+    queryParams.append('start_date', params.start_date);
+  }
+  
+  const url = `/valuation/cogs${queryParams.toString() ? `?${queryParams}` : ''}`;
+  return protectedApiClient<COGSResponse>(url);
 }

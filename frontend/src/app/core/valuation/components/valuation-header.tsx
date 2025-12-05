@@ -13,7 +13,7 @@ interface ValuationHeaderProps {
   currency: string
   method: string
   method_full_name: string
-  timestamp: string // ISO 8601 timestamp
+  timestamp: string
   onRefresh?: () => void | Promise<void>
   isRefreshing?: boolean
 }
@@ -30,7 +30,7 @@ export function ValuationHeader({
   
   const { formatCurrency } = useFormatting()
   
-  const COOLDOWN_MS = 10000 // 10 seconds
+  const COOLDOWN_MS = 10000
   
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0)
   const [isInCooldown, setIsInCooldown] = useState(false)
@@ -77,7 +77,7 @@ export function ValuationHeader({
             size="icon"
             onClick={handleRefreshClick}
             disabled={isButtonDisabled}
-            className="absolute right-4 top-4 z-10 h-7 w-7 text-muted-foreground hover:text-foreground"
+            className="absolute right-4 top-4 z-10 h-7 w-7 text-muted-foreground hover:text-foreground mt-1"
           >
             <RefreshCw className={`h-3.5 w-3.5 ${isRefreshing ? "animate-spin" : ""}`} />
             <span className="sr-only">Refresh data</span>
@@ -111,7 +111,13 @@ export function ValuationHeader({
             {!isRefreshing && (
               <>
                 <div className="h-3 w-px bg-border" />
-                <span>Updated {formatDistanceToNow(adjustedTimestamp, { addSuffix: true })}</span>
+                <span>
+                  Updated{" "}
+                  {(() => {
+                    const t = formatDistanceToNow(adjustedTimestamp, { addSuffix: true });
+                    return t === "less than a minute ago" ? "just now" : t;
+                  })()}
+                </span>
               </>
             )}
           </div>
