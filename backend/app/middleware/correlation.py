@@ -26,7 +26,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
             if request.url.path not in ["/health", "/metrics"]:
                 log_data = {
                     "method": request.method,
-                    "path": request.url.path,
+                    "path": str(request.url.path) + (f"?{request.url.query}" if request.url.query else ""),
                     "status_code": response.status_code,
                     "duration_ms": duration_ms,
                     "message": self._get_default_message(response.status_code),
@@ -50,7 +50,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
 
             log_data = {
                 "method": request.method,
-                "path": request.url.path,
+                "path": str(request.url.path) + (f"?{request.url.query}" if request.url.query else ""),
                 "error": str(e),
                 "error_type": type(e).__name__,
                 "message": "Internal Server Error",
