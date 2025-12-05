@@ -1,8 +1,8 @@
-from datetime import datetime, timezone
+from datetime import datetime, timezone, timedelta
 from typing import Annotated
 from sqlalchemy import select, func, exists
 from sqlalchemy.ext.asyncio import AsyncSession
-from fastapi import APIRouter, Depends, HTTPException, Query, Path
+from fastapi import APIRouter, Depends, HTTPException, Query
 from fastapi_pagination import Page
 from fastapi_pagination.ext.sqlalchemy import apaginate
 
@@ -240,6 +240,60 @@ async def get_cogs(
     result = await db.execute(query)
     total_cogs_minor = result.scalar() or 0
 
+    # Calculate delta (only when start_date is provided)
+    delta = None
+    
+    if start_date:
+        # Use end_date if provided, otherwise use now
+        effective_end_date = end_date if end_date else datetime.now(timezone.utc)
+        
+        # Calculate the period duration
+        period_duration = effective_end_date - start_date
+        
+        # Calculate previous period dates
+        previous_period_end = start_date
+        previous_period_start = start_date - period_duration
+        
+        # Query for current period COGS
+        current_period_query = (
+            select(func.sum(func.coalesce(Transaction.total_cost_minor, 0)))
+            .where(Transaction.org_id == user.org_id)
+            .where(Transaction.action == 'ship')
+            .where(Transaction.total_cost_minor.is_not(None))
+            .where(Transaction.created_at >= start_date)
+            .where(Transaction.created_at <= effective_end_date)
+        )
+        if sku_code:
+            current_period_query = current_period_query.where(Transaction.sku_code == sku_code)
+        
+        current_period_result = await db.execute(current_period_query)
+        current_period_cogs = current_period_result.scalar() or 0
+        
+        # Query for previous period COGS
+        previous_period_query = (
+            select(func.sum(func.coalesce(Transaction.total_cost_minor, 0)))
+            .where(Transaction.org_id == user.org_id)
+            .where(Transaction.action == 'ship')
+            .where(Transaction.total_cost_minor.is_not(None))
+            .where(Transaction.created_at >= previous_period_start)
+            .where(Transaction.created_at < previous_period_end)
+        )
+        if sku_code:
+            previous_period_query = previous_period_query.where(Transaction.sku_code == sku_code)
+        
+        previous_period_result = await db.execute(previous_period_query)
+        previous_period_cogs = previous_period_result.scalar() or 0
+        
+        # Calculate percentage change
+        if previous_period_cogs > 0:
+            delta = ((current_period_cogs - previous_period_cogs) / previous_period_cogs) * 100
+        elif current_period_cogs > 0:
+            delta = 100.0  # 100% increase from zero
+        else:
+            delta = 0.0  # Both periods have zero COGS
+    else:
+        delta = 0.0
+
     # Format output
     currency_service = CurrencyService()
     total_cogs_major = currency_service.to_major_units(total_cogs_minor, currency)
@@ -249,6 +303,8 @@ async def get_cogs(
         currency=currency,
         sku_code=sku_code,
         period_start=start_date,
-        period_end=end_date
+        period_end=end_date,
+        delta_percentage=delta,
+        timestamp=datetime.now(timezone.utc).isoformat(),
     )
     

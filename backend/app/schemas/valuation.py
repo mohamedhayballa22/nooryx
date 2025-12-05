@@ -31,4 +31,6 @@ class COGSResponse(BaseModel):
     sku_code: Optional[str] = None
     period_start: Optional[datetime] = None
     period_end: Optional[datetime] = None
+    delta_percentage: float | None = None
+    timestamp: str
     
