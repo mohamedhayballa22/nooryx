@@ -1,5 +1,6 @@
-from datetime import datetime, timezone, timedelta
-from typing import Annotated
+from datetime import date, datetime, timezone, timedelta
+import re
+from typing import Annotated, Literal
 from sqlalchemy import select, func, exists
 from sqlalchemy.ext.asyncio import AsyncSession
 from fastapi import APIRouter, Depends, HTTPException, Query
@@ -11,6 +12,8 @@ from app.schemas.valuation import (
     InventoryValuationRow,
     ValuationHeader,
     COGSResponse,
+    COGSTrendResponse,
+    TrendPoint,
 )
 from app.core.auth.dependencies import get_current_user
 from app.core.db import get_session
@@ -304,5 +307,174 @@ async def get_cogs(
         period_end=end_date,
         delta_percentage=delta,
         timestamp=datetime.now(timezone.utc).isoformat(),
+    )
+    
+    
+@router.get("/cogs/trend", response_model=COGSTrendResponse)
+async def get_cogs_trend(
+    user: Annotated[User, Depends(get_current_user)],
+    db: Annotated[AsyncSession, Depends(get_session)],
+    granularity: Annotated[
+        Literal["daily", "weekly", "monthly"],
+        Query(description="Time interval for aggregation")
+    ] = "daily",
+    period: Annotated[
+        str,
+        Query(
+            description="Lookback period in days (e.g., '30d'). Only applies to 'daily' granularity.",
+            pattern=r"^\d+d$"
+        )
+    ] = "30d",
+    sku_code: Annotated[
+        str | None,
+        Query(description="Optional SKU code to filter COGS for a specific item")
+    ] = None,
+):
+    """
+    Get COGS trend data for plotting over time.
+    
+    For 'daily' granularity: Returns data points for the specified period (up to the oldest data point).
+    For 'weekly' and 'monthly': Returns all available data up to the oldest data point.
+    
+    Always returns complete data - intervals with no shipments show COGS of 0.
+    Never extrapolates before the oldest available data.
+    """
+    
+    # Parse and validate period
+    match = re.match(r"^(\d+)d$", period)
+    if not match:
+        raise HTTPException(
+            status_code=400,
+            detail="Period must be in format '<number>d' (e.g., '30d')"
+        )
+    
+    days = int(match.group(1))
+    if days < 1 or days > 365:
+        raise HTTPException(
+            status_code=400,
+            detail="Period must be between 1 and 365 days"
+        )
+    
+    # Validate SKU if provided
+    if sku_code:
+        from app.models import SKU
+        sku_exists = await db.scalar(
+            select(func.count()).where(
+                (SKU.code == sku_code) & (SKU.org_id == user.org_id)
+            )
+        )
+        if not sku_exists:
+            raise HTTPException(
+                status_code=404,
+                detail=f"SKU '{sku_code}' not found in your organization"
+            )
+    
+    # Fetch organization currency
+    currency = await db.scalar(
+        select(Organization.currency).where(Organization.org_id == user.org_id)
+    )
+    if not currency:
+        raise HTTPException(status_code=404, detail="Organization not found")
+    
+    # Find the oldest transaction date
+    oldest_query = (
+        select(func.min(Transaction.created_at))
+        .where(Transaction.org_id == user.org_id)
+        .where(Transaction.action == 'ship')
+        .where(Transaction.total_cost_minor.is_not(None))
+    )
+    if sku_code:
+        oldest_query = oldest_query.where(Transaction.sku_code == sku_code)
+    
+    oldest_transaction = await db.scalar(oldest_query)
+    oldest_data_point = oldest_transaction.date() if oldest_transaction else None
+    
+    # Return empty if no data exists
+    if not oldest_data_point:
+        return COGSTrendResponse(oldest_data_point=None, points=[])
+    
+    # Calculate date range
+    end_date = datetime.now(timezone.utc)
+    
+    if granularity == "daily":
+        # Use requested period, but don't extrapolate before oldest data
+        start_date = max(
+            end_date - timedelta(days=days),
+            datetime.combine(oldest_data_point, datetime.min.time()).replace(tzinfo=timezone.utc)
+        )
+    else:
+        # For weekly/monthly, go back to oldest data point
+        start_date = datetime.combine(oldest_data_point, datetime.min.time()).replace(tzinfo=timezone.utc)
+    
+    # Query aggregated COGS data
+    trunc_map = {"daily": "day", "weekly": "week", "monthly": "month"}
+    date_col = func.date_trunc(trunc_map[granularity], Transaction.created_at).label("period")
+    
+    cogs_query = (
+        select(
+            date_col,
+            func.sum(func.coalesce(Transaction.total_cost_minor, 0)).label("total_cogs")
+        )
+        .where(Transaction.org_id == user.org_id)
+        .where(Transaction.action == 'ship')
+        .where(Transaction.total_cost_minor.is_not(None))
+        .where(Transaction.created_at >= start_date)
+        .where(Transaction.created_at <= end_date)
+        .group_by(date_col)
+    )
+    
+    if sku_code:
+        cogs_query = cogs_query.where(Transaction.sku_code == sku_code)
+    
+    result = await db.execute(cogs_query)
+    cogs_map = {row.period.date(): row.total_cogs for row in result.all()}
+    
+    # Generate complete date series with zero-filling
+    currency_service = CurrencyService()
+    points = []
+    seen_dates = set()
+    
+    current_date = start_date
+    while current_date <= end_date:
+        # Determine bucket date based on granularity
+        if granularity == "daily":
+            bucket_date = current_date.date()
+            increment = timedelta(days=1)
+        elif granularity == "weekly":
+            days_since_monday = current_date.weekday()
+            bucket_date = (current_date - timedelta(days=days_since_monday)).date()
+            increment = timedelta(weeks=1)
+        else:  # monthly
+            bucket_date = current_date.replace(day=1).date()
+            if current_date.month == 12:
+                next_month = current_date.replace(year=current_date.year + 1, month=1, day=1)
+            else:
+                next_month = current_date.replace(month=current_date.month + 1, day=1)
+            increment = next_month - current_date.replace(day=1)
+        
+        # Skip if already seen (prevents duplicates in monthly bucketing)
+        if bucket_date in seen_dates:
+            current_date += increment
+            continue
+        
+        seen_dates.add(bucket_date)
+        
+        # Get COGS for this bucket
+        cogs_minor = cogs_map.get(bucket_date, 0)
+        cogs_major = currency_service.to_major_units(cogs_minor, currency)
+        
+        # For monthly: exclude current month if it has zero COGS
+        if granularity == "monthly":
+            current_month = end_date.replace(day=1).date()
+            if bucket_date == current_month and cogs_major == 0:
+                current_date += increment
+                continue
+        
+        points.append({"date": bucket_date, "cogs": cogs_major})
+        current_date += increment
+    
+    return COGSTrendResponse(
+        oldest_data_point=oldest_data_point,
+        points=points,
     )
     

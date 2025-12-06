@@ -1,7 +1,9 @@
-from datetime import datetime
-from typing import Optional
+from datetime import date, datetime
+from typing import List, Optional
 from pydantic import BaseModel, ConfigDict
 from decimal import Decimal
+
+from  app.schemas.common import TrendPoint
 
 
 class InventoryValuationRow(BaseModel):
@@ -33,4 +35,13 @@ class COGSResponse(BaseModel):
     period_end: Optional[datetime] = None
     delta_percentage: float | None = None
     timestamp: str
+    
+
+class TrendPoint(BaseModel):
+    date: date
+    cogs: float
+
+class COGSTrendResponse(BaseModel):
+    oldest_data_point: Optional[date] = None
+    points: List[TrendPoint]
     
