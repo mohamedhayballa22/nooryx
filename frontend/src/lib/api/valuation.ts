@@ -45,6 +45,21 @@ export interface COGSParams {
   start_date?: string;
 }
 
+export interface COGSTrendPoint {
+  date: string;
+  cogs: number;
+}
+
+export interface COGSTrendResponse {
+  oldest_data_point: string;
+  points: COGSTrendPoint[];
+}
+
+export interface COGSTrendParams {
+  granularity?: "daily" | "weekly" | "monthly";
+  period?: string; // e.g., "30d"
+}
+
 // API Functions
 export async function getSKUValuations(
   params?: SKUValuationParams
@@ -73,4 +88,19 @@ export async function getCOGS(params?: COGSParams): Promise<COGSResponse> {
   
   const url = `/valuation/cogs${queryParams.toString() ? `?${queryParams}` : ''}`;
   return protectedApiClient<COGSResponse>(url);
+}
+
+export async function getCOGSTrend(
+  params?: COGSTrendParams
+): Promise<COGSTrendResponse> {
+  const queryParams = new URLSearchParams();
+  if (params?.granularity) {
+    queryParams.append('granularity', params.granularity);
+  }
+  if (params?.period) {
+    queryParams.append('period', params.period);
+  }
+  
+  const url = `/valuation/cogs/trend${queryParams.toString() ? `?${queryParams}` : ''}`;
+  return protectedApiClient<COGSTrendResponse>(url);
 }

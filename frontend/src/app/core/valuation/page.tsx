@@ -3,13 +3,18 @@
 import { useState } from "react"
 import { ValuationHeader } from "./components/valuation-header"
 import { COGSHeader } from "./components/cogs"
+import COGSTrendChart from "./components/cogs-trend"
 import { ValuationDataTable } from "./components/valuation-skus-table"
 import { PaginationState } from "@tanstack/react-table"
 import { useSKUValuations } from "./hooks/use-sku-valuations"
 import { useTotalValuation } from "./hooks/use-total-valuation"
 import { useCOGS } from "./hooks/use-cogs"
+import { useCOGSTrend } from "./hooks/use-cogs-trend"
 import { useUserSettings } from "@/hooks/use-user-settings"
 import { subMonths, startOfDay } from "date-fns"
+
+type PeriodKey = "7d" | "30d" | "90d" | "180d"
+type GranularityKey = "daily" | "weekly" | "monthly"
 
 export default function Page() {
   const { settings } = useUserSettings()
@@ -26,8 +31,12 @@ export default function Page() {
     initialStartDate
   )
 
-  // Add state for selected period
+  // State for COGS header period
   const [selectedPeriod, setSelectedPeriod] = useState<string>("last_month")
+
+  // State for COGS trend chart
+  const [trendPeriod, setTrendPeriod] = useState<PeriodKey>("30d")
+  const [trendGranularity, setTrendGranularity] = useState<GranularityKey>("daily")
 
   const { 
     data: headerData, 
@@ -42,8 +51,16 @@ export default function Page() {
     refetch: refetchCOGS,
     isRefetching: isRefetchingCOGS
   } = useCOGS(selectedPeriod, {
-  start_date: cogsStartDate,
-});
+    start_date: cogsStartDate,
+  })
+
+  const {
+    data: cogsTrendData,
+    isLoading: isLoadingCOGSTrend,
+  } = useCOGSTrend({
+    granularity: trendGranularity,
+    period: trendGranularity === "daily" ? trendPeriod : undefined,
+  })
   
   const { data: tableData, isLoading: isLoadingTable } = useSKUValuations(
     pagination.pageIndex,
@@ -68,11 +85,11 @@ export default function Page() {
   }
 
   return (
-    <div className="space-y-8">
+    <div className="grid gap-5 w-full max-w-full">
       {/* Top Row: Valuation and COGS */}
-      <div className="grid grid-cols-1 gap-6 lg:grid-cols-2">
+      <div className="grid grid-cols-1 gap-5 lg:grid-cols-2 w-full">
         {/* Valuation Card */}
-        <div>
+        <div className="min-w-0">
           {isLoadingHeader ? (
             <ValuationHeader.Skeleton />
           ) : (
@@ -87,7 +104,7 @@ export default function Page() {
         </div>
 
         {/* COGS Card */}
-        <div>
+        <div className="min-w-0">
           {isLoadingCOGS ? (
             <COGSHeader.Skeleton />
           ) : (
@@ -104,8 +121,25 @@ export default function Page() {
         </div>
       </div>
 
+      {/* COGS Trend Chart */}
+      <div className="w-full max-h-[480px] min-w-0">
+        {isLoadingCOGSTrend ? (
+          <COGSTrendChart.Skeleton />
+        ) : (
+          cogsTrendData && (
+            <COGSTrendChart
+              cogsTrend={cogsTrendData}
+              period={trendPeriod}
+              granularity={trendGranularity}
+              onPeriodChange={setTrendPeriod}
+              onGranularityChange={setTrendGranularity}
+            />
+          )
+        )}
+      </div>
+
       {/* SKU Table */}
-      <div>
+      <div className="min-w-0">
         {isLoadingTable ? (
           <ValuationDataTable.Skeleton />
         ) : (

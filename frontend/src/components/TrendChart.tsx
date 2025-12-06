@@ -1,6 +1,6 @@
 "use client"
 
-import React, { useMemo, useEffect } from "react"
+import { useMemo, useEffect } from "react"
 import { AreaChart, Area, XAxis, CartesianGrid } from "recharts"
 import {
   Card,
@@ -213,7 +213,7 @@ export default function TrendChart({
               </defs>
               <Area
                 dataKey="on_hand"
-                type="natural"
+                type="monotone"
                 fill="url(#fillOnHand)"
                 fillOpacity={0.4}
                 stroke="var(--on-hand)"
