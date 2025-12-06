@@ -18,7 +18,7 @@ import { subMonths, subYears, formatDistanceToNow } from "date-fns"
 interface COGSHeaderProps {
   total_cogs: number
   currency: string
-  delta_percentage?: number
+  delta_percentage?: number | null
   timestamp: string
   selectedPeriod: string
   onRefresh?: () => void | Promise<void>
@@ -122,18 +122,24 @@ export function COGSHeader({
 
   const isButtonDisabled = isRefreshing || isInCooldown
 
-  const formatDelta = (delta?: number) => {
-    if (delta === undefined || delta === null) return null
+  const formatDelta = (delta?: number | null) => {
+    if (delta === undefined || delta === null || delta === 0) {
+      return {
+        value: "N/A",
+        isNA: true,
+        icon: ArrowUpDown,
+        colorClass: "text-muted-foreground bg-muted border-border"
+      }
+    }
     
     const isPositive = delta > 0
     const isNegative = delta < 0
-    const isNeutral = delta === 0
     
     return {
       value: formatQuantity(Math.abs(delta), 1),
       isPositive,
       isNegative,
-      isNeutral,
+      isNA: false,
       icon: isPositive ? ArrowUp : isNegative ? ArrowDown : ArrowUpDown,
       colorClass: "text-muted-foreground bg-muted border-border"
     }
@@ -142,6 +148,7 @@ export function COGSHeader({
   const deltaInfo = formatDelta(delta_percentage)
   const currentPeriod = PERIOD_OPTIONS.find(p => p.value === selectedPeriod)
   const comparisonLabel = currentPeriod?.comparisonLabel
+  const showComparisonLabel = comparisonLabel && !deltaInfo.isNA
 
   return (
     <div className="space-y-6">
@@ -203,29 +210,27 @@ export function COGSHeader({
         <div className="relative space-y-6">
           {/* Delta Badge with comparison period */}
           <div className="flex items-center gap-2">
-            {deltaInfo && comparisonLabel ? (
+            {deltaInfo ? (
               <div className="flex items-center gap-2">
                 <Badge 
                   variant="outline" 
                   className={`rounded-md px-2.5 py-0.5 text-xs font-medium ${deltaInfo.colorClass}`}
                 >
                   {deltaInfo.icon && <deltaInfo.icon className="mr-1 h-3 w-3" />}
-                  {deltaInfo.isPositive && "+"}
-                  {deltaInfo.isNegative && "-"}
-                  {deltaInfo.value}%
+                  {deltaInfo.isNA ? (
+                    deltaInfo.value
+                  ) : (
+                    <>
+                      {deltaInfo.isPositive && "+"}
+                      {deltaInfo.isNegative && "-"}
+                      {deltaInfo.value}%
+                    </>
+                  )}
                 </Badge>
-                <span className="text-xs text-muted-foreground">vs {comparisonLabel}</span>
+                {showComparisonLabel && (
+                  <span className="text-xs text-muted-foreground">vs {comparisonLabel}</span>
+                )}
               </div>
-            ) : deltaInfo && !comparisonLabel ? (
-              <Badge 
-                variant="outline" 
-                className={`rounded-md px-2.5 py-0.5 text-xs font-medium ${deltaInfo.colorClass}`}
-              >
-                {deltaInfo.icon && <deltaInfo.icon className="mr-1 h-3 w-3" />}
-                {deltaInfo.isPositive && "+"}
-                {deltaInfo.isNegative && "-"}
-                {deltaInfo.value}%
-              </Badge>
             ) : (
               <div className="h-5" />
             )}

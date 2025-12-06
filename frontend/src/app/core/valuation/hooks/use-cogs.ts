@@ -9,11 +9,11 @@ function getErrorStatus(error: unknown): number | undefined {
   return undefined;
 }
 
-export function useCOGS(params?: COGSParams) {
+export function useCOGS(period: string, params?: COGSParams) {
   const query = useQuery({
-    queryKey: ["valuation", "cogs", params?.start_date ?? "all_time"],
+    queryKey: ["valuation", "cogs", period],
     queryFn: () => getCOGS(params),
-    staleTime: 120_000, // 2 minutes
+    staleTime: 120_000,
     refetchOnWindowFocus: false,
     retry: false,
   });

@@ -30,17 +30,7 @@ export interface COGSResponse {
   total_cogs: number;
   currency: string;
   timestamp: string;
-  delta_percentage?: number;
-  sku_code?: string;
-  period_start?: string;
-  period_end?: string;
-}
-
-export interface COGSResponse {
-  total_cogs: number;
-  currency: string;
-  timestamp: string;
-  delta_percentage?: number;
+  delta_percentage?: number | null;
   sku_code?: string;
   period_start?: string;
   period_end?: string;

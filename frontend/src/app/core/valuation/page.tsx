@@ -41,11 +41,9 @@ export default function Page() {
     isLoading: isLoadingCOGS,
     refetch: refetchCOGS,
     isRefetching: isRefetchingCOGS
-  } = useCOGS(
-    selectedPeriod === "all_time"
-      ? undefined
-      : { start_date: cogsStartDate }
-  );
+  } = useCOGS(selectedPeriod, {
+  start_date: cogsStartDate,
+});
   
   const { data: tableData, isLoading: isLoadingTable } = useSKUValuations(
     pagination.pageIndex,

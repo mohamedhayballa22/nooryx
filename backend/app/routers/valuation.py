@@ -287,10 +287,8 @@ async def get_cogs(
         # Calculate percentage change
         if previous_period_cogs > 0:
             delta = ((current_period_cogs - previous_period_cogs) / previous_period_cogs) * 100
-        elif current_period_cogs > 0:
-            delta = 100.0  # 100% increase from zero
         else:
-            delta = 0.0  # Both periods have zero COGS
+            delta = None
     else:
         delta = 0.0
 
