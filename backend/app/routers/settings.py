@@ -168,8 +168,6 @@ async def update_settings(
     if not update_data:
         return
     
-    print(f"Received settings update: {update_data}")
-
     # Organization-level settings
     org_fields = {"default_low_stock_threshold", "default_reorder_point", "alerts"}
     org_updates = {k: v for k, v in update_data.items() if k in org_fields}
