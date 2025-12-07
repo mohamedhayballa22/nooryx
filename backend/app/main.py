@@ -11,13 +11,13 @@ from app.core.config import settings
 from app.core.logger_config import logger
 from app.middleware.rate_limit import RateLimitMiddleware
 from app.middleware.correlation import CorrelationIdMiddleware
+from app.middleware.csrf import CSRFMiddleware
 from app.routers import (
     actions, inventory, transactions, reports, 
     search, valuation, team, settings as settings_router,
     billing, alerts, barcodes
     )
-from app.routers.auth import session, org
-from app.core.auth.users import fastapi_users, auth_backend
+from app.routers.auth import session, org, login
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -50,6 +50,9 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
+# CSRF Protection
+app.add_middleware(CSRFMiddleware)
+
 # Rate limiting
 app.add_middleware(
     RateLimitMiddleware
@@ -78,7 +81,7 @@ app.include_router(
     tags=["Session Management"]
 )
 app.include_router(
-    fastapi_users.get_auth_router(auth_backend),
+    login.router,
     prefix="/api/auth/jwt",
     tags=["Auth"]
 )
