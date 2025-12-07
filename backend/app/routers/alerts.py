@@ -19,10 +19,6 @@ from fastapi_pagination import Page
 router = APIRouter()
 
 
-# ============================================================================
-# Main Alert Endpoints
-# ============================================================================
-
 @router.get(
     "",
     response_model=Page[AlertResponse],

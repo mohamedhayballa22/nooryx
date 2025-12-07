@@ -15,7 +15,7 @@ from app.middleware.csrf import CSRFMiddleware
 from app.routers import (
     actions, inventory, transactions, reports, 
     search, valuation, team, settings as settings_router,
-    billing, alerts, barcodes
+    billing, alerts, barcodes, feedback
     )
 from app.routers.auth import session, org, login
 
@@ -70,6 +70,7 @@ app.include_router(alerts.router, tags=["Alerts"], prefix="/api/alerts")
 app.include_router(settings_router.router, tags=["Settings"], prefix="/api/settings")
 app.include_router(billing.router, tags=["Billing"], prefix="/api/billing")
 app.include_router(team.router, tags=["Team"], prefix="/api/team")
+app.include_router(feedback.router, tags=["Feedback"], prefix="/api/feedback")
 app.include_router(
     org.router, 
     tags=["Org Registration"], 
