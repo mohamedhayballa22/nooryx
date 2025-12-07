@@ -6,8 +6,9 @@ interface LoginCredentials {
 }
 
 interface LoginResponse {
-  access_token: string;
-  token_type: string;
+  email: string;
+  first_name: string;
+  last_name: string;
 }
 
 interface User {
@@ -53,7 +54,7 @@ export const authApi = {
   },
 
   logout: async (): Promise<void> => {
-    return apiClient("/auth/jwt/logout", {
+    return apiClient("/auth/sessions/logout", {
       method: "POST",
       requiresAuth: true,
     });
