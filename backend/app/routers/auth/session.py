@@ -241,6 +241,13 @@ async def logout(
         httponly=True,
         samesite="lax"
     )
+    response.delete_cookie(
+        key=settings.CSRF_COOKIE_NAME,
+        path="/",
+        secure=True,
+        httponly=False,
+        samesite="lax"
+    )
 
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
