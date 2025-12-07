@@ -26,6 +26,18 @@ export class ApiError extends Error {
 let isRefreshing = false;
 let refreshPromise: Promise<boolean> | null = null;
 
+// Get CSRF token from cookies
+function getCsrfToken(): string | null {
+  if (typeof document === 'undefined') return null;
+  
+  const cookies = document.cookie.split(';');
+  const csrfCookie = cookies.find(c => c.trim().startsWith('csrf_token='));
+  
+  if (!csrfCookie) return null;
+  
+  return csrfCookie.split('=')[1];
+}
+
 // Attempt to refresh the access token
 async function refreshAccessToken(): Promise<boolean> {
   try {
@@ -34,6 +46,8 @@ async function refreshAccessToken(): Promise<boolean> {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
+        // Add CSRF token for refresh endpoint
+        ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken()! } : {}),
       },
     });
 
@@ -113,13 +127,27 @@ export async function apiClient<T = any>(
 ): Promise<T> {
   const { rawResponse, headers, _isRetry, requiresAuth, ...fetchOptions } = options;
 
+  // Prepare headers with CSRF token for state-changing methods
+  const requestHeaders: HeadersInit = {
+    "Content-Type": "application/json",
+    Accept: "application/json",
+    ...headers,
+  };
+
+  // Add CSRF token for state-changing methods (POST, PUT, PATCH, DELETE)
+  const method = fetchOptions.method?.toUpperCase() || 'GET';
+  const requiresCsrf = ['POST', 'PUT', 'PATCH', 'DELETE'].includes(method);
+  
+  if (requiresCsrf) {
+    const csrfToken = getCsrfToken();
+    if (csrfToken) {
+      (requestHeaders as Record<string, string>)['X-CSRF-Token'] = csrfToken;
+    }
+  }
+
   const response = await fetch(`${BASE_URL}${endpoint}`, {
     credentials: 'include',
-    headers: {
-      "Content-Type": "application/json",
-      Accept: "application/json",
-      ...headers,
-    },
+    headers: requestHeaders,
     ...fetchOptions,
   });
 
@@ -134,6 +162,25 @@ export async function apiClient<T = any>(
     // If we get here with a 401 after retry, only redirect if auth was required
     if (response.status === 401 && _isRetry && requiresAuth) {
       redirectToLogin();
+    }
+
+    // Handle CSRF errors with helpful message
+    if (response.status === 403 && errorBody?.error?.type === 'csrf_error') {
+      // If CSRF token is missing or invalid, try refreshing to get a new one
+      if (!_isRetry) {
+        const refreshSuccess = await refreshAccessToken();
+        if (refreshSuccess) {
+          // Retry with fresh CSRF token
+          return apiClient<T>(endpoint, { ...options, _isRetry: true });
+        }
+      }
+      
+      // Only show error if retry also failed
+      throw new ApiError(
+        'Security token expired. Please refresh the page and try again.',
+        response.status,
+        errorBody
+      );
     }
 
     throw new ApiError(
