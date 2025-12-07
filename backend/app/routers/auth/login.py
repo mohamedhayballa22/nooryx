@@ -1,7 +1,5 @@
 from fastapi import APIRouter, Depends, Response, HTTPException, status
 from fastapi.security import OAuth2PasswordRequestForm
-from sqlalchemy.ext.asyncio import AsyncSession
-from app.core.db import get_session
 from app.core.auth.manager import UserManager
 from app.core.auth.users import get_user_manager
 from app.core.auth.jwt import get_jwt_strategy, cookie_transport
@@ -16,7 +14,6 @@ async def login(
     response: Response,
     credentials: OAuth2PasswordRequestForm = Depends(),
     user_manager: UserManager = Depends(get_user_manager),
-    session: AsyncSession = Depends(get_session),
 ):
     """
     Custom login endpoint that sets both access token and CSRF token.
