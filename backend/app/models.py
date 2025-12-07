@@ -8,6 +8,7 @@ from sqlalchemy import (
     ForeignKey,
     ForeignKeyConstraint,
     DateTime,
+    Text,
     func,
     UniqueConstraint,
     Index,
@@ -567,3 +568,30 @@ class AlertReadReceipt(Base):
     __table_args__ = (
         Index('ix_alert_receipts_user_alert', 'user_id', 'alert_id'),
     )
+
+
+class Feedback(Base):
+    __tablename__ = "feedback"
+
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid7)
+
+    org_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("orgs.org_id", ondelete="CASCADE"), 
+        nullable=False,
+        index=True
+    )
+
+    user_id = Column(
+        UUID(as_uuid=True), 
+        ForeignKey("users.id", ondelete="SET NULL"), 
+        nullable=True,
+        index=True
+    )
+
+    message = Column(Text, nullable=False)
+    category = Column(String, nullable=True)
+    feedback_metadata = Column(JSONB, nullable=True)
+
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
