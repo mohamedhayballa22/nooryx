@@ -61,6 +61,9 @@ class Settings(BaseSettings):
     FROM_EMAIL: str
     FRONTEND_URL: str = "http://nooryx.com"
     SUPPORT_EMAIL: str = "support@nooryx.com"
+    CSRF_TOKEN_EXPIRE_MINUTES: int = 60
+    CSRF_COOKIE_NAME: str = "csrf_token"
+    CSRF_HEADER_NAME: str = "X-CSRF-Token"
 
 
     @model_validator(mode="after")
