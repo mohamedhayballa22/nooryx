@@ -40,7 +40,8 @@ import {
   HomeSimple, BoxIso, ClockRotateRight, 
   Bell, Settings, NavArrowUp, LogOut, 
   User, Coins, NavArrowDown, Globe,
-  Package, Group, Lock, CreditCard, OpenBook
+  Package, Group, Lock, CreditCard, OpenBook,
+  MessageText
  } from "iconoir-react"
 import { useUserAccount } from "@/app/core/settings/account/hooks/use-account"
 import { SignOutConfirmDialog } from "./signout-dialog";
@@ -48,6 +49,8 @@ import { useUnreadCount } from "@/hooks/use-alerts"
 import { toast } from "sonner"
 import { useRouter } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
+import { SidebarFeedbackCard } from "./feedback/sidebar-feedback-card"
+import { FeedbackModal } from "./feedback/feedback-modal"
 
 const mainItems = [
   { title: "Dashboard", url: "/core/dashboard", icon: HomeSimple },
@@ -131,6 +134,7 @@ export function AppSidebar() {
   const userName = (data?.user.first_name || '') + " " + (data?.user.last_name || '')
   const userEmail = data?.user.email
   const [showSignOutDialog, setShowSignOutDialog] = React.useState(false)
+  const [isFeedbackModalOpen, setIsFeedbackModalOpen] = React.useState(false)
   const { count: unreadCount, hasInitialData } = useUnreadCount()
   const displayCount = unreadCount > 9 ? "9+" : unreadCount.toString();
   const router = useRouter()
@@ -332,6 +336,11 @@ export function AppSidebar() {
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
+
+        <div className="mt-auto pt-2">
+          <SidebarFeedbackCard />
+        </div>
+
       </SidebarContent>
 
       {/* Footer User Menu */}
@@ -370,6 +379,14 @@ export function AppSidebar() {
                 <DropdownMenuSeparator />
                 <DropdownMenuItem
                   className="cursor-pointer"
+                  onClick={() => setIsFeedbackModalOpen(true)}
+                >
+                  <MessageText className="mr-2" />
+                  Submit Feedback
+                </DropdownMenuItem>
+                <DropdownMenuSeparator />
+                <DropdownMenuItem
+                  className="cursor-pointer"
                   onClick={() => setShowSignOutDialog(true)}
                 >
                   <LogOut className="mr-2" />
@@ -381,6 +398,10 @@ export function AppSidebar() {
             <SignOutConfirmDialog
               open={showSignOutDialog}
               onOpenChange={setShowSignOutDialog}
+            />
+            <FeedbackModal 
+              open={isFeedbackModalOpen} 
+              onOpenChange={setIsFeedbackModalOpen} 
             />
           </SidebarMenuItem>
         </SidebarMenu>
