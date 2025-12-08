@@ -50,7 +50,7 @@ export function PaginationControls({
             onPageSizeChange(Number(value))
           }}
         >
-          <SelectTrigger className="h-8 w-[72px]">
+          <SelectTrigger className="h-8 w-[74px]">
             <SelectValue placeholder={pageSize} />
           </SelectTrigger>
           <SelectContent>
