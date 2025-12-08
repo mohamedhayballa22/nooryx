@@ -49,24 +49,27 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
     <>
       <div className="flex flex-col gap-4 pb-4">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
-          <div className="flex items-center gap-3">
-            <div>
+          
+          <div className="flex flex-col">
+            <div className="flex items-center gap-3">
               <h1 className="text-2xl font-semibold tracking-tight">{sku_code}</h1>
-              <p className="text-sm text-muted-foreground">{name}</p>
+
+              <Badge
+                className={cn(
+                  "px-3 text-md font-medium",
+                  status === "In Stock" &&
+                    "border-transparent bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
+                  status === "Low Stock" &&
+                    "border-transparent bg-orange-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
+                  status === "Out of Stock" &&
+                    "border-transparent bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"
+                )}
+              >
+                {status}
+              </Badge>
             </div>
-            <Badge
-              className={cn(
-                "px-3 text-md font-medium self-start mt-1",
-                status === "In Stock" &&
-                  "border-transparent bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300",
-                status === "Low Stock" &&
-                  "border-transparent bg-orange-100 text-yellow-800 dark:bg-yellow-900/50 dark:text-yellow-300",
-                status === "Out of Stock" &&
-                  "border-transparent bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"
-              )}
-            >
-              {status}
-            </Badge>
+
+            <p className="text-sm text-muted-foreground">{name}</p>
           </div>
 
           <div className="flex items-center gap-2">
