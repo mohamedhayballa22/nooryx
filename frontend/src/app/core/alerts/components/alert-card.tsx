@@ -76,13 +76,13 @@ export default function AlertCard({ alert }: AlertCardProps) {
     <div
       className={`rounded-lg border transition-all ${
         alert.is_read
-          ? 'border-border bg-card opacity-60'
-          : 'border-border bg-card shadow-sm'
+          ? 'border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[var(--bg-color)] opacity-60'
+          : 'border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[var(--bg-color)] shadow-sm'
       }`}
     >
       <button
         onClick={() => setExpanded(!expanded)}
-        className="cursor-pointer w-full px-4 py-3.5 text-left hover:bg-muted/30 transition-colors rounded-lg"
+        className="cursor-pointer w-full px-4 py-3.5 text-left hover:bg-neutral-100/30 dark:hover:bg-[var(--bg-color)]/30 transition-colors rounded-lg"
         aria-expanded={expanded}
         aria-label={`Toggle alert details: ${alert.title}`}
       >
@@ -95,7 +95,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
 
             <div className="flex-1 min-w-0">
               <div className="flex items-center gap-2 flex-wrap">
-                <h3 className={`font-medium text-sm ${!alert.is_read ? 'text-foreground' : 'text-muted-foreground'}`}>
+                <h3 className={`font-medium text-sm ${!alert.is_read ? 'text-neutral-900 dark:text-neutral-100' : 'text-neutral-500 dark:text-neutral-500'}`}>
                   {alert.title}
                 </h3>
                 {/* Severity badge */}
@@ -104,7 +104,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
                 </span>
               </div>
               {alert.message && (
-                <p className="mt-1 text-xs text-muted-foreground line-clamp-1">
+                <p className="mt-1 text-xs text-neutral-500 dark:text-neutral-500 line-clamp-1">
                   {alert.message}
                 </p>
               )}
@@ -113,7 +113,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
 
           <ChevronDown
             size={16}
-            className={`text-muted-foreground transition-transform flex-shrink-0 mt-0.5 ${
+            className={`text-neutral-500 dark:text-neutral-500 transition-transform flex-shrink-0 mt-0.5 ${
               expanded ? 'rotate-180' : ''
             }`}
           />
@@ -121,28 +121,28 @@ export default function AlertCard({ alert }: AlertCardProps) {
       </button>
 
       {expanded && (
-        <div className="border-t border-border px-4 py-3 space-y-3">
+        <div className="border-t border-neutral-200 dark:border-neutral-800 px-4 py-3 space-y-3">
           {isLowStock && lowStockMetadata && (
             <>
               <div className="space-y-2">
                 {(lowStockMetadata.details || []).slice().reverse().map((detail) => (
                   <div
                     key={detail.sku_code}
-                    className="rounded-md bg-muted/50 p-3 flex items-center justify-between text-sm"
+                    className="rounded-md bg-neutral-100/50 dark:bg-[var(--bg-color)]/50 p-3 flex items-center justify-between text-sm"
                   >
                     <div className="min-w-0 flex-1">
-                      <p className="font-medium text-foreground text-sm">
+                      <p className="font-medium text-neutral-900 dark:text-neutral-100 text-sm">
                         {detail.sku_name}
                       </p>
-                      <p className="text-xs text-muted-foreground mt-0.5">
+                      <p className="text-xs text-neutral-500 dark:text-neutral-500 mt-0.5">
                         {detail.sku_code}
                       </p>
                     </div>
                     <div className="text-right ml-4">
-                      <p className="font-medium text-foreground text-sm">
+                      <p className="font-medium text-neutral-900 dark:text-neutral-100 text-sm">
                         Available: {detail.available}
                       </p>
-                      <p className="text-xs text-muted-foreground">
+                      <p className="text-xs text-neutral-500 dark:text-neutral-500">
                         Reorder Point: {detail.reorder_point}
                       </p>
                     </div>
@@ -151,7 +151,7 @@ export default function AlertCard({ alert }: AlertCardProps) {
               </div>
 
               <div className="flex items-center justify-between pt-1">
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-neutral-500 dark:text-neutral-500">
                   {formatTime(lowStockMetadata.check_timestamp)}
                 </p>
                 {!alert.is_read && (
@@ -169,15 +169,15 @@ export default function AlertCard({ alert }: AlertCardProps) {
 
           {isTeamMemberJoined && teamMemberMetadata && (
             <>
-              <div className="rounded-md bg-muted/50 p-3 space-y-1.5 text-sm">
-                <p className="font-medium text-foreground text-sm">
+              <div className="rounded-md bg-neutral-100/50 dark:bg-[var(--bg-color)]/50 p-3 space-y-1.5 text-sm">
+                <p className="font-medium text-neutral-900 dark:text-neutral-100 text-sm">
                   {teamMemberMetadata.user_name}
                 </p>
-                <p className="text-xs text-muted-foreground">
+                <p className="text-xs text-neutral-500 dark:text-neutral-500">
                   {teamMemberMetadata.user_email}
                 </p>
                 {teamMemberMetadata.role && (
-                  <p className="text-xs text-muted-foreground">
+                  <p className="text-xs text-neutral-500 dark:text-neutral-500">
                     {teamMemberMetadata.role}
                   </p>
                 )}
