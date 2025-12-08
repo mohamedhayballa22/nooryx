@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useEffect } from 'react';
+import React, { useState } from 'react';
 
 // --- Constants & Types ---
 
@@ -39,19 +39,14 @@ export function SkuBuilder() {
 
   // Fixed Analysis Logic
   const hasSpaces = customSuffix.includes(' ');
-  const hasConfusingChars = /[0O1Il]/.test(customSuffix); // Added lowercase 'l'
+  const hasConfusingChars = /[0O1Il]/.test(customSuffix);
   const hasSpecialChars = /[^a-zA-Z0-9]/.test(customSuffix);
   const isConsistentLength = customSuffix.length === 0 || (customSuffix.length >= 2 && customSuffix.length <= 4);
 
   return (
     <div className="not-prose my-12 w-full">
-      <div className="relative rounded-xl border border-neutral-200 bg-white dark:border-neutral-800 dark:bg-neutral-950 overflow-hidden">
+      <div className="relative rounded-xl border border-neutral-200 bg-[var(--bg-color)] dark:border-neutral-800 dark:bg-[var(--bg-color-dark)] overflow-hidden">
         
-        {/* Background Grid */}
-        <div className="absolute inset-0 opacity-[0.25] pointer-events-none [mask-image:radial-gradient(ellipse_at_center,black_40%,transparent_100%)]">
-            <div className="h-full w-full bg-[linear-gradient(to_right,#e5e5e5_1px,transparent_1px),linear-gradient(to_bottom,#e5e5e5_1px,transparent_1px)] bg-[size:1.5rem_1.5rem] dark:bg-[linear-gradient(to_right,#262626_1px,transparent_1px),linear-gradient(to_bottom,#262626_1px,transparent_1px)]" />
-        </div>
-
         <div className="relative z-10 flex flex-col md:flex-row">
           
           {/* LEFT: Builder Controls */}
@@ -61,7 +56,6 @@ export function SkuBuilder() {
             </h3>
 
             <div className="space-y-8">
-              {/* Step 1: Product Type */}
               <ControlGroup 
                 label="1. Product Type" 
                 options={CATEGORIES} 
@@ -69,7 +63,6 @@ export function SkuBuilder() {
                 onChange={setCat} 
               />
 
-              {/* Step 2: Size */}
               <ControlGroup 
                 label="2. Size" 
                 options={ATTRIBUTES} 
@@ -77,7 +70,6 @@ export function SkuBuilder() {
                 onChange={setAttr} 
               />
 
-              {/* Step 3: Color */}
               <ControlGroup 
                 label="3. Color" 
                 options={VARIANTS} 
@@ -85,7 +77,7 @@ export function SkuBuilder() {
                 onChange={setVariant} 
               />
 
-              {/* Step 4: Optional Identifier */}
+              {/* Step 4: Custom Suffix */}
               <div className="space-y-3">
                 <label className="text-[10px] uppercase tracking-wider font-semibold text-neutral-500">
                   4. Optional ID (Try typing: space, 0, O, 1, I, l)
@@ -96,35 +88,39 @@ export function SkuBuilder() {
                   onChange={(e) => setCustomSuffix(e.target.value)}
                   placeholder="e.g. A836, Y72"
                   maxLength={6}
-                  className={`w-full rounded-lg border bg-neutral-50 px-3 py-2 text-sm font-mono transition-all focus:outline-none focus:ring-2 dark:bg-neutral-900 ${
-                    hasConfusingChars || hasSpaces || hasSpecialChars
-                      ? 'border-red-300 focus:ring-red-200 dark:border-red-800 dark:focus:ring-red-900' 
-                      : !isConsistentLength && customSuffix.length > 0
-                        ? 'border-amber-300 focus:ring-amber-200 dark:border-amber-800 dark:focus:ring-amber-900'
-                        : 'border-neutral-200 focus:ring-neutral-200 dark:border-neutral-800 dark:focus:ring-neutral-800'
-                  }`}
+                  className={`
+                    w-full rounded-lg border bg-[var(--bg-color)] px-3 py-2 text-sm font-mono transition-all 
+                    focus:outline-none focus:ring-2 dark:bg-[var(--bg-color-dark)]
+                    ${
+                      hasConfusingChars || hasSpaces || hasSpecialChars
+                        ? 'border-red-300 focus:ring-red-200 dark:border-red-800 dark:focus:ring-red-900' 
+                        : !isConsistentLength && customSuffix.length > 0
+                          ? 'border-amber-300 focus:ring-amber-200 dark:border-amber-800 dark:focus:ring-amber-900'
+                          : 'border-neutral-200 focus:ring-neutral-200 dark:border-neutral-800 dark:focus:ring-neutral-800'
+                    }
+                  `}
                 />
               </div>
             </div>
           </div>
 
           {/* RIGHT: Live Preview & Audit */}
-          <div className="w-full md:w-80 bg-neutral-50/50 dark:bg-neutral-900/20 p-8 flex flex-col">
+          <div className="w-full md:w-80 bg-[var(--bg-color)]/50 dark:bg-[var(--bg-color-dark)]/20 p-8 flex flex-col">
             
             {/* The Big SKU Display */}
-            <div className="mb-8 p-4 rounded-xl border border-neutral-200 bg-white shadow-sm dark:border-neutral-800 dark:bg-neutral-950">
+            <div className="mb-8 p-4 rounded-xl border border-neutral-200 bg-[var(--bg-color)] shadow-sm dark:border-neutral-800 dark:bg-[var(--bg-color-dark)]">
               <div className="text-center">
-                 <div className="text-[10px] uppercase tracking-widest text-neutral-400 mb-1">SKU Code</div>
-                 <div className="font-mono text-xl font-bold text-neutral-900 dark:text-white break-all">
-                   {fullSku}
-                 </div>
-                 <div className="text-[10px] text-neutral-400 mt-2">
-                   Example: {cat.label} · {attr.label} · {variant.label}
-                 </div>
+                <div className="text-[10px] uppercase tracking-widest text-neutral-400 mb-1">SKU Code</div>
+                <div className="font-mono text-xl font-bold text-neutral-900 dark:text-white break-all">
+                  {fullSku}
+                </div>
+                <div className="text-[10px] text-neutral-400 mt-2">
+                  Example: {cat.label} · {attr.label} · {variant.label}
+                </div>
               </div>
             </div>
 
-            {/* The Thinking Process / Audit */}
+            {/* Audit */}
             <div className="flex-1 space-y-4">
               <div className="text-xs font-medium text-neutral-500 uppercase tracking-wider mb-2">
                 Quality Checks
@@ -194,15 +190,16 @@ function ControlGroup({ label, options, selected, onChange }: {
               key={opt.id}
               onClick={() => onChange(opt)}
               className={`
-                relative flex flex-col items-center justify-center p-3 rounded-lg border-2 text-sm transition-all cursor-pointer
-                ${isActive 
-                    ? 'bg-white border-neutral-900 text-neutral-900 shadow-sm dark:bg-neutral-900 dark:border-white dark:text-white' 
-                    : 'bg-white border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-neutral-50 dark:bg-neutral-900 dark:border-neutral-800 dark:text-neutral-400'
+                relative flex flex-col items-center justify-center p-3 rounded-lg border-1 text-sm transition-all cursor-pointer
+                ${
+                  isActive 
+                    ? 'bg-[var(--bg-color)] border-neutral-900 text-neutral-900 shadow-sm dark:bg-[var(--bg-color-dark)] dark:border-white dark:text-white' 
+                    : 'bg-[var(--bg-color)] border-neutral-200 text-neutral-600 hover:border-neutral-300 hover:bg-[var(--bg-color)]/80 dark:bg-[var(--bg-color-dark)] dark:border-neutral-800 dark:text-neutral-400'
                 }
-                `}
+              `}
             >
               <span className="font-mono font-semibold text-xs mb-1">{opt.value}</span>
-              <span className={`text-[10px] font-medium ${isActive ? 'text-blue-100 dark:text-blue-100' : 'text-neutral-500 dark:text-neutral-400'}`}>
+              <span className={`text-[10px] font-medium ${isActive ? 'text-bold-500 dark:text-bold-400' : 'text-neutral-500 dark:text-neutral-400'}`}>
                 {opt.label}
               </span>
             </button>

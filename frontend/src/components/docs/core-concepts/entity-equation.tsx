@@ -91,7 +91,16 @@ export const StockLevelsIcon = (props: React.SVGProps<SVGSVGElement>) => (
 
 export function EntityEquation() {
   return (
-    <div className="my-8 flex flex-col md:flex-row items-start justify-center gap-6 p-8 rounded-2xl border border-neutral-200/60 dark:border-neutral-800/60 bg-gradient-to-b from-neutral-50/50 to-white dark:from-neutral-900/30 dark:to-neutral-950/30 backdrop-blur-sm select-none">
+    <div
+    className="
+      my-8 flex flex-col md:flex-row items-start justify-center gap-6 
+      p-8 rounded-2xl border border-neutral-200/60 dark:border-neutral-600/35
+      bg-gradient-to-b 
+      from-[var(--bg-color)] to-[var(--bg-color)]
+      dark:from-[var(--bg-color)] dark:to-[var(--bg-color)]
+      backdrop-blur-sm select-none
+    "
+  >
 
       {/* SKU */}
       <div className="flex flex-col items-center gap-3">

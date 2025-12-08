@@ -53,19 +53,100 @@ function AnimatedMetric({ value, skipAnimation }: { value: number; skipAnimation
   );
 }
 
+function LayerBar({
+  layer,
+  index,
+  method,
+  maxQty
+}: {
+  layer: CostLayer;
+  index: number;
+  method: ValuationMethod;
+  maxQty: number;
+}) {
+  const widthPercent = (layer.qty / maxQty) * 100;
+
+  return (
+    <div
+      className={`
+        relative flex items-center gap-3 py-2 group
+        ${layer.removing ? 'opacity-0 scale-[0.98]' : 'opacity-100'}
+      `}
+      style={{
+        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
+      }}
+    >
+      {/* Index/Order ID */}
+      {method !== 'WAC' && (
+        <div className="w-6 flex justify-center">
+          <span className="text-[10px] font-mono text-neutral-400 dark:text-neutral-600">
+            {method === 'FIFO' ? index + 1 : layer.timestamp}
+          </span>
+        </div>
+      )}
+
+      {/* Visual Bar Area */}
+      <div className="flex-1 relative h-8 rounded-md bg-neutral-100 dark:bg-[var(--bg-color)] overflow-hidden">
+        {/* The Actual Bar */}
+        <div
+          className={`
+            absolute left-0 top-0 h-full transition-all duration-500 ease-out
+            ${layer.highlighted === 'add'
+              ? 'bg-emerald-500 dark:bg-emerald-500'
+              : layer.highlighted === 'remove'
+                ? 'bg-rose-500 dark:bg-rose-500'
+                : 'bg-neutral-800 dark:bg-neutral-200'
+            }
+          `}
+          style={{ width: `${widthPercent}%` }}
+        />
+
+        {/* Text Content (Overlay) */}
+        <div className="absolute inset-0 flex items-center justify-between px-3 pointer-events-none">
+          <span className={`
+            text-xs font-mono font-medium transition-colors duration-300
+            ${layer.highlighted
+              ? 'text-white'
+              : 'text-neutral-100 dark:text-neutral-900 mix-blend-normal'
+            }
+          `}>
+            {layer.qty} units
+          </span>
+          <span className={`
+            text-xs font-mono transition-colors duration-300
+            ${layer.highlighted
+              ? 'text-white/90'
+              : 'text-neutral-400 dark:text-neutral-500'
+            }
+          `}>
+             ${layer.cost.toFixed(2)}
+          </span>
+        </div>
+      </div>
+
+      {/* Total Value Column */}
+      <div className="w-20 text-right">
+        <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">
+          ${(layer.qty * layer.cost).toFixed(2)}
+        </span>
+      </div>
+    </div>
+  );
+}
+
 export function ValuationSimulator() {
   const [method, setMethod] = useState<ValuationMethod>('FIFO');
   const [layers, setLayers] = useState<CostLayer[]>(getInitialLayers('FIFO'));
   const [cogs, setCogs] = useState<number>(0);
   const [skipMetricAnimation, setSkipMetricAnimation] = useState(false);
-  
+
   // Store pre-WAC state for restoration
   const preWACLayers = useRef<CostLayer[]>([]);
-  
+
   const [qtyToReceive, setQtyToReceive] = useState<number | ''>(50);
   const [costPerUnit, setCostPerUnit] = useState<number | ''>(12);
   const [qtyToShip, setQtyToShip] = useState<number | ''>(30);
-  
+
   const [nextId, setNextId] = useState(2);
   const [nextTimestamp, setNextTimestamp] = useState(2);
   const [showMaxLayersWarning, setShowMaxLayersWarning] = useState(false);
@@ -90,21 +171,21 @@ export function ValuationSimulator() {
   const handleMethodChange = (newMethod: ValuationMethod) => {
     const previousMethod = method;
     setMethod(newMethod);
-    
+
     // Skip animation for method changes
     setSkipMetricAnimation(true);
-    
+
     // When switching TO WAC from FIFO/LIFO: save current state and squash
     if (newMethod === 'WAC' && previousMethod !== 'WAC') {
       // Save the current detailed layers
       preWACLayers.current = [...layers];
-      
+
       // Squash into single weighted average layer
       if (layers.length > 0) {
         const totalQty = layers.reduce((sum, l) => sum + l.qty, 0);
         const totalValue = layers.reduce((sum, l) => sum + l.qty * l.cost, 0);
         const newAvgCost = totalQty > 0 ? Math.round((totalValue / totalQty) * 100) / 100 : 0;
-        
+
         setLayers([{
           id: nextId,
           qty: totalQty,
@@ -115,7 +196,7 @@ export function ValuationSimulator() {
         setNextTimestamp(prev => prev + 1);
       }
     }
-    
+
     // When switching FROM WAC to FIFO/LIFO: restore saved state if it exists
     if (previousMethod === 'WAC' && newMethod !== 'WAC') {
       if (preWACLayers.current.length > 0) {
@@ -124,27 +205,27 @@ export function ValuationSimulator() {
       }
       // If no saved state, keep current layers as-is (they're already valid)
     }
-    
+
     // Re-enable animation after a brief delay
     setTimeout(() => {
       setSkipMetricAnimation(false);
     }, 50);
-    
+
     // FIFO <-> LIFO: no transformation needed, same layers work for both
   };
 
   const handleReceive = () => {
     if (!isReceiveValid) return;
-    
+
     setSkipMetricAnimation(false);
-    
+
     const qty = Number(qtyToReceive);
     const cost = Number(costPerUnit);
 
     if (method !== 'WAC' && layers.length >= MAX_LAYERS) {
       const lastLayer = layers[layers.length - 1];
       const canMerge = lastLayer && lastLayer.cost === cost;
-      
+
       if (!canMerge) {
         setShowMaxLayersWarning(true);
         setTimeout(() => setShowMaxLayersWarning(false), 3000);
@@ -158,7 +239,7 @@ export function ValuationSimulator() {
       const totalQty = allLayers.reduce((sum, l) => sum + l.qty, 0);
       const totalValue = allLayers.reduce((sum, l) => sum + (l.qty * l.cost), 0);
       const newAvgCost = Math.round((totalValue / totalQty) * 100) / 100;
-      
+
       setLayers([{
         id: nextId,
         qty: totalQty,
@@ -171,7 +252,7 @@ export function ValuationSimulator() {
     } else {
       // FIFO/LIFO: add layer or merge with last if same cost
       const lastLayer = layers[layers.length - 1];
-      
+
       if (lastLayer && lastLayer.cost === cost) {
         const updatedLayers = [...layers];
         updatedLayers[updatedLayers.length - 1] = {
@@ -193,7 +274,7 @@ export function ValuationSimulator() {
         setNextTimestamp(prev => prev + 1);
       }
     }
-    
+
     setTimeout(() => {
       setLayers(prev => prev.map(l => ({ ...l, highlighted: undefined })));
     }, 600);
@@ -207,7 +288,7 @@ export function ValuationSimulator() {
     let remaining = Number(qtyToShip);
     let cost = 0;
     const newLayers = [...layers];
-    
+
     // Clear previous highlights
     newLayers.forEach(l => {
       l.highlighted = undefined;
@@ -244,18 +325,18 @@ export function ValuationSimulator() {
       if (totalQty >= remaining && newLayers.length > 0) {
         const avgCost = newLayers[0].cost; // In WAC all layers have same cost
         cost = remaining * avgCost;
-        
+
         // Distribute consumption proportionally
         let distributed = 0;
         newLayers.forEach((layer, idx) => {
           const proportion = layer.qty / totalQty;
           let consumeQty = Math.floor(proportion * remaining);
-          
+
           // Give remainder to last layer to avoid rounding issues
           if (idx === newLayers.length - 1) {
             consumeQty = remaining - distributed;
           }
-          
+
           layer.qty = Math.max(0, layer.qty - consumeQty);
           layer.highlighted = 'remove';
           if (layer.qty === 0) {
@@ -281,8 +362,8 @@ export function ValuationSimulator() {
   };
 
   return (
-    <div className="my-8 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 overflow-hidden shadow-sm">
-      
+    <div className="my-8 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[var(--bg-color)] overflow-hidden shadow-sm">
+
       {/* Method Selection */}
       <div className="p-6 border-b border-neutral-200 dark:border-neutral-800">
         <div className="flex items-center justify-between mb-4">
@@ -308,7 +389,7 @@ export function ValuationSimulator() {
                 px-4 py-2 rounded-md text-sm font-medium transition-all duration-200 border cursor-pointer
                 ${method === m
                   ? 'bg-neutral-900 dark:bg-neutral-100 text-white dark:text-neutral-900 border-neutral-900 dark:border-neutral-100'
-                  : 'bg-white dark:bg-neutral-950 text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
+                  : 'bg-white dark:bg-[var(--bg-color)] text-neutral-600 dark:text-neutral-400 border-neutral-200 dark:border-neutral-800 hover:border-neutral-300 dark:hover:border-neutral-700'
                 }
               `}
             >
@@ -331,7 +412,7 @@ export function ValuationSimulator() {
           </span>
           <AnimatedMetric value={inventoryValue} skipAnimation={skipMetricAnimation} />
         </div>
-        
+
         <div>
           <span className="block text-xs uppercase tracking-wider font-semibold text-neutral-500 mb-1">
             Cost of Goods Sold
@@ -356,7 +437,7 @@ export function ValuationSimulator() {
               </span>
             </div>
           </div>
-          
+
           <div className="space-y-1">
             {layers.length === 0 ? (
               <div className="h-24 flex items-center justify-center rounded-md border border-dashed border-neutral-200 dark:border-neutral-800">
@@ -399,11 +480,11 @@ export function ValuationSimulator() {
                   type="number"
                   value={qtyToReceive}
                   onChange={(e) => setQtyToReceive(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value)))}
-                  className="w-full px-3 py-2 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-800 transition-all"
+                  className="w-full px-3 py-2 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[var(--bg-color)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-800 transition-all"
                   min="1"
                 />
               </div>
-              
+
               <div className="flex-1">
                 <label className="block text-[10px] uppercase tracking-wider font-medium text-neutral-500 mb-1.5">
                   Cost ($)
@@ -412,13 +493,13 @@ export function ValuationSimulator() {
                   type="number"
                   value={costPerUnit}
                   onChange={(e) => setCostPerUnit(e.target.value === '' ? '' : Math.max(0, parseFloat(e.target.value)))}
-                  className="w-full px-3 py-2 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-800 transition-all"
+                  className="w-full px-3 py-2 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[var(--bg-color)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-800 transition-all"
                   min="0.01"
                   step="0.01"
                 />
               </div>
             </div>
-            
+
             <Button
               onClick={handleReceive}
               disabled={!isReceiveValid}
@@ -439,11 +520,11 @@ export function ValuationSimulator() {
                 type="number"
                 value={qtyToShip}
                 onChange={(e) => setQtyToShip(e.target.value === '' ? '' : Math.max(0, parseInt(e.target.value)))}
-                className="w-full px-3 py-2 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-neutral-950 text-sm font-mono focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-800 transition-all"
+                className="w-full px-3 py-2 rounded-md border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[var(--bg-color)] text-sm font-mono focus:outline-none focus:ring-2 focus:ring-neutral-200 dark:focus:ring-neutral-800 transition-all"
                 min="1"
               />
             </div>
-            
+
             <Button
               onClick={handleShip}
               variant="outline"
@@ -460,87 +541,6 @@ export function ValuationSimulator() {
             Cost is always tracked per SKU. Each product keeps its own cost layers.
           </p>
         </div>
-      </div>
-    </div>
-  );
-}
-
-function LayerBar({ 
-  layer, 
-  index, 
-  method,
-  maxQty 
-}: { 
-  layer: CostLayer;
-  index: number;
-  method: ValuationMethod;
-  maxQty: number;
-}) {
-  const widthPercent = (layer.qty / maxQty) * 100;
-  
-  return (
-    <div
-      className={`
-        relative flex items-center gap-3 py-2 group
-        ${layer.removing ? 'opacity-0 scale-[0.98]' : 'opacity-100'}
-      `}
-      style={{
-        transition: 'all 0.5s cubic-bezier(0.4, 0, 0.2, 1)',
-      }}
-    >
-      {/* Index/Order ID */}
-      {method !== 'WAC' && (
-        <div className="w-6 flex justify-center">
-          <span className="text-[10px] font-mono text-neutral-400 dark:text-neutral-600">
-            {method === 'FIFO' ? index + 1 : layer.timestamp}
-          </span>
-        </div>
-      )}
-
-      {/* Visual Bar Area */}
-      <div className="flex-1 relative h-8 rounded-md bg-neutral-100 dark:bg-neutral-900 overflow-hidden">
-        {/* The Actual Bar */}
-        <div 
-          className={`
-            absolute left-0 top-0 h-full transition-all duration-500 ease-out
-            ${layer.highlighted === 'add'
-              ? 'bg-emerald-500 dark:bg-emerald-500' 
-              : layer.highlighted === 'remove'
-                ? 'bg-rose-500 dark:bg-rose-500' 
-                : 'bg-neutral-800 dark:bg-neutral-200' 
-            }
-          `}
-          style={{ width: `${widthPercent}%` }}
-        />
-        
-        {/* Text Content (Overlay) */}
-        <div className="absolute inset-0 flex items-center justify-between px-3 pointer-events-none">
-          <span className={`
-            text-xs font-mono font-medium transition-colors duration-300
-            ${layer.highlighted 
-              ? 'text-white' 
-              : 'text-neutral-100 dark:text-neutral-900 mix-blend-normal' 
-            }
-          `}>
-            {layer.qty} units
-          </span>
-          <span className={`
-            text-xs font-mono transition-colors duration-300
-            ${layer.highlighted 
-              ? 'text-white/90' 
-              : 'text-neutral-400 dark:text-neutral-500' 
-            }
-          `}>
-             ${layer.cost.toFixed(2)}
-          </span>
-        </div>
-      </div>
-
-      {/* Total Value Column */}
-      <div className="w-20 text-right">
-        <span className="text-xs font-mono text-neutral-600 dark:text-neutral-400">
-          ${(layer.qty * layer.cost).toFixed(2)}
-        </span>
       </div>
     </div>
   );
