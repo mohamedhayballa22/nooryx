@@ -48,13 +48,13 @@ export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
 
   const reservedSubtitle = `Units committed to orders but not yet shipped.`
 
-  let locationCardTitle = "Locations"
+  let locationCardTitle = "LOCATIONS"
   let locationCardValue: string | number = locations
   let locationsDescription = ""
   let locationsSubtitle = ""
 
   if (location === null) {
-    locationCardTitle = "Locations"
+    locationCardTitle = "LOCATIONS"
     locationCardValue = locations
     locationsDescription =
       locations > 1
@@ -62,7 +62,7 @@ export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
         : `Single location view`
     locationsSubtitle = `Number of storage locations where this SKU is held.`
   } else {
-    locationCardTitle = "Location"
+    locationCardTitle = "LOCATION"
     locationCardValue = location
 
     if (locations > 1) {
@@ -81,20 +81,20 @@ export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
       aria-label="SKU Snapshot"
     >
       <MetricCard
-        title="On Hand"
+        title="ON HAND"
         value={on_hand.value}
         delta={hasDelta ? on_hand.delta_pct : undefined}
         description={onHandDescription}
         subtitle={onHandSubtitle}
       />
       <MetricCard
-        title="Available"
+        title="AVAILABLE"
         value={available}
         description={availableDescription}
         subtitle={availableSubtitle}
       />
       <MetricCard
-        title="Reserved"
+        title="RESERVED"
         value={reserved}
         description={reservedDescription}
         subtitle={reservedSubtitle}

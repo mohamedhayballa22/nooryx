@@ -35,7 +35,7 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
       aria-label="Dashboard Metrics"
     >
       <MetricCard
-        title="Total Units On Hand"
+        title="TOTAL UNITS ON HAND"
         value={total_on_hand.value}
         delta={hasDelta ? total_on_hand.delta_pct : undefined}
         description={
@@ -47,7 +47,7 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
       />
       
       <MetricCard
-        title="Total Units Available"
+        title="TOTAL UNITS AVAILABLE"
         value={total_available}
         description={
           total_available > 0
@@ -58,7 +58,7 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
       />
 
       <MetricCard
-        title="Stockouts"
+        title="STOCKOUTS"
         value={stockouts}
         description={
           stockouts > 0
@@ -69,7 +69,7 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
       />
 
       <MetricCard
-        title="Low Stock Items"
+        title="LOW STOCK ITEMS"
         value={low_stock}
         description={
           low_stock > 0
