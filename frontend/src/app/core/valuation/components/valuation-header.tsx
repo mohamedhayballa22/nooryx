@@ -3,6 +3,7 @@
 import { Badge } from "@/components/ui/badge"
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
+import { Card, CardContent } from "@/components/ui/card"
 import { RefreshCw } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useFormatting } from "@/hooks/use-formatting"
@@ -66,11 +67,11 @@ export function ValuationHeader({
   return (
     <div className="space-y-6">
       {/* Hero Value Display */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-card p-6">
+      <Card className="relative overflow-hidden">
         {/* Subtle background gradient */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-muted/20 via-transparent to-transparent" />
 
-        {/* Refresh Button - increased z-index */}
+        {/* Refresh Button */}
         {onRefresh && (
           <Button
             variant="ghost"
@@ -84,7 +85,7 @@ export function ValuationHeader({
           </Button>
         )}
 
-        <div className="relative space-y-6">
+        <CardContent className="relative space-y-6">
           {/* Method Badge */}
           <div className="flex items-center gap-2">
             <Badge variant="secondary" className="rounded-md px-2.5 py-0.5 text-xs font-medium">
@@ -121,8 +122,8 @@ export function ValuationHeader({
               </>
             )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -131,11 +132,11 @@ ValuationHeader.Skeleton = function ValuationHeaderSkeleton() {
   return (
     <div className="space-y-6">
       {/* Hero Value Display */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-card p-6">
+      <Card className="relative overflow-hidden">
         {/* Subtle background gradient */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-muted/20 via-transparent to-transparent" />
 
-        <div className="relative space-y-6">
+        <CardContent className="relative space-y-6">
           {/* Method Badge */}
           <div className="flex items-center gap-2">
             <Skeleton className="h-5 w-16 rounded-md" />
@@ -157,8 +158,8 @@ ValuationHeader.Skeleton = function ValuationHeaderSkeleton() {
             <div className="h-3 w-px bg-border" />
             <Skeleton className="h-3 w-32" />
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }

@@ -3,6 +3,7 @@
 import { Skeleton } from "@/components/ui/skeleton"
 import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
+import { Card, CardContent } from "@/components/ui/card"
 import {
   Select,
   SelectContent,
@@ -153,7 +154,7 @@ export function COGSHeader({
   return (
     <div className="space-y-6">
       {/* COGS Display */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-card p-6">
+      <Card className="relative overflow-hidden">
         {/* Subtle background gradient */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-muted/20 via-transparent to-transparent" />
 
@@ -207,7 +208,7 @@ export function COGSHeader({
           )}
         </div>
 
-        <div className="relative space-y-6">
+        <CardContent className="relative space-y-6">
           {/* Delta Badge with comparison period */}
           <div className="flex items-center gap-2">
             {deltaInfo ? (
@@ -266,8 +267,8 @@ export function COGSHeader({
               </>
             )}
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
@@ -276,11 +277,11 @@ COGSHeader.Skeleton = function COGSHeaderSkeleton() {
   return (
     <div className="space-y-6">
       {/* COGS Display */}
-      <div className="relative overflow-hidden rounded-xl border border-border bg-card p-6">
+      <Card className="relative overflow-hidden">
         {/* Subtle background gradient */}
         <div className="pointer-events-none absolute inset-0 bg-gradient-to-br from-muted/20 via-transparent to-transparent" />
 
-        <div className="relative space-y-6">
+        <CardContent className="relative space-y-6">
           {/* Delta Badge */}
           <div className="flex items-center gap-2">
             <Skeleton className="h-5 w-16 rounded-md" />
@@ -302,8 +303,8 @@ COGSHeader.Skeleton = function COGSHeaderSkeleton() {
             <div className="h-3 w-px bg-border" />
             <Skeleton className="h-3 w-32" />
           </div>
-        </div>
-      </div>
+        </CardContent>
+      </Card>
     </div>
   )
 }
