@@ -9,10 +9,12 @@ import {
   BreadcrumbPage,
   BreadcrumbSeparator,
 } from "@/components/ui/breadcrumb";
-import { SearchDialog } from "@/components/app-search";
+import { SearchTrigger } from "@/components/app-search";
 import { ThemeToggle } from "@/components/nav-theme-toggle";
 import { usePathname, useSearchParams } from "next/navigation";
 import Link from "next/link";
+import { Search } from "lucide-react";
+import { Button } from "@/components/ui/button";
 
 export function CoreNavbar() {
   const pathname = usePathname();
@@ -31,13 +33,26 @@ export function CoreNavbar() {
   // Check if we're on inventory page with a SKU query param
   const skuCode = pathname === "/core/inventory" ? searchParams.get("sku") : null;
 
-  return (
-    <nav className="w-full h-14 border-b flex items-center justify-between px-4">
-      <div className="flex items-center gap-3">
-        <SidebarTrigger className="cursor-pointer" />
-        <div className="h-6 w-px bg-border" />
+  const handleSearchClick = () => {
+    const isMac = navigator.platform.toUpperCase().indexOf('MAC') >= 0;
+    const event = new KeyboardEvent('keydown', {
+      key: 'k',
+      code: 'KeyK',
+      metaKey: isMac,
+      ctrlKey: !isMac,
+      bubbles: true,
+      cancelable: true
+    });
+    document.dispatchEvent(event);
+  };
 
-        <Breadcrumb>
+  return (
+    <nav className="w-full h-14 border-b flex items-center justify-between px-4 gap-4">
+      <div className="flex items-center gap-3 min-w-0">
+        <SidebarTrigger className="cursor-pointer flex-shrink-0" />
+        <div className="h-6 w-px bg-border flex-shrink-0" />
+
+        <Breadcrumb className="min-w-0">
           <BreadcrumbList className="flex items-center gap-1.5">
             {filteredSegments.map((segment, index) => {
               const isLast = index === filteredSegments.length - 1;
@@ -72,9 +87,23 @@ export function CoreNavbar() {
         </Breadcrumb>
       </div>
 
-      <div className="flex items-center gap-3">
+      <div className="flex items-center gap-2 flex-shrink-0">
+        {/* Mobile: Icon button */}
+        <Button
+          variant="ghost"
+          size="icon"
+          onClick={handleSearchClick}
+          className="md:hidden"
+          aria-label="Search"
+        >
+          <Search className="h-4 w-4" />
+        </Button>
+
+        {/* Desktop: Search bar */}
         <ThemeToggle />
-        <SearchDialog />
+        <div className="hidden md:block">
+          <SearchTrigger />
+        </div>
       </div>
     </nav>
   );
