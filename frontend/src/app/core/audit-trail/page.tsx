@@ -11,7 +11,7 @@ import { EmptyAuditTrail } from "@/components/empty-audit-trail";
 import { useUserSettings } from "@/hooks/use-user-settings";
 
 const INITIAL_ACTION_FILTERS = [
-  "added",
+  "received",
   "shipped",
   "reserved",
   "transferred",
@@ -135,7 +135,7 @@ export default function AuditTrailPage() {
         searchPlaceholder="Search by SKU, actor, action..."
         filterLabel="Actions"
         filterOptions={[
-          { label: "Added", value: "added" },
+          { label: "Received", value: "received" },
           { label: "Shipped", value: "shipped" },
           { label: "Reserved", value: "reserved" },
           { label: "Transferred", value: "transferred" },

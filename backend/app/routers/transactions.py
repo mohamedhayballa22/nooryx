@@ -19,7 +19,7 @@ router = APIRouter()
 def _get_db_actions_from_display(display_action: str) -> list[str]:
     """Convert frontend display action to database action(s)."""
     action_map = {
-        "added": ["receive"],
+        "received": ["receive"],
         "shipped": ["ship"],
         "reserved": ["reserve"],
         "transferred": ["transfer", "transfer_in", "transfer_out"],
@@ -32,7 +32,7 @@ def _get_db_actions_from_display(display_action: str) -> list[str]:
 def _format_action(action: str) -> str:
     """Convert action to past tense for display."""
     action_map = {
-        "receive": "added",
+        "receive": "received",
         "ship": "shipped",
         "adjust": "adjusted",
         "reserve": "reserved",
