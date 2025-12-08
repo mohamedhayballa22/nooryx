@@ -20,7 +20,7 @@ export function LatestAuditTrail({ sku_code, location, transactions }: LatestAud
     <Card className="h-full flex flex-col">
       <CardHeader className="flex-shrink-0">
         <CardTitle>
-          {hasSku ? `Latest Movements - ${sku_code}` : "Latest Movements"}
+          Latest Movements
         </CardTitle>
         <CardDescription>
           {location
