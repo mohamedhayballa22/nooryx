@@ -39,7 +39,7 @@ import { Avatar, AvatarFallback } from "@/components/ui/avatar"
 import { 
   HomeSimple, BoxIso, ClockRotateRight, 
   Bell, Settings, NavArrowUp, LogOut, 
-  User, Coins, NavArrowDown, Globe,
+  User, Coins, NavArrowDown, Wrench,
   Package, Group, Lock, CreditCard, OpenBook,
   MessageText
  } from "iconoir-react"
@@ -61,7 +61,7 @@ const mainItems = [
 ]
 
 const settingsSubItems = [
-  { title: "General", url: "/core/settings/general", icon: Globe },
+  { title: "General", url: "/core/settings/general", icon: Wrench },
   { title: "Operations", url: "/core/settings/operations", icon: Package },
   { title: "Team & Access", url: "/core/settings/team", icon: Group },
   { title: "Account & Security", url: "/core/settings/account", icon: Lock },
