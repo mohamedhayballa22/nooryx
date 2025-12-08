@@ -120,7 +120,7 @@ export function ValuationDataTable({
       {data.length === 0 ? (
         <EmptyValuationTable />
       ) : (
-        <div className="relative overflow-hidden rounded-xl border bg-card">
+        <div className="relative overflow-hidden rounded-xl border">
           <div className="absolute inset-0 bg-gradient-to-br from-muted/20 via-transparent to-transparent pointer-events-none" />
           <div className="relative">
             <Table>
