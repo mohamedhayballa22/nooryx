@@ -25,7 +25,6 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         "/api-docs",
         "/redoc",
         "/health",
-        "/metrics",
         "/api/webhooks",
         # TODO: Add specific webhooks to exempt paths if needed
     }

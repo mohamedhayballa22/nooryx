@@ -23,7 +23,7 @@ class CorrelationIdMiddleware(BaseHTTPMiddleware):
             response = await call_next(request)
 
             duration_ms = round((time.time() - start_time) * 1000, 2)
-            if request.url.path not in ["/health", "/metrics"]:
+            if request.url.path not in ["/health"]:
                 log_data = {
                     "method": request.method,
                     "path": str(request.url.path) + (f"?{request.url.query}" if request.url.query else ""),
