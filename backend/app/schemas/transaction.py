@@ -11,6 +11,7 @@ class TransactionItem(BaseModel):
     action: str
     quantity: int
     sku_code: str
+    unit_cost_major: Optional[float] = None
     location: str
     qty_before: int
     qty_after: int

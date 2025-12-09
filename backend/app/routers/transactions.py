@@ -7,11 +7,12 @@ from sqlalchemy import select, or_, String, func, exists
 from typing import Optional, List
 
 from app.schemas.transaction import LatestTransactionsResponse, TransactionItem
-from app.models import Transaction, Location, State, User
+from app.models import Transaction, Location, State, User, Organization
 from app.core.db import get_session
 from app.services.exceptions import NotFound
 from app.core.auth.tenant_dependencies import get_tenant_session
 from app.core.auth.dependencies import get_current_user
+from app.services.currency_service import CurrencyService
 
 router = APIRouter()
 
@@ -49,6 +50,19 @@ def _calculate_qty_after(qty_before: int, qty: int, action: str) -> int:
     if action in ["reserve", "unreserve"]:
         return qty_before
     return qty_before + qty
+
+def _calculate_unit_cost(
+    total_cost_minor: Optional[int],
+    qty: int,
+    currency: str,
+    currency_service: CurrencyService,
+) -> Optional[float]:
+    """Calculate unit cost in major currency units."""
+    if total_cost_minor is None or qty == 0:
+        return None
+    
+    unit_cost_minor = total_cost_minor / abs(qty)
+    return currency_service.to_major_units(unit_cost_minor, currency)
 
 
 @router.get("/transactions", response_model=Page[TransactionItem])
@@ -91,6 +105,13 @@ async def get_transactions(
         
         if not has_any_transactions:
             raise NotFound("No transactions found")
+        
+    # Initialize currency service for formatting
+    currency_service = CurrencyService()
+    
+    # Fetch user's org currency
+    org_query = select(Organization.currency).where(Organization.org_id == user.org_id)
+    org_currency = (await db.execute(org_query)).scalar_one()
 
     # Main query with joins - include User for actor name
     query = (
@@ -163,6 +184,12 @@ async def get_transactions(
                 action=_format_action(row.Transaction.action),
                 quantity=abs(row.Transaction.qty),
                 sku_code=row.Transaction.sku_code,
+                unit_cost_major=_calculate_unit_cost(
+                    row.Transaction.total_cost_minor,
+                    row.Transaction.qty,
+                    org_currency,
+                    currency_service,
+                ),
                 location=row.location_name,
                 qty_before=row.Transaction.qty_before,
                 qty_after=_calculate_qty_after(
@@ -182,6 +209,7 @@ async def get_latest_transactions_by_sku(
     sku_code: str,
     db: AsyncSession = Depends(get_tenant_session),
     location: Optional[str] = Query(None, description="Filter by location name"),
+    user: User = Depends(get_current_user),
 ):
     """
     Returns the two most recent transactions for a specific SKU.
@@ -199,6 +227,13 @@ async def get_latest_transactions_by_sku(
     sku_exists_result = await db.execute(sku_exists_query)
     if sku_exists_result.scalar() is None:
         raise NotFound
+    
+    # Initialize currency service for formatting
+    currency_service = CurrencyService()
+
+    # Fetch user's org currency
+    org_query = select(Organization.currency).where(Organization.org_id == user.org_id)
+    org_currency = (await db.execute(org_query)).scalar_one()
     
     # Count distinct locations where this SKU is present (has transactions)
     location_count_query = (
@@ -249,6 +284,12 @@ async def get_latest_transactions_by_sku(
             action=_format_action(row.Transaction.action),
             quantity=abs(row.Transaction.qty),
             sku_code=row.Transaction.sku_code,
+            unit_cost_major=_calculate_unit_cost(
+                row.Transaction.total_cost_minor,
+                row.Transaction.qty,
+                org_currency,
+                currency_service,
+            ),
             location=row.location_name,
             qty_before=row.Transaction.qty_before,
             qty_after=_calculate_qty_after(
@@ -272,6 +313,7 @@ async def get_latest_transactions_by_sku(
 async def get_latest_transactions(
     db: AsyncSession = Depends(get_tenant_session),
     location: Optional[str] = Query(None, description="Filter by location name"),
+    user: User = Depends(get_current_user),
 ):
     """
     Returns the two most recent transactions across all inventory.
@@ -295,6 +337,13 @@ async def get_latest_transactions(
         )
         single_location_result = await db.execute(single_location_query)
         location = single_location_result.scalar()
+        
+    # Initialize currency service for formatting
+    currency_service = CurrencyService()
+
+    # Fetch user's org currency
+    org_query = select(Organization.currency).where(Organization.org_id == user.org_id)
+    org_currency = (await db.execute(org_query)).scalar_one()
     
     # Main query with joins - include User for actor name
     query = (
@@ -332,6 +381,12 @@ async def get_latest_transactions(
             action=_format_action(row.Transaction.action),
             quantity=abs(row.Transaction.qty),
             sku_code=row.Transaction.sku_code,
+            unit_cost_major=_calculate_unit_cost(
+                row.Transaction.total_cost_minor,
+                row.Transaction.qty,
+                org_currency,
+                currency_service,
+            ),
             location=row.location_name,
             qty_before=row.Transaction.qty_before,
             qty_after=_calculate_qty_after(
