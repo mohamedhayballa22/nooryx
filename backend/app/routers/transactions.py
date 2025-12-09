@@ -64,6 +64,20 @@ def _calculate_unit_cost(
     unit_cost_minor = total_cost_minor / abs(qty)
     return currency_service.to_major_units(unit_cost_minor, currency)
 
+def _resolve_actor(row):
+    # If user exists
+    if row.first_name and row.last_name:
+        return f"{row.first_name} {row.last_name}"
+
+    # Fallback to txn_metadata["created_by"]
+    metadata = row.Transaction.txn_metadata or {}
+    meta_actor = metadata.get("created_by")
+    if meta_actor:
+        return meta_actor
+
+    # Final fallback
+    return "System"
+
 
 @router.get("/transactions", response_model=Page[TransactionItem])
 async def get_transactions(
@@ -180,7 +194,7 @@ async def get_transactions(
             TransactionItem(
                 id=str(row.Transaction.id),
                 date=row.Transaction.created_at,
-                actor=f"{row.first_name} {row.last_name}" if row.first_name and row.last_name else "System",
+                actor=_resolve_actor(row),
                 action=_format_action(row.Transaction.action),
                 quantity=abs(row.Transaction.qty),
                 sku_code=row.Transaction.sku_code,
@@ -280,7 +294,7 @@ async def get_latest_transactions_by_sku(
         TransactionItem(
             id=str(row.Transaction.id),
             date=row.Transaction.created_at,
-            actor=f"{row.first_name} {row.last_name}" if row.first_name and row.last_name else "System",
+            actor=_resolve_actor(row),
             action=_format_action(row.Transaction.action),
             quantity=abs(row.Transaction.qty),
             sku_code=row.Transaction.sku_code,
@@ -377,7 +391,7 @@ async def get_latest_transactions(
         TransactionItem(
             id=str(row.Transaction.id),
             date=row.Transaction.created_at,
-            actor=f"{row.first_name} {row.last_name}" if row.first_name and row.last_name else "System",
+            actor=_resolve_actor(row),
             action=_format_action(row.Transaction.action),
             quantity=abs(row.Transaction.qty),
             sku_code=row.Transaction.sku_code,
