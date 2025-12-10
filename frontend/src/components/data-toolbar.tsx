@@ -42,28 +42,18 @@ interface SortOption {
 
 interface DataToolbarProps<TData> {
   table: Table<TData>
-
-  // Search
   search?: string
   onSearchChange?: (search: string) => void
   searchPlaceholder?: string
-
-  // Filters
   filterLabel?: string
   filterOptions?: FilterOption[]
   activeFilters?: string[]
   onFiltersChange?: (filters: string[]) => void
-
-  // Sorting
   sortBy?: string | null
   sortOrder?: "asc" | "desc"
   sortOptions?: SortOption[]
   onSortChange?: (sortBy: string | null, sortOrder: "asc" | "desc") => void
-
-  // Column visibility toggle
   showViewToggle?: boolean
-
-  // Extra actions
   actions?: React.ReactNode
 }
 
@@ -87,12 +77,7 @@ export function DataToolbar<TData>({
 
   const handleFilterChange = (checked: boolean, value: string) => {
     if (!onFiltersChange) return
-    
-    // Prevent unchecking if it's the last filter
-    if (!checked && activeFilters.length === 1) {
-      return
-    }
-    
+    if (!checked && activeFilters.length === 1) return
     const newFilters = checked
       ? [...activeFilters, value]
       : activeFilters.filter((f) => f !== value)
@@ -101,22 +86,18 @@ export function DataToolbar<TData>({
 
   const handleSortByChange = (value: string) => {
     if (!onSortChange) return
-    if (value === "none") {
-      onSortChange(null, "asc")
-    } else {
-      onSortChange(value, sortOrder)
-    }
+    onSortChange(value, sortOrder)
   }
 
   return (
-    <div className="flex flex-wrap items-center justify-between gap-3">
-      <div className="flex items-center gap-3">
+    <div className="flex w-full flex-col gap-4 sm:flex-row sm:items-center sm:justify-between">
+      <div className="flex flex-1 flex-wrap items-center gap-3 w-full sm:w-auto">
         {/* Search */}
         {onSearchChange && (
-          <div className="relative">
+          <div className="relative w-full sm:w-auto">
             <Input
               id={`${id}-input`}
-              className="peer min-w-60 ps-9"
+              className="peer w-full ps-9 sm:w-auto sm:min-w-60"
               value={search}
               onChange={(event) => onSearchChange(event.target.value)}
               placeholder={searchPlaceholder}
@@ -199,10 +180,9 @@ export function DataToolbar<TData>({
             <DropdownMenuContent align="start" className="w-48">
               <DropdownMenuLabel>Sort by</DropdownMenuLabel>
               <DropdownMenuRadioGroup
-                value={sortBy || "none"}
+                value={sortBy || undefined} 
                 onValueChange={handleSortByChange}
               >
-                <DropdownMenuRadioItem value="none">None</DropdownMenuRadioItem>
                 {sortOptions.map((option) => (
                   <DropdownMenuRadioItem key={option.value} value={option.value}>
                     {option.label}
