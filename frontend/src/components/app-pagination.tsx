@@ -40,9 +40,8 @@ export function PaginationControls({
   onPageSizeChange,
 }: PaginationControlsProps) {
   return (
-    <div className="flex items-center justify-center gap-4">
-      {/* Page Size Selector */}
-      <div className="flex items-center gap-2">
+    <div className="flex flex-col items-center gap-4 sm:flex-row sm:justify-center">
+      <div className="flex items-center gap-2 order-3 sm:order-1">
         <p className="text-sm text-muted-foreground">Rows per page</p>
         <Select
           value={`${pageSize}`}
@@ -63,13 +62,11 @@ export function PaginationControls({
         </Select>
       </div>
 
-      {/* Page Info */}
-      <div className="text-muted-foreground text-sm">
+      <div className="text-muted-foreground text-sm text-center order-1 sm:order-2 sm:text-left">
         Page {pageIndex + 1} of {totalPages || 1} ({totalItems} total items)
       </div>
 
-      {/* Navigation */}
-      <Pagination className="mx-0 w-auto">
+      <Pagination className="mx-0 w-auto order-2 sm:order-3">
         <PaginationContent>
           <PaginationItem>
             <Button
