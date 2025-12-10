@@ -44,7 +44,6 @@ export function TopSKUsCard({
 }: TopSKUsCardProps) {
   const [uncontrolledPeriod, setUncontrolledPeriod] = useState<PeriodKey>("31d")
 
-  // Use controlled prop if provided; otherwise, fallback to internal state
   const period = controlledPeriod ?? uncontrolledPeriod
 
   const labelMaps = {
@@ -71,7 +70,6 @@ export function TopSKUsCard({
     onPeriodChange?.(newPeriod)
   }
 
-  // Utility for bar scaling
   const getLogPercentage = (value: number, maxValue: number): number => {
     if (value === 0 || maxValue === 0) return 0
     const logValue = Math.log10(value + 1)
@@ -79,23 +77,17 @@ export function TopSKUsCard({
     return (logValue / logMax) * 100
   }
 
-  // Get bar color based on status
   const getBarColor = (status: string): string => {
     switch (status) {
-      case "Out of Stock":
-        return "bg-red-500"
-      case "Low Stock":
-        return "bg-yellow-500"
-      case "In Stock":
-        return "bg-green-500"
-      default:
-        return "bg-gray-500"
+      case "Out of Stock": return "bg-red-500"
+      case "Low Stock": return "bg-yellow-500"
+      case "In Stock": return "bg-green-500"
+      default: return "bg-gray-500"
     }
   }
 
   const maxAvailable = Math.max(...data.skus.map(sku => sku.available), 1)
 
-  // Pad data to always show 5 rows
   const paddedData = [
     ...data.skus.slice(0, TOTAL_ROWS),
     ...Array(Math.max(0, TOTAL_ROWS - data.skus.length)).fill(null),
@@ -103,9 +95,9 @@ export function TopSKUsCard({
 
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="flex flex-row items-start justify-between">
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-0">
         <div>
-          <CardTitle>{title}</CardTitle>
+          <CardTitle className="leading-tight">{title}</CardTitle>
           {(data.location || description) && (
             <CardDescription className="mt-1.5">
               {data.location ?? description}
@@ -113,10 +105,9 @@ export function TopSKUsCard({
           )}
         </div>
 
-        {/* Period Dropdown */}
         <DropdownMenu>
           <DropdownMenuTrigger asChild>
-            <Button variant="outline" size="sm" className="cursor-pointer">
+            <Button variant="outline" size="sm" className="w-full sm:w-auto justify-between sm:justify-center cursor-pointer">
               {periodLabelMap[period]}
               <NavArrowDown className="ml-2 h-4 w-4 opacity-60" />
             </Button>
@@ -149,27 +140,20 @@ export function TopSKUsCard({
                 return (
                   <div
                     key={`empty-${index}`}
-                    className="flex items-center gap-4 px-4 py-3 rounded-lg border border-dashed border-muted/30 bg-muted/2"
+                    className="flex items-center gap-3 px-3 py-3 sm:px-4 sm:gap-4 rounded-lg border border-dashed border-muted/30 bg-muted/2"
                   >
-                    {/* Rank */}
                     <div className="flex-shrink-0 w-8 h-8 rounded-full bg-muted/10 flex items-center justify-center">
                       <span className="text-sm font-bold text-muted-foreground/50">
                         {index + 1}
                       </span>
                     </div>
-
-                    {/* Empty State Content */}
                     <div className="flex-1 min-w-0">
                       <p className="font-medium text-muted-foreground/50 truncate">—</p>
-                      <p className="text-xs text-muted-foreground/30">—</p>
+                      <p className="text-xs text-muted-foreground/30 hidden sm:block">—</p>
                     </div>
-
-                    {/* Empty Stock Bar */}
-                    <div className="flex-shrink-0 w-15">
+                    <div className="flex-shrink-0 w-15 hidden sm:block">
                       <div className="h-1.5 bg-muted rounded-full overflow-hidden" />
                     </div>
-
-                    {/* Empty Available Count */}
                     <div className="flex-shrink-0 text-right min-w-[60px]">
                       <p className="text-lg font-bold text-muted-foreground/50">—</p>
                       <p className="text-[10px] uppercase text-muted-foreground/30">
@@ -186,52 +170,59 @@ export function TopSKUsCard({
                 <Link
                   key={sku.sku}
                   href={`/core/inventory?sku=${encodeURIComponent(sku.sku)}`}
-                  className="flex items-center gap-4 px-4 py-3 rounded-lg border border-muted/20 bg-muted/5 hover:bg-muted/15 hover:border-muted/40 hover:shadow-sm transition-all cursor-pointer group"
+                  className="group relative flex items-start sm:items-center gap-3 px-3 py-3 sm:gap-4 sm:px-4 rounded-lg border border-muted/20 bg-muted/5 hover:bg-muted/15 hover:border-muted/40 hover:shadow-sm transition-all cursor-pointer"
                 >
-                  {/* Rank */}
-                  <div className="flex-shrink-0 w-8 h-8 rounded-full bg-primary/10 flex items-center justify-center">
+                  {/* Rank - Fixed Size */}
+                  <div className="flex-shrink-0 w-8 h-8 mt-0.5 sm:mt-0 rounded-full bg-primary/10 flex items-center justify-center">
                     <span className="text-sm font-bold text-primary">{index + 1}</span>
                   </div>
 
-                  {/* Product Info */}
-                  <div className="flex-1 min-w-0">
-                    <p className="font-medium text-foreground truncate">{sku.sku}</p>
-                    <p className="text-xs text-muted-foreground">{sku.sku_name}</p>
+                  {/* Product Info - Takes available space */}
+                  <div className="flex-1 min-w-0 flex flex-col justify-center">
+                    <p className="font-medium text-foreground truncate text-sm sm:text-base">
+                      {sku.sku}
+                    </p>
+                    <p className="text-xs text-muted-foreground truncate leading-tight">
+                      {sku.sku_name}
+                    </p>
                   </div>
 
-                  {/* Stock Bar */}
-                  <div className="flex-shrink-0 w-15">
-                    <div className="h-1.5 bg-muted rounded-full overflow-hidden">
-                      <div
-                        className={cn(
-                          "h-full transition-all",
-                          getBarColor(sku.status)
-                        )}
-                        style={{ width: `${percentage}%` }}
-                      />
+                  <div className="flex-shrink-0 flex flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-4">
+                    
+                    {/* Stock Bar */}
+                    <div className="w-16 sm:w-20">
+                      <div className="h-1.5 bg-muted rounded-full overflow-hidden w-full">
+                        <div
+                          className={cn(
+                            "h-full transition-all",
+                            getBarColor(sku.status)
+                          )}
+                          style={{ width: `${percentage}%` }}
+                        />
+                      </div>
                     </div>
-                  </div>
 
-                  {/* Available Count */}
-                  <div className="flex-shrink-0 text-right min-w-[60px]">
-                    <p
-                      className={cn(
-                        "text-lg font-bold tabular-nums",
-                        sku.status === "Out of Stock" && "text-red-500"
-                      )}
-                    >
-                      {sku.available}
-                    </p>
-                    <p
-                      className={cn(
-                        "text-[10px] uppercase",
-                        sku.status === "Out of Stock"
-                          ? "text-red-500 font-medium"
-                          : "text-muted-foreground"
-                      )}
-                    >
-                      Available
-                    </p>
+                    {/* Available Count */}
+                    <div className="text-right min-w-[50px] sm:min-w-[60px]">
+                      <p
+                        className={cn(
+                          "text-base sm:text-lg font-bold tabular-nums leading-none sm:leading-normal",
+                          sku.status === "Out of Stock" && "text-red-500"
+                        )}
+                      >
+                        {sku.available}
+                      </p>
+                      <p
+                        className={cn(
+                          "text-[10px] uppercase",
+                          sku.status === "Out of Stock"
+                            ? "text-red-500 font-medium"
+                            : "text-muted-foreground"
+                        )}
+                      >
+                        Available
+                      </p>
+                    </div>
                   </div>
                 </Link>
               )
@@ -248,13 +239,12 @@ export function TopSKUsCard({
 TopSKUsCard.Skeleton = function TopSKUsCardSkeleton() {
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="flex flex-row items-start justify-between">
+      <CardHeader className="flex flex-col gap-4 sm:flex-row sm:items-start sm:justify-between sm:gap-0">
         <div>
           <Skeleton className="h-6 w-32 mb-2" />
           <Skeleton className="h-4 w-48" />
         </div>
-
-        <Skeleton className="h-9 w-28" />
+        <Skeleton className="h-9 w-full sm:w-28" />
       </CardHeader>
 
       <CardContent>
@@ -262,26 +252,21 @@ TopSKUsCard.Skeleton = function TopSKUsCardSkeleton() {
           {Array.from({ length: TOTAL_ROWS }).map((_, index) => (
             <div
               key={index}
-              className="flex items-center gap-4 px-4 py-3 rounded-lg border border-muted/20 bg-muted/5"
+              className="flex items-start sm:items-center gap-3 px-3 py-3 sm:gap-4 sm:px-4 rounded-lg border border-muted/20 bg-muted/5"
             >
-              {/* Rank */}
               <Skeleton className="flex-shrink-0 w-8 h-8 rounded-full" />
-
-              {/* Product Info */}
+              
               <div className="flex-1 min-w-0 space-y-1.5">
                 <Skeleton className="h-4 w-24" />
-                <Skeleton className="h-3 w-32" />
+                <Skeleton className="h-3 w-16 sm:w-32" />
               </div>
 
-              {/* Stock Bar */}
-              <div className="flex-shrink-0 w-20">
-                <Skeleton className="h-1.5 w-full rounded-full" />
-              </div>
-
-              {/* Available Count */}
-              <div className="flex-shrink-0 text-right min-w-[60px] space-y-1">
-                <Skeleton className="h-5 w-12 ml-auto" />
-                <Skeleton className="h-2.5 w-14 ml-auto" />
+              <div className="flex-shrink-0 flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-4">
+                 <Skeleton className="h-1.5 w-16 sm:w-20 rounded-full" />
+                 <div className="space-y-1 text-right">
+                    <Skeleton className="h-5 w-10 ml-auto" />
+                    <Skeleton className="h-2.5 w-12 ml-auto" />
+                 </div>
               </div>
             </div>
           ))}
