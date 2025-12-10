@@ -5,7 +5,7 @@ import { useRouter, useSearchParams } from 'next/navigation'
 import AlertCard from './alert-card'
 import AlertsFilter from './alerts-filter'
 import AlertsHeader from './alerts-header'
-import EmptyState from './empty-state'
+import AlertsEmptyState from './alerts-empty-state'
 import { PaginationControls } from '@/components/app-pagination'
 import { useAlerts, useMarkAllAlertsAsRead } from '@/hooks/use-alerts'
 import { useUserSettings } from '@/hooks/use-user-settings'
@@ -110,7 +110,7 @@ export default function AlertsPage() {
             Failed to load alerts
           </div>
         ) : alerts.length === 0 ? (
-          <EmptyState filter={filter} />
+          <AlertsEmptyState filter={filter} />
         ) : (
           alerts.map((alert) => (
             <AlertCard key={alert.id} alert={alert} />
