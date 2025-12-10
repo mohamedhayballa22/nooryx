@@ -1,32 +1,37 @@
 "use client"
 
+import Link from "next/link"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
 import { Skeleton } from "@/components/ui/skeleton"
 import { AuditTrail } from "@/components/audit-trail"
 import { EmptyLatestAuditTrail } from "@/components/EmptyLatestAuditTrail"
 import type { LatestAuditTrailData } from "@/lib/api/inventory"
-import { ExternalLink } from "lucide-react"
 
 export function LatestAuditTrail({ sku_code, location, transactions }: LatestAuditTrailData) {
-  const hasSku = Boolean(sku_code)
+  const historyUrl = sku_code
+    ? `/core/audit-trail?search=${encodeURIComponent(sku_code)}`
+    : '/core/audit-trail';
 
-  const handleViewFullHistory = () => {
-    const url = hasSku ? `/core/audit-trail?search=${sku_code}` : '/core/audit-trail'
-    window.open(url, '_blank')
-  }
 
   return (
     <Card className="h-full flex flex-col">
       <CardHeader className="flex-shrink-0">
-        <CardTitle>
-          Latest Movements
-        </CardTitle>
-        <CardDescription>
-          {location
-            ? location
-            : "All Locations"}
-        </CardDescription>
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex-1">
+            <CardTitle className="mb-1">Latest Movements</CardTitle>
+            <CardDescription>
+              {location ? location : "All Locations"}
+            </CardDescription>
+          </div>
+          
+          {/* Button shown on larger screens */}
+          <Link href={historyUrl} className="hidden sm:block">
+            <Button variant="outline" size="sm" className="cursor-pointer whitespace-nowrap">
+              View Full History
+            </Button>
+          </Link>
+        </div>
       </CardHeader>
 
       <CardContent
@@ -43,13 +48,15 @@ export function LatestAuditTrail({ sku_code, location, transactions }: LatestAud
           <EmptyLatestAuditTrail />
         ) : (
           <>
-            <AuditTrail items={transactions} snippet />
+            <AuditTrail items={transactions} snippet={true} />
 
-            <div className="flex justify-center py-5 mt-4">
-              <Button variant="outline" onClick={handleViewFullHistory} className="cursor-pointer">
-                View Full History
-                <ExternalLink className="ml-2 h-4 w-4" />
-              </Button>
+            {/* Button shown on mobile/small screens */}
+            <div className="flex justify-center mt-4 sm:hidden">
+              <Link href={historyUrl}>
+                <Button variant="outline" className="cursor-pointer">
+                  View Full History
+                </Button>
+              </Link>
             </div>
           </>
         )}
@@ -61,9 +68,14 @@ export function LatestAuditTrail({ sku_code, location, transactions }: LatestAud
 LatestAuditTrail.Skeleton = function LatestAuditTrailSkeleton() {
   return (
     <Card className="h-full flex flex-col">
-      <CardHeader className="flex-shrink-0 space-y-2">
-        <Skeleton className="h-6 w-1/3" /> 
-        <Skeleton className="h-4 w-1/4" />
+      <CardHeader className="flex-shrink-0">
+        <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
+          <div className="flex-1 space-y-2">
+            <Skeleton className="h-6 w-1/3" /> 
+            <Skeleton className="h-4 w-1/4" />
+          </div>
+          <Skeleton className="hidden sm:block h-9 w-32 rounded-md" />
+        </div>
       </CardHeader>
       <CardContent className="flex-1 overflow-y-auto space-y-4 [&::-webkit-scrollbar]:hidden">
         <div className="space-y-3">
@@ -78,7 +90,7 @@ LatestAuditTrail.Skeleton = function LatestAuditTrailSkeleton() {
           ))}
         </div>
 
-        <div className="flex justify-center py-5 mt-4">
+        <div className="flex justify-center py-5 mt-4 sm:hidden">
           <Skeleton className="h-9 w-32 rounded-md" />
         </div>
       </CardContent>
