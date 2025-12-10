@@ -218,14 +218,6 @@ export default function TrendChart({
                 fillOpacity={0.4}
                 stroke="var(--on-hand)"
                 strokeWidth={2}
-                dot={{
-                  fill: "var(--on-hand)",
-                  stroke: "var(--on-hand)",
-                  strokeWidth: 0,
-                  r: 2,
-                  fillOpacity: 1,
-                }}
-                activeDot={{ r: 5 }}
               />
             </AreaChart>
           </ChartContainer>
