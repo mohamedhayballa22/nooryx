@@ -47,7 +47,7 @@ import { useUserAccount } from "@/app/core/settings/account/hooks/use-account"
 import { SignOutConfirmDialog } from "./signout-dialog";
 import { useUnreadCount } from "@/hooks/use-alerts"
 import { toast } from "sonner"
-import { useRouter } from "next/navigation"
+import { useRouter, usePathname } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { SidebarFeedbackCard } from "./feedback/sidebar-feedback-card"
 import { FeedbackModal } from "./feedback/feedback-modal"
@@ -139,7 +139,15 @@ export function AppSidebar() {
   const displayCount = unreadCount > 9 ? "9+" : unreadCount.toString();
   const router = useRouter()
   const queryClient = useQueryClient()
-  const { state, setOpen } = useSidebar() // Add this hook
+  const { state, setOpen, isMobile, openMobile, setOpenMobile } = useSidebar()
+  const pathname = usePathname()
+
+  React.useEffect(() => {
+    if (isMobile && openMobile) {
+      setOpenMobile(false)
+    }
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [pathname])
 
   const prevUnreadRef = React.useRef(unreadCount);
 
