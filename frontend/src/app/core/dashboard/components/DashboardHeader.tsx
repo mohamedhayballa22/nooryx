@@ -7,6 +7,7 @@ import { Skeleton } from "@/components/ui/skeleton"
 import { NavArrowDown } from "iconoir-react"
 import { cn } from "@/lib/utils"
 import { DashboardSummary } from "@/lib/api/dashboard"
+import { ReceiveForm } from "@/components/forms/receive-form"
 
 interface Props {
   data: DashboardSummary
@@ -294,7 +295,7 @@ function interpolateMessage(
 
 // MESSAGE BUILDER
 
-function buildMessage(data: DashboardSummary): {
+function buildMessage(data: DashboardSummary, onOpenReceiveForm: () => void): {
   primary: React.ReactNode
   full: React.ReactNode
   canExpand: boolean
@@ -318,12 +319,24 @@ function buildMessage(data: DashboardSummary): {
 
   // Empty inventory
   if (empty_inventory) {
-    const { primary, full } = DASHBOARD_MESSAGES.inventory.empty
-    const canExpand = shouldShowToggle(primary, full)
+    const primary = "Your inventory is currently empty."
+    const full = (
+      <>
+        Your inventory is currently empty. Start by{" "}
+        <button
+          onClick={onOpenReceiveForm}
+          className="text-primary font-medium underline underline-offset-4 transition-colors cursor-pointer"
+        >
+          receiving new stock
+        </button>{" "}
+        to get things moving.
+      </>
+    )
+    const canExpand = false
     
     return {
       primary: <span>{canExpand ? primary : full}</span>,
-      full: <span>{full}</span>,
+      full,
       canExpand,
     }
   }
@@ -427,6 +440,7 @@ function buildMessage(data: DashboardSummary): {
 
 export default function DashboardHeader({ data, selectedLocation, onTabChange }: Props) {
   const [expandedMessage, setExpandedMessage] = useState(false)
+  const [isReceiveFormOpen, setIsReceiveFormOpen] = useState(false)
 
   const { first_name, locations } = data
 
@@ -437,7 +451,10 @@ export default function DashboardHeader({ data, selectedLocation, onTabChange }:
     return DASHBOARD_MESSAGES.greetings.evening
   }, [])
 
-  const message = useMemo(() => buildMessage(data), [data])
+  const message = useMemo(
+    () => buildMessage(data, () => setIsReceiveFormOpen(true)),
+    [data]
+  )
 
   const displayedMessage = expandedMessage ? message.full : message.primary
 
@@ -497,6 +514,11 @@ export default function DashboardHeader({ data, selectedLocation, onTabChange }:
           </TabsList>
         </Tabs>
       )}
+      <ReceiveForm
+        open={isReceiveFormOpen}
+        onOpenChange={setIsReceiveFormOpen}
+        invalidateQueries={["inventory", "transactions", "trend", "valuation", "search", "skus"]}
+      />
     </div>
   )
 }
