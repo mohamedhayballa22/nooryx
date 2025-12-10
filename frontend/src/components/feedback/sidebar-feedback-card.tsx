@@ -6,6 +6,7 @@ import { Button } from "@/components/ui/button"
 import { cn } from "@/lib/utils"
 import { FeedbackModal } from "./feedback-modal"
 import { MessageText } from "iconoir-react"
+import { useSidebar } from "@/components/ui/sidebar"
 
 const STORAGE_KEY = "sidebar-feedback-hidden"
 
@@ -13,6 +14,8 @@ export function SidebarFeedbackCard() {
   const [isVisible, setIsVisible] = React.useState(false)
   const [isModalOpen, setIsModalOpen] = React.useState(false)
   const [mounted, setMounted] = React.useState(false)
+  const { state } = useSidebar()
+  const isCollapsed = state === "collapsed"
 
   React.useEffect(() => {
     setMounted(true)
@@ -23,16 +26,14 @@ export function SidebarFeedbackCard() {
   }, [])
 
   const handleDismiss = (e: React.MouseEvent) => {
-    e.stopPropagation() // Prevent opening modal
+    e.stopPropagation()
     setIsVisible(false)
     localStorage.setItem(STORAGE_KEY, "true")
   }
 
-  // Prevent hydration mismatch by not rendering until mounted
   if (!mounted) return null
   
-  // If user closed it previously, we render just the modal logic but no card
-  if (!isVisible) {
+  if (!isVisible || isCollapsed) {
     return <FeedbackModal open={isModalOpen} onOpenChange={setIsModalOpen} />
   }
 
