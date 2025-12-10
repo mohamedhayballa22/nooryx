@@ -43,6 +43,7 @@ export interface TransactionItem {
   action: string;
   quantity: number;
   sku_code: string;
+  unit_cost_major: number | null;
   location: string;
   qty_before: number;
   qty_after: number;
