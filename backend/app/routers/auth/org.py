@@ -59,7 +59,6 @@ async def register_new_org(
     try:
         user = await user_manager.create(user_data, safe=True)
     except Exception as e:
-        await session.rollback()
         raise HTTPException(status_code=400, detail=str(e))
 
     await session.commit()
