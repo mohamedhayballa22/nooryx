@@ -1,293 +1,473 @@
-"use client"
+"use client";
 
-import {
-  Timeline,
-  TimelineContent,
-  TimelineDate,
-  TimelineHeader,
-  TimelineIndicator,
-  TimelineItem,
-  TimelineSeparator,
-  TimelineTitle,
-} from "@/components/ui/timeline"
-import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
-import { Accordion, AccordionContent, AccordionItem, AccordionTrigger } from "@/components/ui/accordion"
-import { useMobile } from "@/hooks/use-mobile"
-import { useFormatting } from "@/hooks/use-formatting"
-
-import { TransactionItem } from "@/lib/api/inventory"
-import { Skeleton } from "@/components/ui/skeleton"
+import React, { useMemo, useState } from "react";
+import Link from "next/link";
 import { 
-  BoxIso, DeliveryTruck, Edit, Upload, 
-  OpenBook, InfoCircle, OpenNewWindow, 
-  ArrowRight, Puzzle } from "iconoir-react"
-import { Lock, Unlock } from "lucide-react"
+  DeliveryTruck, 
+  Edit, 
+  User,
+  Coins ,
+  BoxIso
+} from "iconoir-react";
+import { 
+  Lock,
+  Unlock, 
+  ArrowLeftRight, 
+  Bot,
+  MapPin
+} from "lucide-react";
+import { cn } from "@/lib/utils";
+import { TransactionItem } from "@/lib/api/inventory";
+import { Skeleton } from "@/components/ui/skeleton";
+import { useFormatting } from "@/hooks/use-formatting";
 
-export function AuditTrail({
+interface AuditTrailProps {
+  items: TransactionItem[];
+  isLoading?: boolean;
+  snippet?: boolean;
+}
+
+const ACTION_CONFIG: Record<string, {
+  icon: React.ElementType;
+  label: string;
+}> = {
+  received: { 
+    icon: (props: any) => <BoxIso {...props} strokeWidth={2} />, 
+   label: "Received" 
+  },
+  shipped: { 
+    icon: (props: any) => <DeliveryTruck {...props} strokeWidth={2} />, 
+    label: "Shipped" 
+  },
+  reserved: { icon: Lock, label: "Reserved" },
+  unreserved: { icon: Unlock, label: "Unreserved" },
+  adjusted: { 
+    icon: (props: any) => <Edit {...props} strokeWidth={2} />, 
+    label: "Adjusted" 
+  },
+  "transferred in": { icon: ArrowLeftRight, label: "Transfer In" },
+  "transferred out": { icon: ArrowLeftRight, label: "Transfer Out" },
+};
+
+const QuantityBadge = ({ 
+  before, 
+  after,
+  formatQuantity 
+}: { 
+  before: number; 
+  after: number;
+  formatQuantity: (val: number) => string;
+}) => {
+  const delta = after - before;
+  const isNeutral = delta === 0;
+  const isPositive = delta > 0;
+
+  return (
+    <div className="flex flex-col items-end gap-0.5 min-w-[60px]">
+      <span
+        className={cn(
+          "font-mono text-sm font-semibold tracking-tight tabular-nums",
+          isPositive && "text-emerald-600 dark:text-emerald-500",
+          delta < 0 && "text-red-600 dark:text-red-500",
+          isNeutral && "text-muted-foreground"
+        )}
+      >
+        {isPositive ? "+" : ""}
+        {formatQuantity(delta)}
+      </span>
+      {!isNeutral && (
+        <span className="text-[10px] text-muted-foreground/50 font-mono tabular-nums">
+          {formatQuantity(before)} → {formatQuantity(after)}
+        </span>
+      )}
+    </div>
+  );
+};
+
+const TransactionRow = ({ 
+  item, 
+  isLastGlobal,
+  isLastInGroup,
+  isSingleItemInGroup,
+  formatDate,
+  formatCurrency,
+  formatQuantity,
+  formatTime,
+  snippet = false
+}: { 
+  item: TransactionItem; 
+  isLastGlobal: boolean;
+  isLastInGroup: boolean;
+  isSingleItemInGroup: boolean;
+  formatDate: (date: string | Date | number, options?: Intl.DateTimeFormatOptions) => string;
+  formatCurrency: (val: number) => string;
+  formatQuantity: (val: number) => string;
+  formatTime: (val: string | Date | number) => string;
+  snippet?: boolean;
+}) => {
+  const [isOpen, setIsOpen] = useState(false);
+  const config = ACTION_CONFIG[item.action] || { icon: BoxIso, label: item.action };
+  const Icon = config.icon;
+
+  const metadataEntries = item.metadata 
+    ? Object.entries(item.metadata).filter(([k]) => k !== "transfer_cost_per_unit" && k !== "created_by")
+    : [];
+  
+  const hasMetadata = metadataEntries.length > 0;
+  const delta = item.qty_after - item.qty_before;
+  
+  const shouldShowCost = item.unit_cost_major != null && (
+    item.action === "received" || 
+    (item.action === "adjusted" && delta > 0)
+  );
+
+  const dateObj = new Date(item.date);
+  const now = new Date();
+  const isToday = dateObj.toDateString() === now.toDateString();
+  const isYesterday = new Date(now.setDate(now.getDate() - 1)).toDateString() === dateObj.toDateString();
+  
+  const shortDate = formatDate(dateObj, { month: 'short', day: 'numeric' });
+
+  return (
+    <div className="group flex gap-3 sm:gap-4 relative">
+      <div 
+        className={cn(
+          "shrink-0 flex-col items-end pt-2.5",
+          snippet ? "flex w-14 mr-1" : "hidden w-15 sm:flex"
+        )}
+      >
+        <span className="font-mono text-xs text-muted-foreground/50 whitespace-nowrap leading-none">
+          {formatTime(item.date)}
+        </span>
+        
+        {snippet && !isToday && (
+          <span className="text-[10px] text-muted-foreground/40 font-medium mt-1 leading-tight whitespace-nowrap">
+            {isYesterday ? "Yesterday" : shortDate}
+          </span>
+        )}
+      </div>
+
+      <div className="relative flex flex-col items-center">
+        <div 
+          className={cn(
+            "absolute w-px bg-border/60 top-0",
+            isSingleItemInGroup ? "hidden" 
+            : isLastInGroup ? "h-4" 
+            : "bottom-0",
+            isLastGlobal 
+              ? "sm:block sm:h-4 sm:bottom-auto" 
+              : isLastInGroup 
+                ? "sm:block sm:h-auto sm:-bottom-8" 
+                : "sm:block sm:h-auto sm:bottom-0"
+          )} 
+        />
+        
+        <div className="relative z-10 flex h-8 w-8 shrink-0 items-center justify-center rounded-full border border-border bg-background shadow-sm transition-colors group-hover:border-foreground/30">
+          <Icon 
+            strokeWidth={1.5} 
+            width={14} 
+            height={14} 
+            className={cn(
+              "text-muted-foreground transition-colors group-hover:text-foreground",
+              item.action === "transferred in" && "rotate-180"
+            )} 
+          />
+        </div>
+      </div>
+
+      <div className={cn("flex-1 min-w-0", snippet ? "pb-3" : "pb-4")}>
+        <div 
+          onClick={() => hasMetadata && setIsOpen(!isOpen)}
+          className={cn(
+            "flex flex-col gap-3 rounded-lg border border-transparent p-2 transition-all -ml-2 -mt-2",
+            hasMetadata && "cursor-pointer hover:bg-muted/40 hover:border-border/40",
+            isOpen && "bg-muted/40 border-border/40"
+          )}
+        >
+          <div className="flex items-start justify-between gap-4">
+            <div className="flex flex-col gap-1.5 min-w-0">
+              
+              <div className="flex flex-wrap items-center gap-x-2 gap-y-1">
+                <span className="text-sm font-medium text-foreground">
+                  {config.label}
+                </span>
+                
+                <Link
+                  href={`/core/inventory?sku=${item.sku_code}`}
+                  onClick={(e) => e.stopPropagation()}
+                  className="inline-flex items-center rounded-sm bg-muted/50 px-1.5 py-0.5 font-mono text-xs text-foreground/80 underline sm:no-underline hover:underline hover:text-foreground transition-colors"
+                >
+                  {item.sku_code}
+                </Link>
+
+                <span className="text-[10px] text-muted-foreground/30">•</span>
+                
+                <div className="flex items-center gap-1">
+                  <MapPin className="h-3 w-3 text-muted-foreground/50" />
+                  <span className="text-xs text-muted-foreground truncate max-w-[150px]">
+                    {item.location}
+                  </span>
+                </div>
+
+                {shouldShowCost && (
+                  <>
+                    <span className="text-[10px] text-muted-foreground/30">•</span>
+                    <div className="flex items-center gap-1">
+                      <Coins className="h-3 w-3 text-muted-foreground/50" />
+                      <span className="text-xs text-muted-foreground truncate">
+                        {formatCurrency(item.unit_cost_major || 0)}
+                      </span>
+                    </div>
+                  </>
+                )}
+              </div>
+
+              <div className="flex flex-wrap items-center gap-2 text-xs text-muted-foreground/70">
+                {!snippet && (
+                  <>
+                    <span className="sm:hidden font-mono text-muted-foreground/50">
+                      {formatTime(item.date)}
+                    </span>
+                    <span className="sm:hidden text-muted-foreground/30">•</span>
+                  </>
+                )}
+                
+                <div className="flex items-center gap-1.5">
+                  <div className="flex h-4 w-4 items-center justify-center rounded-full bg-muted text-muted-foreground">
+                    {item.metadata?.created_by ? (
+                      <Bot height={10} width={10} strokeWidth={2} />
+                    ) : (
+                      <User height={10} width={10} strokeWidth={2} />
+                    )}
+                  </div>
+                  <span>{item.actor}</span>
+                </div>
+
+                {!isOpen && hasMetadata && (
+                  <>
+                    <span className="text-muted-foreground/30">•</span>
+                    <span className="text-muted-foreground/40 font-medium transition-colors group-hover:text-muted-foreground/70">
+                      Click for details
+                    </span>
+                  </>
+                )}
+              </div>
+            </div>
+
+            <div className="flex items-start gap-3">
+              <QuantityBadge 
+                before={item.qty_before} 
+                after={item.qty_after} 
+                formatQuantity={formatQuantity}
+              />
+            </div>
+          </div>
+
+          {isOpen && hasMetadata && (
+            <div className="flex flex-col gap-2 border-t border-border/10 pt-3 text-xs">
+              {metadataEntries.map(([k, v]) => {
+                const valStr = String(v);
+                const displayVal = valStr.charAt(0).toUpperCase() + valStr.slice(1);
+
+                return (
+                  <div key={k} className="flex flex-col">
+                    <span className="text-[10px] font-medium text-muted-foreground/50 uppercase tracking-wider">
+                      {k.replace(/_/g, " ")}
+                    </span>
+                    <span className="font-mono text-foreground break-all">
+                      {displayVal}
+                    </span>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+        </div>
+      </div>
+    </div>
+  );
+};
+
+const DayGroup = ({ 
+  date, 
   items,
-  snippet = false,
-}: {
-  items: TransactionItem[]
-  snippet?: boolean
-}) {
-  const isMobile = useMobile()
-  const { formatDate, formatCurrency, formatQuantity } = useFormatting()
+  totalItemsCount,
+  currentIndexBase,
+  formatDate,
+  formatCurrency,
+  formatQuantity,
+  formatTime
+}: { 
+  date: string; 
+  items: TransactionItem[];
+  totalItemsCount: number;
+  currentIndexBase: number;
+  formatDate: (date: string | Date | number, options?: Intl.DateTimeFormatOptions) => string;
+  formatCurrency: (val: number) => string;
+  formatQuantity: (val: number) => string;
+  formatTime: (val: string | Date | number) => string;
+}) => {
+  const isSingleItemInGroup = items.length === 1;
 
-  const actionIcons: Record<string, any> = {
-    added: BoxIso,
-    shipped: DeliveryTruck,
-    reserved: (props: any) => <Lock {...props} strokeWidth={1.5} />,
-    adjusted: Edit,
-    unreserved: (props: any) => <Unlock {...props} strokeWidth={1.5} />,
-    "transferred in": Upload,
-    "transferred out": Upload,
-  }
+  return (
+    <div className="grid grid-cols-1 gap-2 md:grid-cols-[120px_1fr] md:gap-6">
+      <div className="md:relative">
+        <div className="sticky top-20 z-10 flex items-center gap-2 bg-background/95 py-2 backdrop-blur md:top-4 md:bg-transparent md:backdrop-blur-none">
+          <h3 className="font-mono text-xs font-medium uppercase tracking-wider text-muted-foreground md:w-full md:text-right">
+            {date}
+          </h3>
+          <div className="h-px flex-1 bg-border/40 md:hidden" />
+        </div>
+      </div>
 
-  const formatMetadataValue = (key: string, value: any): string => {
-    if (key === "transfer_cost_per_unit" && typeof value === "number") {
-      return formatCurrency(value)
-    }
-    return String(value)
-  }
+      <div className="min-w-0 pb-8 last:pb-0">
+        {items.map((item, index) => {
+          const globalIndex = currentIndexBase + index;
+          const isLastGlobal = globalIndex === totalItemsCount - 1;
+          const isLastInGroup = index === items.length - 1;
+
+          return (
+            <TransactionRow 
+              key={item.id} 
+              item={item} 
+              isLastGlobal={isLastGlobal}
+              isLastInGroup={isLastInGroup}
+              isSingleItemInGroup={isSingleItemInGroup}
+              formatDate={formatDate}
+              formatCurrency={formatCurrency}
+              formatQuantity={formatQuantity}
+              formatTime={formatTime}
+            />
+          );
+        })}
+      </div>
+    </div>
+  );
+};
+
+export function AuditTrail({ items, isLoading, snippet = false }: AuditTrailProps) {
+  const { formatDate, formatCurrency, formatQuantity, formatTime } = useFormatting();
+
+  const groupedItems = useMemo(() => {
+    if (snippet) return {};
+
+    const groups: Record<string, TransactionItem[]> = {};
+    const getMidnightDate = (d: Date | string) => {
+      const date = new Date(d);
+      date.setHours(0, 0, 0, 0);
+      return date;
+    };
+
+    const todayMidnight = getMidnightDate(new Date()).getTime();
+    const yesterdayMidnight = getMidnightDate(new Date(Date.now() - 86400000)).getTime();
+
+    items.forEach((item) => {
+      const itemMidnightDate = getMidnightDate(item.date);
+      const itemMidnightTime = itemMidnightDate.getTime();
+      
+      let dateKey: string;
+
+      if (itemMidnightTime === todayMidnight) {
+        dateKey = "Today";
+      } else if (itemMidnightTime === yesterdayMidnight) {
+        dateKey = "Yesterday";
+      } else {
+        dateKey = formatDate(itemMidnightDate);
+      }
+
+      if (!groups[dateKey]) groups[dateKey] = [];
+      groups[dateKey].push(item);
+    });
+    return groups;
+  }, [items, formatDate, snippet]);
+
+  if (isLoading) return <AuditTrail.Skeleton />;
 
   if (items.length === 0) {
     return (
-      <div className="py-5 text-center">
-        No results found.
+      <div className={cn(
+        "flex flex-col items-center justify-center gap-3 rounded-lg border text-center text-muted-foreground",
+        snippet ? "h-24 border-dashed" : "h-40"
+      )}>
+        <p className="text-sm">No activity records found.</p>
       </div>
-    )
+    );
   }
 
-  return (
-    <Timeline defaultValue={0}>
-      {items.map((item) => {
-        const plural = item.quantity > 1
-        const itemWord = plural ? "items" : "item"
-        const verb = plural ? "were" : "was"
-
-        const headerText = (
-          <>
-            <span className="font-bold">{item.actor}</span> {item.action} {plural ? "items" : "an item"}
-          </>
-        )
-
-        // Overview text base
-        let overviewText = ""
-        if (item.action === "transferred in") {
-          overviewText = `${formatQuantity(item.quantity)} ${itemWord} ${verb} transferred into ${item.location}`
-        } else if (item.action === "transferred out") {
-          overviewText = `${formatQuantity(item.quantity)} ${itemWord} ${verb} transferred out of ${item.location}`
-        } else if (item.action === "adjusted") {
-          const sign = item.qty_after > item.qty_before ? "+" : "-"
-          overviewText = `${sign}${formatQuantity(item.quantity)} ${itemWord} at ${item.location}`
-        } else {
-          overviewText = `${formatQuantity(item.quantity)} ${itemWord} ${verb} ${item.action} at ${item.location}`
-        }
-
-        const Icon = actionIcons[item.action] || OpenBook
-
-        const quantityLine = (
-          <div className="flex items-center gap-1 text-sm mt-1">
-            <span>
-              Quantity at {item.location}: {formatQuantity(item.qty_before)}
-            </span>
-            <ArrowRight width={14} height={14} className="text-muted-foreground" />
-            <span>{formatQuantity(item.qty_after)}</span>
-          </div>
-        )
-
-        const mobileContent = (
-          <div className="space-y-3 text-sm text-muted-foreground">
-            {/* Overview content */}
-            <div className="whitespace-pre-line">
-              {overviewText}
-              {snippet && quantityLine}
-            </div>
-
-            {/* Metadata content */}
-            {item.metadata && (
-              <div>
-                <ul className="space-y-1">
-                  {Object.entries(item.metadata).map(([key, value]) => (
-                    <li key={key}>
-                      <span className="font-semibold capitalize">{key.replace(/_/g, " ")}:</span>{" "}
-                      {formatMetadataValue(key, value)}
-                    </li>
-                  ))}
-                </ul>
-              </div>
-            )}
-
-            {/* Context content (only if not snippet) */}
-            {!snippet && (
-              <div className="flex flex-col gap-2">
-                <a
-                  href={`/core/inventory?sku=${encodeURIComponent(item.sku_code)}`}
-                  target="_blank"
-                  rel="noopener noreferrer"
-                  className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"
-                >
-                  {item.sku_code}
-                  <OpenNewWindow width={14} height={14} className="opacity-70" />
-                </a>
-
-                {quantityLine}
-              </div>
-            )}
-          </div>
-        )
-
-        // Mobile version
-        if (isMobile) {
+  if (snippet) {
+    return (
+      <div className="flex flex-col">
+        {items.map((item, index) => {
+          const isLast = index === items.length - 1;
+          
           return (
-            <TimelineItem
+            <TransactionRow 
               key={item.id}
-              step={item.id}
-              className="group relative group-data-[orientation=vertical]/timeline:ms-10"
-            >
-              <Accordion type="single" collapsible className="w-[300px]">
-                <AccordionItem value={`item-${item.id}`} className="border-none">
-                  <AccordionTrigger className="hover:no-underline p-0">
-                    <TimelineHeader className="w-full pb-1">
-                      <TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-7" />
-                      <div className="flex flex-col">
-                        <TimelineTitle className="mt-0.5">{headerText}</TimelineTitle>
-                        <TimelineDate className="text-xs text-muted-foreground pt-1">
-                          {formatDate(item.date)}
-                        </TimelineDate>
-                      </div>
-                      <TimelineIndicator className="border border-primary/10 group-data-completed/timeline-item:border-primary group-data-completed/timeline-item:text-primary-foreground flex size-7 items-center justify-center group-data-[orientation=vertical]/timeline:-left-7">
-                        <Icon
-                          width={18}
-                          height={18}
-                          className={item.action === "transferred in" ? "rotate-180" : ""}
-                        />
-                      </TimelineIndicator>
-                    </TimelineHeader>
-                  </AccordionTrigger>
-                  <AccordionContent>
-                    <TimelineContent>{mobileContent}</TimelineContent>
-                  </AccordionContent>
-                </AccordionItem>
-              </Accordion>
-            </TimelineItem>
-          )
-        }
+              item={item}
+              isLastGlobal={isLast}
+              isLastInGroup={isLast} 
+              isSingleItemInGroup={items.length === 1}
+              formatDate={formatDate}
+              formatCurrency={formatCurrency}
+              formatQuantity={formatQuantity}
+              formatTime={formatTime}
+              snippet={true}
+            />
+          );
+        })}
+      </div>
+    );
+  }
 
-        // Desktop version
-        return (
-          <TimelineItem
-            key={item.id}
-            step={item.id}
-            className="group relative group-data-[orientation=vertical]/timeline:ms-10 w-fit"
-          >
-            <TimelineHeader>
-              <TimelineSeparator className="group-data-[orientation=vertical]/timeline:-left-7 group-data-[orientation=vertical]/timeline:h-[calc(100%-1.5rem-0.25rem)] group-data-[orientation=vertical]/timeline:translate-y-7" />
-              <TimelineTitle className="mt-0.5">{headerText}</TimelineTitle>
-              <TimelineIndicator className="border border-primary/10 group-data-completed/timeline-item:border-primary group-data-completed/timeline-item:text-primary-foreground flex size-7 items-center justify-center group-data-[orientation=vertical]/timeline:-left-7">
-                <Icon
-                  width={18}
-                  height={18}
-                  className={item.action === "transferred in" ? "rotate-180" : ""}
-                />
-              </TimelineIndicator>
-            </TimelineHeader>
-
-            <TimelineContent>
-              <Tabs defaultValue="overview" className="w-[290px] text-sm text-muted-foreground">
-                <div
-                  className="
-                    max-h-0 overflow-hidden opacity-0
-                    group-hover:max-h-40 group-hover:opacity-100
-                    transition-all duration-300 ease-in-out
-                    group-hover:pt-2
-                  "
-                >
-                  <TabsList
-                    className={`grid w-full ${snippet ? "grid-cols-2" : "grid-cols-3"}`}
-                  >
-                    <TabsTrigger value="overview" className="text-xs">
-                      <OpenBook /> Overview
-                    </TabsTrigger>
-                    <TabsTrigger value="metadata" className="text-xs" disabled={!item.metadata}>
-                      <InfoCircle /> Metadata
-                    </TabsTrigger>
-                    {!snippet && (
-                      <TabsTrigger value="context" className="text-xs">
-                        <Puzzle /> Context
-                      </TabsTrigger>
-                    )}
-                  </TabsList>
-                </div>
-
-                <TabsContent value="overview" className="text-sm whitespace-pre-line">
-                  <div>
-                    {overviewText}
-                    {snippet && quantityLine}
-                  </div>
-                </TabsContent>
-
-                <TabsContent value="metadata" className="text-sm">
-                  {item.metadata ? (
-                    <ul className="space-y-1">
-                      {Object.entries(item.metadata).map(([key, value]) => (
-                        <li key={key}>
-                          <span className="font-semibold capitalize">{key.replace(/_/g, " ")}:</span>{" "}
-                          {formatMetadataValue(key, value)}
-                        </li>
-                      ))}
-                    </ul>
-                  ) : (
-                    <span className="text-muted-foreground">No metadata available</span>
-                  )}
-                </TabsContent>
-
-                {!snippet && (
-                  <TabsContent value="context" className="text-sm">
-                    <div className="flex flex-col gap-2">
-                      <a
-                        href={`/core/inventory?sku=${encodeURIComponent(item.sku_code)}`}
-                        target="_blank"
-                        rel="noopener noreferrer"
-                        className="inline-flex items-center gap-1 text-sm px-2 py-1 rounded-md bg-muted hover:bg-muted/70 transition-colors w-fit"
-                      >
-                        {item.sku_code}
-                        <OpenNewWindow width={14} height={14} className="opacity-70" />
-                      </a>
-
-                      {quantityLine}
-                    </div>
-                  </TabsContent>
-                )}
-              </Tabs>
-
-              <TimelineDate className="mt-2 mb-0">{formatDate(item.date)}</TimelineDate>
-            </TimelineContent>
-          </TimelineItem>
-        )
+  let runningIndex = 0;
+  return (
+    <div className="flex flex-col">
+      {Object.entries(groupedItems).map(([date, groupItems]) => {
+        const component = (
+          <DayGroup 
+            key={date} 
+            date={date} 
+            items={groupItems} 
+            totalItemsCount={items.length}
+            currentIndexBase={runningIndex}
+            formatDate={formatDate}
+            formatCurrency={formatCurrency}
+            formatQuantity={formatQuantity}
+            formatTime={formatTime}
+          />
+        );
+        runningIndex += groupItems.length;
+        return component;
       })}
-    </Timeline>
-  )
+    </div>
+  );
 }
 
-export function AuditTrailSkeleton() {
+AuditTrail.Skeleton = function AuditTrailSkeleton() {
   return (
-    <div className="space-y-6">
-      {Array.from({ length: 10 }).map((_, i) => (
-        <div key={`sk-${i}`} className="flex items-start gap-4">
-          <div className="flex flex-col items-center">
-            <div className="h-7 w-7 rounded-full bg-muted/60 animate-pulse" />
-            {i < 9 && <div className="h-16 w-[1px] bg-muted/30 mt-2" />}
+    <div className="space-y-12">
+      {[1, 2, 3, 4].map((group) => (
+        <div key={group} className="grid grid-cols-1 gap-4 md:grid-cols-[120px_1fr] md:gap-6">
+          <div className="flex md:justify-end">
+            <Skeleton className="h-4 w-24" />
           </div>
-          <div className="flex-1 space-y-2 pt-1">
-            <Skeleton className="h-4 w-64 rounded" />
-            <Skeleton className="h-3 w-48 rounded" />
-            <Skeleton className="h-3 w-32 rounded" />
+          <div className="space-y-8">
+            {[1, 2, 3].map((row) => (
+              <div key={row} className="flex gap-4">
+                <Skeleton className="hidden h-3 w-12 sm:block" />
+                <div className="relative">
+                  <div className="h-8 w-8 rounded-full bg-muted" />
+                  <div className="absolute left-1/2 top-8 w-px -translate-x-1/2 bg-muted h-12" />
+                </div>
+                <div className="flex-1 space-y-2">
+                  <Skeleton className="h-4 w-48" />
+                  <Skeleton className="h-3 w-32" />
+                </div>
+              </div>
+            ))}
           </div>
         </div>
       ))}
     </div>
   );
-}
-
-AuditTrail.Skeleton = AuditTrailSkeleton;
+};
