@@ -15,7 +15,7 @@ export function EmptyValuationTable() {
   const [isReceiveFormOpen, setIsReceiveFormOpen] = useState(false);
   
   return (
-    <div className="relative overflow-hidden rounded-xl border bg-card">
+    <div className="relative overflow-hidden rounded-xl border">
       <div className="absolute inset-0 bg-gradient-to-br from-muted/20 via-transparent to-transparent pointer-events-none" />
       <div className="relative">
         <Empty className="py-16 px-6">
