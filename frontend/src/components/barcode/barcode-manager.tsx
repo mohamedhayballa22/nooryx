@@ -17,9 +17,14 @@ import { useSkuSearch } from "../forms/hooks/use-sku-search"
 interface BarcodeManagerProps {
   open: boolean
   onOpenChange: (open: boolean) => void
+  emptyInventory?: boolean
 }
 
-export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
+export function BarcodeManager({ 
+  open, 
+  onOpenChange,
+  emptyInventory = false
+}: BarcodeManagerProps) {
   const [scannedBarcode, setScannedBarcode] = useState<string>("")
   const [barcodeFormat, setBarcodeFormat] = useState<string | undefined>(undefined)
   const [showOperationSelect, setShowOperationSelect] = useState(false)
@@ -35,7 +40,13 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
   const handleScanSuccess = (barcode: string, format?: string) => {
     setScannedBarcode(barcode)
     setBarcodeFormat(format)
-    setShowOperationSelect(true)
+    
+    // If emptyInventory mode, go straight to receive form
+    if (emptyInventory) {
+      setActiveOperation("receive")
+    } else {
+      setShowOperationSelect(true)
+    }
   }
 
   const handleSelectOperation = (operation: string) => {
@@ -88,16 +99,18 @@ export function BarcodeManager({ open, onOpenChange }: BarcodeManagerProps) {
         onScanSuccess={handleScanSuccess}
       />
 
-      {/* Operation Selection Modal */}
-      <OperationSelectModal
-        open={showOperationSelect}
-        onOpenChange={setShowOperationSelect}
-        onSelectOperation={handleSelectOperation}
-        onMapBarcode={!sku ? handleMapBarcode : undefined}
-        skuInfo={sku ? { code: sku.code, name: sku.name } : null}
-        barcode={scannedBarcode}
-        isLoading={isLoading}
-      />
+      {/* Operation Selection Modal - Not shown in emptyInventory mode */}
+      {!emptyInventory && (
+        <OperationSelectModal
+          open={showOperationSelect}
+          onOpenChange={setShowOperationSelect}
+          onSelectOperation={handleSelectOperation}
+          onMapBarcode={!sku ? handleMapBarcode : undefined}
+          skuInfo={sku ? { code: sku.code, name: sku.name } : null}
+          barcode={scannedBarcode}
+          isLoading={isLoading}
+        />
+      )}
 
       {/* Map Barcode Modal */}
       <MapBarcodeModal
