@@ -84,6 +84,8 @@ export function COGSHeader({
   
   const [lastRefreshTime, setLastRefreshTime] = useState<number>(0)
   const [isInCooldown, setIsInCooldown] = useState(false)
+
+  const isPeriodSelectorDisabled = total_cogs === 0
   
   const handleRefreshClick = async () => {
     const now = Date.now()
@@ -162,8 +164,12 @@ export function COGSHeader({
         <div className="absolute right-4 top-4 z-10 flex items-center gap-2 mt-1">
           {/* Mobile: Calendar icon only */}
           <div className="block md:hidden">
-            <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
-              <SelectTrigger className="h-7 w-7 border-0 bg-transparent p-0 -mr-2 hover:bg-accent hover:text-accent-foreground [&>svg]:hidden">
+            <Select 
+              value={selectedPeriod} 
+              onValueChange={handlePeriodChange}
+              disabled={isPeriodSelectorDisabled}
+            >
+              <SelectTrigger className="h-7 w-7 border-0 bg-transparent p-0 -mr-2 hover:bg-accent hover:text-accent-foreground [&>svg]:hidden disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent">
                 <span className="flex items-center justify-center">
                   <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
                 </span>
@@ -180,8 +186,12 @@ export function COGSHeader({
           
           {/* Desktop: Normal dropdown */}
           <div className="hidden md:block">
-            <Select value={selectedPeriod} onValueChange={handlePeriodChange}>
-              <SelectTrigger className="h-7 w-[140px] rounded-md text-xs cursor-pointer">
+            <Select 
+              value={selectedPeriod} 
+              onValueChange={handlePeriodChange}
+              disabled={isPeriodSelectorDisabled}
+            >
+              <SelectTrigger className="h-7 w-[140px] rounded-md text-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
                 <SelectValue />
               </SelectTrigger>
               <SelectContent align="end">
