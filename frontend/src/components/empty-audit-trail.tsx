@@ -32,7 +32,11 @@ export function EmptyAuditTrail() {
       </EmptyHeader>
 
       <EmptyContent>
-        <Button variant="outline" className="cursor-pointer rounded-sm">
+        <Button 
+          variant="outline"
+          className="cursor-pointer rounded-sm"
+          onClick={() => setIsReceiveFormOpen(true)}
+        >
           Receive Stock
         </Button>
       </EmptyContent>
