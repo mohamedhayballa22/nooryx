@@ -10,9 +10,7 @@ export default function BillingSettings() {
   const { data, error, isLoading } = useUserAccount()
 
   if (isLoading || !data) {
-    return (
-      <SettingsSkeleton />
-    )
+    return <SettingsSkeleton />
   }
 
   if (error) {
@@ -29,29 +27,74 @@ export default function BillingSettings() {
     )
   }
 
+  // Defensive: ensure subscription exists with safe defaults
+  const subscription = data.subscription ?? {
+    plan_name: "free",
+    status: "active",
+    current_period_end: ""
+  }
+
+  const planName = subscription.plan_name || "free"
+  const status = subscription.status || "active"
+  const isFree = planName.toLowerCase() === "free"
+  const isActive = status === "active"
+  const isPaidPlan = !isFree && isActive
+
+  // Format plan name for display
+  const displayPlanName = planName
+    .split('_')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+
+  // Determine badge styling
+  const getBadgeStyle = () => {
+    if (status === "active") {
+      return "border-transparent bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300"
+    }
+    if (status === "payment_failed") {
+      return "border-transparent bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300"
+    }
+    return "border-transparent bg-gray-200 text-gray-800 dark:bg-gray-600/50 dark:text-gray-300"
+  }
+
+  // Format status for display
+  const displayStatus = status
+    .replace(/_/g, ' ')
+    .split(' ')
+    .map(word => word.charAt(0).toUpperCase() + word.slice(1))
+    .join(' ')
+
+  // Determine action button
+  const getActionButton = () => {
+    if (isFree) {
+      return <Button size="sm">Upgrade Plan</Button>
+    }
+    
+    if (status === "active") {
+      return <Button variant="destructive" size="sm">Cancel Subscription</Button>
+    }
+    
+    if (status === "payment_failed") {
+      return <Button variant="outline" size="sm">Update Payment Method</Button>
+    }
+    
+    return <Button size="sm">Renew Subscription</Button>
+  }
+
   return (
     <Settings>
       <SettingsSection>
-        {/* Overview */}
         <SettingsSubSection
           title="Subscription Overview"
-          action={data.subscription.status === "active" ? (
-            <Button variant="destructive" size="sm">Cancel Subscription</Button>
-          ) : data.subscription.status === "payment_failed" ? (
-            <Button variant="outline" size="sm">Update Payment Method</Button>
-          ) : (
-            <Button>Renew Subscription</Button>
-          )}
+          action={getActionButton()}
         >
           <SettingRow
             label="Plan"
             description="Your current subscription plan"
             control={
-            <span className="text-sm">
-              {data.subscription.plan_name.split('_').map(word => 
-                word.charAt(0).toUpperCase() + word.slice(1)
-              ).join(' ')}
-            </span>
+              <span className="text-sm font-medium">
+                {displayPlanName}
+              </span>
             }
             isFirst
           />
@@ -59,25 +102,23 @@ export default function BillingSettings() {
             label="Status"
             description="Indicates whether your subscription is active"
             control={
-              <Badge className={
-                data.subscription.status === "active" ?
-                  "border-transparent bg-green-100 text-green-800 dark:bg-green-900/50 dark:text-green-300" :
-                data.subscription.status === "payment_failed" ?
-                  "border-transparent bg-red-100 text-red-800 dark:bg-red-900/50 dark:text-red-300" :
-                  "border-transparent bg-gray-200 text-gray-800 dark:bg-gray-600/50 dark:text-gray-300"
-              }>
-                {data.subscription.status.replace(/_/g, ' ').charAt(0).toUpperCase() + data.subscription.status.replace(/_/g, ' ').slice(1)}
+              <Badge className={getBadgeStyle()}>
+                {displayStatus}
               </Badge>
             }
           />
           <SettingRow
             label="Next Renewal"
-            description="Your next billing date"
+            description={isFree ? "Free plans don't expire" : "Your next billing date"}
             control={
-              data.subscription.current_period_end ? (
-                <span className="text-sm">{format(new Date(data.subscription.current_period_end), "PPP")}</span>
+              isPaidPlan && subscription.current_period_end ? (
+                <span className="text-sm">
+                  {format(new Date(subscription.current_period_end), "PPP")}
+                </span>
               ) : (
-                <span className="text-muted-foreground text-sm">—</span>
+                <span className="text-muted-foreground text-sm">
+                  {isFree ? "Never" : "—"}
+                </span>
               )
             }
             isLast
