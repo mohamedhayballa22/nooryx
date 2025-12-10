@@ -4,6 +4,12 @@ import { ThemeProvider } from "next-themes";
 import { Providers } from "./providers";
 import TopLoadingBar from "./top-loading-bar";
 import { RootProvider } from "fumadocs-ui/provider/next";
+import { Inter } from "next/font/google";
+
+const inter = Inter({ 
+  subsets: ["latin"],
+  variable: "--font-inter",
+});
 
 export const metadata: Metadata = {
   title: "Nooryx",
@@ -17,7 +23,7 @@ export default function RootLayout({
 }) {
   return (
     <html lang="en" suppressHydrationWarning>
-      <body>
+      <body className={`${inter.variable} font-sans antialiased`}>
         <ThemeProvider
           attribute="class"
           defaultTheme="system"
