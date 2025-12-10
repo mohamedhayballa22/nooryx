@@ -13,6 +13,7 @@ export function LatestAuditTrail({ sku_code, location, transactions }: LatestAud
     ? `/core/audit-trail?search=${encodeURIComponent(sku_code)}`
     : '/core/audit-trail';
 
+  const hasTransactions = transactions.length > 0;
 
   return (
     <Card className="h-full flex flex-col">
@@ -25,12 +26,14 @@ export function LatestAuditTrail({ sku_code, location, transactions }: LatestAud
             </CardDescription>
           </div>
           
-          {/* Button shown on larger screens */}
-          <Link href={historyUrl} className="hidden sm:block">
-            <Button variant="outline" size="sm" className="cursor-pointer whitespace-nowrap">
-              View Full History
-            </Button>
-          </Link>
+          {/* Button shown on larger screens - only when there are transactions */}
+          {hasTransactions && (
+            <Link href={historyUrl} className="hidden sm:block">
+              <Button variant="outline" size="sm" className="cursor-pointer whitespace-nowrap">
+                View Full History
+              </Button>
+            </Link>
+          )}
         </div>
       </CardHeader>
 
@@ -44,9 +47,7 @@ export function LatestAuditTrail({ sku_code, location, transactions }: LatestAud
           e.currentTarget.style.scrollbarColor = "transparent transparent"
         }}
       >
-        {transactions.length === 0 ? (
-          <EmptyLatestAuditTrail />
-        ) : (
+        {hasTransactions ? (
           <>
             <AuditTrail items={transactions} snippet={true} />
 
@@ -59,6 +60,8 @@ export function LatestAuditTrail({ sku_code, location, transactions }: LatestAud
               </Link>
             </div>
           </>
+        ) : (
+          <EmptyLatestAuditTrail />
         )}
       </CardContent>
     </Card>
