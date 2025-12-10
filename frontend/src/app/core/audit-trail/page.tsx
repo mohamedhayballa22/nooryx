@@ -19,12 +19,18 @@ const INITIAL_ACTION_FILTERS = [
   "unreserved",
 ];
 
+const DEFAULT_SORT_BY = "created_at";
+const DEFAULT_SORT_ORDER = "desc";
+
 function parseUrlParams(searchParams: URLSearchParams, defaultPageSize: number) {
   const page = parseInt(searchParams.get("page") || "1", 10) - 1;
   const size = parseInt(searchParams.get("size") || String(defaultPageSize), 10);
   const search = searchParams.get("search") || "";
-  const sortBy = searchParams.get("sort_by") || null;
-  const sortOrder = (searchParams.get("order") || "asc") as "asc" | "desc";
+  
+  // Set sort default to Date and Descending
+  const sortBy = searchParams.get("sort_by") || DEFAULT_SORT_BY;
+  const sortOrder = (searchParams.get("order") || DEFAULT_SORT_ORDER) as "asc" | "desc";
+  
   const actions = searchParams.getAll("action");
   
   return {
@@ -42,10 +48,8 @@ export default function AuditTrailPage() {
   const searchParams = useSearchParams();
   const { settings } = useUserSettings();
   
-  // Get default page size from settings, fallback to 10
   const defaultPageSize = settings?.pagination || 10;
   
-  // Initialize state from URL (URL takes precedence over settings)
   const urlParams = parseUrlParams(searchParams, defaultPageSize);
   
   const [pageIndex, setPageIndex] = React.useState(urlParams.page);
@@ -73,7 +77,8 @@ export default function AuditTrailPage() {
       params.set("search", debouncedSearch);
     }
     
-    if (sortBy) {
+    // Only add sort params to URL if they differ from the default
+    if (sortBy && (sortBy !== DEFAULT_SORT_BY || sortOrder !== DEFAULT_SORT_ORDER)) {
       params.set("sort_by", sortBy);
       params.set("order", sortOrder);
     }
@@ -88,7 +93,6 @@ export default function AuditTrailPage() {
       });
     }
     
-    // Update URL - if no params, just use the base path
     const queryString = params.toString();
     router.replace(queryString ? `?${queryString}` : window.location.pathname, { scroll: false });
   }, [pageIndex, pageSize, debouncedSearch, sortBy, sortOrder, actionFilters, router]);
@@ -117,7 +121,7 @@ export default function AuditTrailPage() {
   }, [debouncedSearch, actionFilters, sortBy, sortOrder]);
 
   const handleSortChange = (newSortBy: string | null, newSortOrder: "asc" | "desc") => {
-    setSortBy(newSortBy);
+    setSortBy(newSortBy || DEFAULT_SORT_BY); 
     setSortOrder(newSortOrder);
   };
 
@@ -162,10 +166,8 @@ export default function AuditTrailPage() {
           <strong>Error:</strong> {error instanceof Error ? error.message : "An unknown error occurred"}
           {errorStatus && <span className="ml-2">(Status: {errorStatus})</span>}
         </div>
-      ) : isLoading ? (
-        <AuditTrail.Skeleton />
       ) : (
-        <AuditTrail items={items} />
+        <AuditTrail items={items} isLoading={isLoading} />
       )}
 
       <div className="px-6">
