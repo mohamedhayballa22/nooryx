@@ -322,14 +322,21 @@ function buildMessage(data: DashboardSummary, onOpenReceiveForm: () => void): {
     const primary = "Your inventory is currently empty."
     const full = (
       <>
-        Your inventory is currently empty. Start by{" "}
+        Your inventory is empty. Start by{" "}
         <button
           onClick={onOpenReceiveForm}
           className="text-primary font-medium underline underline-offset-4 transition-colors cursor-pointer"
         >
-          receiving new stock
-        </button>{" "}
-        to get things moving.
+          receiving your first stock
+        </button>
+        , or read the{" "}
+        <Link
+          href="/docs/getting-started"
+          className="text-primary font-medium underline underline-offset-4 transition-colors"
+        >
+          Getting Started Guide
+        </Link>{" "}
+        to learn more.
       </>
     )
     const canExpand = false
