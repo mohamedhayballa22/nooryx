@@ -96,93 +96,155 @@ def _is_table_entity(entity) -> bool:
 
 
 @event.listens_for(Session, "do_orm_execute")
-def _apply_tenant_filter(orm_execute_state: ORMExecuteState): # noqa: F811
+def _apply_tenant_filter(orm_execute_state: ORMExecuteState):  # noqa: F811
     """
     Automatically inject tenant filter on all ORM queries.
-    
+
     This event listener intercepts all SELECT queries and adds
     org_id filtering when a tenant context is active.
-    
+
     SECURITY CRITICAL: This function enforces tenant isolation.
     Any filtering failures on table entities are logged and will
     cause the query to fail rather than risk data leakage.
-    
-    Registered automatically at module import time.
+
+    Behavior / protections included:
+    * Only applies to ORM SELECT statements (is_orm_statement)
+    * Honors execution option 'skip_tenant_filter' to bypass
+    * Attempts to identify the primary/root mapper(s) for the statement
+      and only applies tenant filters to those root mappers. This prevents
+      filtering on optional/joined tables (e.g. User in a LEFT JOIN).
+    * If a candidate model lacks 'org_id' we skip it (no AttributeError).
+    * Extensive logging; fails fast on unknown/critical errors to avoid leakage.
     """
     # Only apply to SELECT statements
     if not orm_execute_state.is_select:
         return
-    
+
     # Allow explicit bypass via execution option
-    if orm_execute_state.execution_options.get('skip_tenant_filter', False):
+    if orm_execute_state.execution_options.get("skip_tenant_filter", False):
         return
-    
+
     # Get current tenant from context
     tenant_id = get_current_tenant_id()
     if tenant_id is None:
         return
-    
-    # Apply filter to all entities that have org_id
+
+    # Only apply to ORM statements
     if not orm_execute_state.is_orm_statement:
         return
-        
-    for entity in orm_execute_state.all_mappers:
-        # Skip non-table entities (subqueries, aliases, etc.)
-        if not _is_table_entity(entity):
-            continue
-            
-        # Check if entity has org_id column
-        if not hasattr(entity.class_, 'org_id'):
-            continue
-        
+
+    try:
+        stmt = orm_execute_state.statement
+
+        # Primary mapper(s) detection:
+        # Prefer the ORM-internal propagated "plugin_subject" which, for ORM
+        # selects, represents the mapped entity(ies) which are the primary target.
+        primary_mappers = None
         try:
-            # Apply tenant filter using explicit column reference
-            orm_execute_state.statement = orm_execute_state.statement.filter(
-                entity.class_.org_id == tenant_id
-            )
-            
-        except InvalidRequestError as e:
-            # Cannot apply filter - fail safely to prevent data leakage
-            logger.error(
-                f"Could not apply tenant filter to {entity.class_.__name__}: {e}",
-                extra={
-                    'tenant_id': str(tenant_id),
-                    'entity': entity.class_.__name__,
-                    'error': str(e),
-                },
-                exc_info=True
-            )
-            raise
-        except AttributeError as e:
-            # This should not occur if _is_table_entity works correctly,
-            # but we catch it explicitly for security
-            logger.error(
-                f"Unexpected AttributeError applying tenant filter to {entity.class_.__name__}: {e}",
-                extra={
-                    'tenant_id': str(tenant_id),
-                    'entity': entity.class_.__name__,
-                    'error': str(e)
-                },
-                exc_info=True
-            )
-            # Re-raise to fail safely
-            raise
-            
+            propagated = getattr(stmt, "_propagated_attrs", None)
+            if propagated:
+                plugin_subject = propagated.get("plugin_subject", None)
+                if plugin_subject:
+                    # plugin_subject may be a single mapper or a collection
+                    if isinstance(plugin_subject, (list, tuple, set)):
+                        primary_mappers = list(plugin_subject)
+                    else:
+                        primary_mappers = [plugin_subject]
         except Exception as e:
-            # Unknown exception during tenant filtering
-            # This should never happen. Log extensively and fail hard.
-            logger.critical(
-                f"CRITICAL: Unknown exception in tenant filter for {entity.class_.__name__}: {e}",
-                extra={
-                    'tenant_id': str(tenant_id),
-                    'entity': entity.class_.__name__,
-                    'error': str(e),
-                    'error_type': type(e).__name__
-                },
-                exc_info=True
-            )
-            # Re-raise to prevent potential data leakage
-            raise
+            # Defensive: do not trust private internals — fall back later.
+            logger.debug("Could not read stmt._propagated_attrs.plugin_subject", extra={"error": str(e)})
+
+        # Fallback: attempt to infer root classes from column_descriptions (if available)
+        if not primary_mappers:
+            try:
+                col_desc = getattr(stmt, "column_descriptions", None)
+                if col_desc:
+                    types = {d.get("type") for d in col_desc if isinstance(d.get("type"), type)}
+                    inferred = []
+                    for mapper in orm_execute_state.all_mappers:
+                        if mapper.class_ in types:
+                            inferred.append(mapper)
+                    if inferred:
+                        primary_mappers = inferred
+            except Exception as e:
+                logger.debug("Fallback inference from column_descriptions failed", extra={"error": str(e)})
+
+        # Final conservative fallback: treat the first mapper as primary (if nothing else)
+        if not primary_mappers:
+            try:
+                primary_mappers = [next(iter(orm_execute_state.all_mappers))]
+            except StopIteration:
+                # No mappers — nothing to do
+                return
+
+        # Apply filter only to primary mappers that explicitly define org_id.
+        # Also support an optional per-model opt-in flag '__tenant_scoped__' that allows
+        # you to explicitly mark tenant-owned models (recommended for long-term clarity).
+        models_filtered = []
+        for primary in primary_mappers:
+            model = getattr(primary, "class_", None)
+            if model is None:
+                continue
+
+            # Optional explicit opt-in: if model defines __tenant_scoped__ = False, skip it.
+            if getattr(model, "__tenant_scoped__", None) is False:
+                logger.debug("Skipping tenant filter for model marked __tenant_scoped__ = False", extra={"model": model.__name__})
+                continue
+
+            # Only apply tenant filter if model has org_id attribute
+            if not hasattr(model, "org_id"):
+                logger.debug("Primary model has no org_id, skipping tenant filter", extra={"model": model.__name__})
+                continue
+
+            # Safe: attach the filter to the statement. Keep track for logging
+            try:
+                stmt = stmt.filter(getattr(model, "org_id") == tenant_id)
+                models_filtered.append(model.__name__)
+            except InvalidRequestError as e:
+                logger.error(
+                    f"Could not apply tenant filter to {model.__name__}: {e}",
+                    extra={
+                        "tenant_id": str(tenant_id),
+                        "entity": model.__name__,
+                        "error": str(e),
+                    },
+                    exc_info=True,
+                )
+                # Fail safe — do not allow query to run partially filtered.
+                raise
+            except AttributeError as e:
+                # Unexpected; log and fail — prefer failing loud than leaking data.
+                logger.error(
+                    f"Unexpected AttributeError applying tenant filter to {model.__name__}: {e}",
+                    extra={"tenant_id": str(tenant_id), "entity": model.__name__, "error": str(e)},
+                    exc_info=True,
+                )
+                raise
+            except Exception as e:
+                logger.critical(
+                    f"CRITICAL: Unknown exception in tenant filter for {model.__name__}: {e}",
+                    extra={
+                        "tenant_id": str(tenant_id),
+                        "entity": model.__name__,
+                        "error": str(e),
+                        "error_type": type(e).__name__,
+                    },
+                    exc_info=True,
+                )
+                raise
+
+        # Replace the statement with the filtered one (if any filters applied)
+        if models_filtered:
+            orm_execute_state.statement = stmt
+            logger.debug("Tenant filter applied", extra={"tenant_id": str(tenant_id), "models_filtered": models_filtered})
+        else:
+            logger.debug("No tenant filters applied for this statement", extra={"tenant_id": str(tenant_id)})
+
+    except Exception:
+        # Defensive: we prefer failing loudly (preventing leakage) than returning possibly unfiltered results.
+        logger.exception("Tenant filtering failed in an unexpected way; aborting to avoid leakage")
+        # Re-raise so callers observe failure and we do not execute potentially unfiltered queries.
+        raise
 
 
 def bypass_tenant_filter(statement):
