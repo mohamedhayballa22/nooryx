@@ -1,7 +1,7 @@
 "use client";
 
 import { useState } from "react";
-import { PackageOpenIcon } from "lucide-react";
+import { PackageOpenIcon, ScanBarcode } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import {
   Empty,
@@ -12,9 +12,11 @@ import {
   EmptyContent,
 } from "@/components/ui/empty";
 import { ReceiveForm } from "./forms/receive-form";
+import { BarcodeManager } from "./barcode/barcode-manager";
 
 export function EmptyInventory() {
   const [isReceiveFormOpen, setIsReceiveFormOpen] = useState(false);
+  const [scannerOpen, setScannerOpen] = useState(false);
 
   return (
     <>
@@ -32,17 +34,41 @@ export function EmptyInventory() {
         </EmptyHeader>
 
         <EmptyContent>
-          <Button variant="outline" className="cursor-pointer rounded-sm" onClick={() => setIsReceiveFormOpen(true)}>
-            Receive Stock
-          </Button>
+          <div className="flex flex-col md:flex-row gap-3 justify-center">
+            <Button
+              variant="outline"
+              className="cursor-pointer rounded-sm w-full md:w-auto"
+              onClick={() => setIsReceiveFormOpen(true)}
+            >
+              Receive Stock
+            </Button>
+
+            <Button
+              variant="outline"
+              className="cursor-pointer rounded-sm w-full md:w-auto"
+              onClick={() => setScannerOpen(true)}
+            >
+              <ScanBarcode className="mr-2 h-4 w-4" />
+              Scan Barcode
+            </Button>
+          </div>
         </EmptyContent>
       </Empty>
 
       <ReceiveForm
         open={isReceiveFormOpen}
-        onOpenChange={setIsReceiveFormOpen} 
-        invalidateQueries={["inventory", "transactions", "trend", "valuation", "search", "skus"]}
+        onOpenChange={setIsReceiveFormOpen}
+        invalidateQueries={[
+          "inventory",
+          "transactions",
+          "trend",
+          "valuation",
+          "search",
+          "skus",
+        ]}
       />
+
+      <BarcodeManager open={scannerOpen} onOpenChange={setScannerOpen} emptyInventory={true} />
     </>
   );
 }
