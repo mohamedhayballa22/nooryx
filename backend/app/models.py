@@ -595,3 +595,45 @@ class Feedback(Base):
 
     created_at = Column(DateTime(timezone=True), server_default=func.now())
     
+    
+class ShopifyIntegration(Base):
+    """
+    Stores Shopify OAuth credentials and configuration per organization.
+    One organization can connect one Shopify store.
+    """
+    
+    __tablename__ = "shopify_integrations"
+    
+    id = Column(UUID(as_uuid=True), primary_key=True, default=uuid7)
+    org_id = Column(
+        UUID(as_uuid=True),
+        ForeignKey("orgs.org_id", ondelete="CASCADE"),
+        nullable=False,
+        unique=True,
+        index=True
+    )
+    
+    # Shopify store details
+    shop_domain = Column(String, nullable=False, doc="e.g., mystore.myshopify.com")
+    access_token_encrypted = Column(Text, nullable=False, doc="Encrypted Shopify access token")
+    scopes = Column(String, nullable=False, doc="Granted OAuth scopes")
+    
+    # Connection metadata
+    is_active = Column(Boolean, default=True, nullable=False)
+    connected_at = Column(DateTime(timezone=True), server_default=func.now())
+    last_synced_at = Column(DateTime(timezone=True), nullable=True)
+    
+    # Webhook tracking
+    webhooks_installed = Column(Boolean, default=False, nullable=False)
+    
+    # Timestamps
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(
+        DateTime(timezone=True),
+        server_default=func.now(),
+        onupdate=func.now()
+    )
+    
+    # Relationship
+    organization = relationship("Organization", backref="shopify_integration")
+    
