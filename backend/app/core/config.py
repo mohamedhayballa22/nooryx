@@ -59,11 +59,17 @@ class Settings(BaseSettings):
     SMTP_USERNAME: str
     SMTP_PASSWORD: str
     FROM_EMAIL: str
-    FRONTEND_URL: str = "http://nooryx.com"
+    FRONTEND_URL: str = "https://nooryx.com"
     SUPPORT_EMAIL: str = "support@nooryx.com"
     CSRF_TOKEN_EXPIRE_MINUTES: int = 60
     CSRF_COOKIE_NAME: str = "csrf_token"
     CSRF_HEADER_NAME: str = "X-CSRF-Token"
+    
+    # Shopify integration settings (to uncomment when shopify verification is complete)
+    # SHOPIFY_CLIENT_ID: str
+    # SHOPIFY_CLIENT_SECRET: str
+    # SHOPIFY_API_VERSION: str = "2025-10"
+    # BASE_BACKEND_URL: str
 
 
     @model_validator(mode="after")
