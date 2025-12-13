@@ -219,7 +219,6 @@ export function AppSidebar() {
                             left-[0.8rem]
                             group-data-[collapsible=icon]/sidebar-wrapper:left-1/2
                             group-data-[collapsible=icon]/sidebar-wrapper:-translate-x-1/2
-
                             flex
                             h-4
                             min-w-[1rem]
@@ -341,7 +340,11 @@ export function AppSidebar() {
           </SidebarGroupContent>
         </SidebarGroup>
 
-        <div className="mt-auto pt-2">
+        {/* Sticky feedback card */}
+        <div className="mt-auto sticky bottom-0 z-10 bg-sidebar pt-1 pb-2 group-data-[collapsible=icon]:hidden">
+          {/* Fade Gradient */}
+          <div className="absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-sidebar to-transparent pointer-events-none" />
+          
           <SidebarFeedbackCard />
         </div>
 
