@@ -140,6 +140,27 @@ If cost is missing, Nooryx will prompt you to enter it during the receive but va
 Set your valuation method before recording any receives or shipments. Changing methods after activity exists may not be possible.
 </Callout>
 
+## Cost of goods sold (COGS)
+
+Cost of goods sold is the financial output of valuation. When inventory leaves the system through **shipments**, Nooryx records the associated cost as COGS based on the active valuation method.
+
+COGS can be viewed both as a **single value for a selected period** and as a **time-based breakdown** of how cost flows over time. Both views are derived from the same underlying cost movements and reflect the same valuation rules.
+
+<Callout type="warning">
+Only shipments contribute to COGS in Nooryx.  
+Negative inventory adjustments remove stock and cost from inventory but do not generate COGS.
+</Callout>
+
+### Time filtering and aggregation
+
+When viewed over time, COGS can be filtered by period and aggregated at different resolutions:
+
+- **Daily** for operational analysis and short-term cost behavior  
+- **Weekly** for trend review and smoothing  
+- **Monthly** for accounting alignment and reporting  
+
+Changing the aggregation level does not affect how COGS is calculated. It only changes how recorded shipment costs are grouped for display.
+
 ## Summary
 
 - Select your valuation method deliberately at setup as it's permanent once you start transacting
