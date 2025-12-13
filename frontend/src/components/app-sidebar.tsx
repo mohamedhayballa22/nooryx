@@ -305,8 +305,6 @@ export function AppSidebar() {
                         <SidebarMenuButton asChild className="flex-1">
                           <Link 
                             href={section.url} 
-                            target="_blank" 
-                            rel="noopener noreferrer"
                             className="flex items-center"
                           >
                             <OpenBook className="w-5 h-5" />
@@ -326,8 +324,6 @@ export function AppSidebar() {
                               <SidebarMenuSubButton asChild>
                                 <Link 
                                   href={docItem.url} 
-                                  target="_blank" 
-                                  rel="noopener noreferrer"
                                   className="flex items-center text-sm pl-6"
                                 >
                                   <span>{docItem.title}</span>
