@@ -144,8 +144,8 @@ export function ValuationSimulator() {
   const preWACLayers = useRef<CostLayer[]>([]);
 
   const [qtyToReceive, setQtyToReceive] = useState<number | ''>(50);
-  const [costPerUnit, setCostPerUnit] = useState<number | ''>(12);
-  const [qtyToShip, setQtyToShip] = useState<number | ''>(30);
+  const [costPerUnit, setCostPerUnit] = useState<number | ''>(11);
+  const [qtyToShip, setQtyToShip] = useState<number | ''>(10);
 
   const [nextId, setNextId] = useState(2);
   const [nextTimestamp, setNextTimestamp] = useState(2);
