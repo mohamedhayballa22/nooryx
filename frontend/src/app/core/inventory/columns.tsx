@@ -1,6 +1,6 @@
 "use client"
 
-import { ColumnDef, FilterFn } from "@tanstack/react-table"
+import { ColumnDef, FilterFn, RowData } from "@tanstack/react-table"
 import { cn } from "@/lib/utils"
 import { Badge } from "@/components/ui/badge"
 import { Button } from "@/components/ui/button"
@@ -14,6 +14,13 @@ import { HelpCircle } from "lucide-react"
 import Link from "next/link"
 
 import { DataTableRowActions } from "./data-table-row-actions"
+
+// Extend TanStack Table to include our custom function
+declare module "@tanstack/react-table" {
+  interface TableMeta<TData extends RowData> {
+    openThresholdForm: () => void
+  }
+}
 
 export type Product = {
   sku_code: string
@@ -52,7 +59,8 @@ export const columns: ColumnDef<Product>[] = [
   },
   {
     accessorKey: "status",
-    header: () => (
+    // Destructure 'table' to access the meta function
+    header: ({ table }) => (
       <div className="flex items-center gap-1.5">
         <span>Status</span>
         <TooltipProvider delayDuration={200}>
@@ -69,7 +77,7 @@ export const columns: ColumnDef<Product>[] = [
             <TooltipContent
               side="right"
               align="center"
-              className="space-y-3 border bg-popover p-4 max-w-[280px] w-full"
+              className="space-y-3 border bg-popover p-4 max-w-[320px] w-full"
               sideOffset={8}
             >
               <div className="space-y-1.5">
@@ -77,18 +85,30 @@ export const columns: ColumnDef<Product>[] = [
                   Stock status thresholds
                 </p>
                 <p className="text-xs leading-relaxed text-muted-foreground">
-                  Configure your inventory thresholds to automatically track when stock levels are running low. Set custom values that work for your business.
+                  Configure your inventory thresholds
                 </p>
               </div>
-              <Link href="/core/settings/operations" className="block">
+              
+              {/* Two-Button Layout */}
+              <div className="flex gap-2 pt-1">
+                <Link href="/core/settings/operations" className="block">
+                  <Button
+                    size="sm"
+                    className="h-8 w-full flex-1 text-xs"
+                    variant="outline"
+                  >
+                    Set Defaults
+                  </Button>
+                </Link>
                 <Button
                   size="sm"
-                  className="h-7 w-full text-xs font-medium"
+                  className="h-8 flex-1 text-xs"
                   variant="default"
+                  onClick={() => table.options.meta?.openThresholdForm()}
                 >
-                  Configure thresholds
+                  Set thresholds for an SKU
                 </Button>
-              </Link>
+              </div>
             </TooltipContent>
           </Tooltip>
         </TooltipProvider>

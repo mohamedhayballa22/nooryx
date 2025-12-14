@@ -112,6 +112,10 @@ export function DataTable<TData, TValue>({
       pagination,
       columnVisibility,
     },
+    // 1. Pass the function to open the specific form via meta
+    meta: {
+      openThresholdForm: () => setActiveForm("update-sku"),
+    },
     onColumnVisibilityChange: setColumnVisibility,
     onPaginationChange: handlePaginationChange,
     getCoreRowModel: getCoreRowModel(),
