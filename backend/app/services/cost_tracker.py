@@ -219,14 +219,28 @@ class CostTracker:
         self, sku_code: str, location_id: UUID, qty: int
     ) -> int:
         """
-        Calculate the cost basis (per unit, in minor units) for a specific quantity.
-        Used for:
-        1. Determining cost of goods sold/transferred (Outbound).
-        2. Inferring value of positive adjustments (Inbound).
+        Calculate the cost basis (per unit, in minor units) for consuming a specific quantity.
+        Used ONLY for outbound transactions (ship, transfer_out, negative adjustments).
+        
+        This method determines which cost layers would be consumed according to the
+        organization's valuation method and returns the weighted average unit cost.
+        
+        Args:
+            sku_code: SKU identifier
+            location_id: Location UUID
+            qty: Quantity to consume (must be positive)
         
         Returns:
             Unit cost (int) in minor units
+            
+        Raises:
+            TransactionBadRequest: If no cost records exist or insufficient stock
         """
+        if qty <= 0:
+            raise TransactionBadRequest(
+                detail="calculate_cost_basis requires positive quantity for outbound valuation."
+            )
+        
         valuation_method = await self.get_valuation_method()
 
         if valuation_method == "FIFO":
@@ -238,35 +252,100 @@ class CostTracker:
 
         cost_records = await self._get_cost_records(sku_code, location_id, order_by=order_by)
         if not cost_records:
-            # If no history exists, we cannot calculate a basis.
             raise TransactionBadRequest(
-                detail=f"No cost records found for SKU '{sku_code}' to calculate basis."
+                detail=f"No cost records found for SKU '{sku_code}' at location."
             )
 
         if valuation_method == "WAC":
             total_value = sum(cr.unit_cost_minor * cr.qty_remaining for cr in cost_records)
             total_qty = sum(cr.qty_remaining for cr in cost_records)
             if total_qty == 0:
-                raise TransactionBadRequest(detail="No inventory available for WAC valuation.")
+                raise TransactionBadRequest(
+                    detail="No inventory available for WAC valuation."
+                )
             return total_value // total_qty
 
-        # FIFO / LIFO average for specified qty
-        remaining_to_transfer = qty
+        # FIFO / LIFO: Calculate weighted average across layers consumed
+        remaining_to_consume = qty
         total_cost = 0
         total_qty_costed = 0
 
         for record in cost_records:
-            if remaining_to_transfer <= 0:
+            if remaining_to_consume <= 0:
                 break
-            qty_from_record = min(record.qty_remaining, remaining_to_transfer)
+            qty_from_record = min(record.qty_remaining, remaining_to_consume)
             total_cost += record.unit_cost_minor * qty_from_record
             total_qty_costed += qty_from_record
-            remaining_to_transfer -= qty_from_record
+            remaining_to_consume -= qty_from_record
 
         if total_qty_costed == 0:
-            raise TransactionBadRequest(detail="No sufficient stock for transfer valuation.")
+            raise InsufficientStockError(
+                detail=f"Insufficient stock to consume {qty} units.",
+                sku_code=sku_code,
+                location=None,  # Location name not available here
+                requested=qty,
+                available=sum(cr.qty_remaining for cr in cost_records),
+                on_hand=None,
+                reserved=None
+            )
 
         return total_cost // total_qty_costed
+
+
+    async def infer_positive_adjustment_cost(
+        self, sku_code: str, location_id: UUID
+    ) -> int:
+        """
+        Infer the unit cost for a positive adjustment when user doesn't provide explicit cost.
+        
+        Strategy is valuation-method aware:
+        - FIFO: Use most recent (newest) cost layer - new inventory likely from recent batches
+        - LIFO: Use most recent (newest) cost layer - consistent with "last in" principle  
+        - WAC: Use weighted average across all existing layers - maintains average cost
+        
+        This ensures positive adjustments align with the organization's cost accounting philosophy
+        while maintaining cost layer integrity.
+        
+        Args:
+            sku_code: SKU identifier
+            location_id: Location UUID
+        
+        Returns:
+            Inferred unit cost (int) in minor units
+            
+        Raises:
+            TransactionBadRequest: If no cost records exist to infer from
+        """
+        valuation_method = await self.get_valuation_method()
+        
+        # Get cost records ordered by most recent first
+        cost_records = await self._get_cost_records(
+            sku_code, 
+            location_id, 
+            order_by=CostRecord.created_at.desc()
+        )
+        
+        if not cost_records:
+            raise TransactionBadRequest(
+                detail=f"No cost history found for SKU '{sku_code}' to infer adjustment cost."
+            )
+        
+        if valuation_method == "WAC":
+            # WAC: Use weighted average across all existing layers
+            total_value = sum(cr.unit_cost_minor * cr.qty_remaining for cr in cost_records)
+            total_qty = sum(cr.qty_remaining for cr in cost_records)
+            
+            if total_qty == 0:
+                # All layers exhausted, fall back to most recent cost
+                return cost_records[0].unit_cost_minor
+            
+            return total_value // total_qty
+        
+        else:  # FIFO or LIFO
+            # Use most recent cost layer (newest purchase)
+            # Rationale: Found/adjusted inventory likely represents recent stock
+            # This maintains chronological cost coherence
+            return cost_records[0].unit_cost_minor
     
 
     async def get_last_known_cost(self, sku_code: str, location_id: UUID) -> Optional[int]:

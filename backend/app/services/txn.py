@@ -118,16 +118,15 @@ class TransactionService:
                     currency
                 )
             
-            # B. Adjustment with NO cost -> Infer from Valuation Method
+            # B. Adjustment with NO cost -> Infer from existing inventory
             elif txn_payload.action == "adjust" and txn_payload.qty > 0:
                 try:
-                    # Infer value based on the quantity being added
-                    unit_cost_minor = await self.cost_tracker.calculate_cost_basis(
+                    # Infer value using valuation-method-aware logic
+                    unit_cost_minor = await self.cost_tracker.infer_positive_adjustment_cost(
                         sku_code=txn_payload.sku_code,
-                        location_id=location.id,
-                        qty=txn_payload.qty
+                        location_id=location.id
                     )
-                except (TransactionBadRequest, InsufficientStockError):
+                except TransactionBadRequest:
                     # No active stock? Fetch last known cost (LKC)
                     last_known = await self.cost_tracker.get_last_known_cost(
                         txn_payload.sku_code, 
