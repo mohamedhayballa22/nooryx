@@ -31,7 +31,7 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       type: "autocomplete",
       validation: validationRules.skuCode,
       description: "Learn more about SKUs",
-      learnMoreLink: "#",
+      learnMoreLink: "/docs/core-concepts/skus",
       gridColumn: "full",
     },
     {
