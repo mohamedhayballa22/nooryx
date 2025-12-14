@@ -24,6 +24,7 @@ from app.services.cost_tracker import CostTracker
 from app.services.currency_service import CurrencyService
 from app.services.alert_service import AlertService
 from app.core.logger_config import logger
+from app.services.barcodes import link_barcode
 
 
 TransactionPayload = (
@@ -166,6 +167,17 @@ class TransactionService:
             )
 
             available_after = available_before + transaction.qty
+            
+            # 4.5 Register barcode if provided
+            if hasattr(txn_payload, 'barcode') and txn_payload.barcode:
+                if hasattr(txn_payload.barcode, 'value') and txn_payload.barcode.value:
+                    await link_barcode(
+                        db=self.session,
+                        org_id=self.org_id,
+                        value=txn_payload.barcode.value,
+                        sku_code=txn_payload.sku_code,
+                        format=getattr(txn_payload.barcode, 'format', None)
+                    )
             
             # 5. Update inventory state (may raise InsufficientStockError)
             try:
@@ -324,6 +336,17 @@ class TransactionService:
                     'transfer_cost_per_unit': float(transfer_unit_cost_display)
                 }
             )
+            
+            # 4.5 Register barcode if provided
+            if hasattr(txn_payload, 'barcode') and txn_payload.barcode:
+                if hasattr(txn_payload.barcode, 'value') and txn_payload.barcode.value:
+                    await link_barcode(
+                        db=self.session,
+                        org_id=self.org_id,
+                        value=txn_payload.barcode.value,
+                        sku_code=txn_payload.sku_code,
+                        format=getattr(txn_payload.barcode, 'format', None)
+                    )
             
             in_txn, target_state = await self.apply_transaction(transfer_in_payload)
             
