@@ -102,8 +102,8 @@ const docsStructure = [
     items: [
       { title: "Shipping Stock", url: "/docs/workflows/ship-stock" },
       { title: "Internal Transfers", url: "/docs/workflows/transfer-stock" },
-      { title: "Adjusting Stock", url: "/docs/workflows/stock-adjustments" },
-      { title: "Managing Reservations", url: "/docs/workflows/reservations" },
+      { title: "Adjusting Stock", url: "/docs/workflows/adjust-stock" },
+      { title: "Reserving Stock", url: "/docs/workflows/reservations" },
     ]
   },
   {

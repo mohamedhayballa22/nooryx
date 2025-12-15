@@ -1,0 +1,68 @@
+---
+title: Adjusting Stock
+description: Correct discrepancies, record damage, and reconcile physical counts.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import Link from 'next/link';
+
+Inventory is rarely static. Items are damaged, lost to theft, or simply miscounted during busy periods. While **Receiving** handles purchasing and **Shipping** handles sales, **Adjusting** is the workflow for reconciling your system data with physical reality.
+
+In Nooryx, an adjustment is a manual correction to the ledger. Because these transactions impact your financial reporting (inventory valuation), the system requires you to document the specific reason for every change.
+
+## The Adjustment Flow
+
+1.  Navigate to the **Inventory** page or a specific **Master SKU** page.
+2.  Select **Adjust Stock** from the action menu.
+3.  A form will appear to capture the details of the discrepancy.
+
+### Positive vs. Negative Adjustments
+
+The **Adjustment Quantity** field determines the direction of the stock movement.
+
+*   **Negative Quantity (e.g., -5):** Use this for **Shrinkage**. This removes items from stock to account for theft, damage, or spoilage.
+*   **Positive Quantity (e.g., 5):** Use this for **Recovery**. This adds items to stock, typically when you find misplaced inventory or correct an under-count.
+
+## Handling Cost and Valuation
+
+A critical aspect of adjusting inventory is determining the value of the items being added or removed. Nooryx handles this differently depending on the direction of the adjustment to ensure your financial reports remain accurate.
+
+### Removing Stock (Negative Adjustments)
+
+When you reduce inventory (e.g., writing off damaged goods), you don't need to specify the cost.
+
+Nooryx automatically calculates the value of the removed items based on your organization's valuation method (FIFO, LIFO, or WAC). This is similar to how costs are determined during shipping 
+(see this <Link href="/docs/core-concepts/valuation#interactive-example">**Interactive Example**</Link>).
+
+### Adding Stock (Positive Adjustments)
+
+When adding stock, you have two options for determining value:
+
+**1. Automatic Valuation:**
+If you leave the **Cost Per Unit** field empty, Nooryx will intelligently infer the cost.
+*   **If you have existing stock:** The system uses your valuation method (e.g., FIFO or Weighted Average) to assign a value consistent with your current inventory. This is ideal for "found" inventory that should match the value of your recent shipments.
+*   **If stock is zero:** The system looks at your transaction history to find the last known cost.
+
+**2. Manual Override**
+If you enter a specific value in **Cost Per Unit**, Nooryx will use that exact figure. This is useful for special scenarios, such as adding refurbished items that have a lower asset value than brand-new stock.
+
+## Input Fields
+
+In addition to **SKU code** and **Location** which are searchable, the other fields are as follows:
+
+| Field | Requirement | Instructions |
+| :--- | :--- | :--- |
+| **Reason** | Required | You must categorize the adjustment (e.g., "Damaged," "Cycle Count," "Theft"). This creates an audit trail for future review. |
+| **Adjustment Quantity** | Required | The number of units to add (+) or remove (-). |
+| **Cost Per Unit** | Optional | The value of the items. See the **Handling Cost** section above for behavior when left empty. |
+| **Notes** | Optional | Detailed remarks about the incident (e.g., "Box crushed during forklift operation"). |
+
+## Submitting the Adjustment
+
+Once you click **Adjust**:
+
+1.  **Validation:** Nooryx ensures the adjustment makes logical sense (e.g., you cannot adjust stock below zero).
+2.  **Ledger Entry:** A permanent transaction is written to the ledger. Unlike a spreadsheet cell change, this entry records *who* made the change, *when*, and *why*.
+3.  **State Update:** The **On Hand** and **Available** counts are immediately updated.
+
+You can review all past adjustments in the **Audit Trail** page, filtering by the "Adjust" action type to analyze trends in shrinkage or damage over time.
