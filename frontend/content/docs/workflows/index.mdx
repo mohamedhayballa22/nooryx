@@ -3,6 +3,61 @@ title: Workflows & Transactions
 description: The 6 transaction types that change inventory state
 ---
 
-# The 6 Transaction Types
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import { Callout } from 'fumadocs-ui/components/callout';
+import { Truck, ArrowRightLeft, ClipboardCheck, PackageCheck, ArchiveRestore } from 'lucide-react';
+import Link from 'next/link';
 
-Overview of Receive, Ship, Transfer, Adjust, Reserve, and Unreserve operations.
+In Nooryx, stock levels never change arbitrarily. Every change to your inventory (whether products arriving, leaving, or moving between locations) is recorded as a Transaction.
+
+A transaction is a permanent event record. It tells you not just what the current number is, but how it got there. By standardizing these movements, Nooryx ensures that your physical operations are perfectly mirrored by your digital records.
+
+## Supported Actions
+
+Nooryx categorizes every inventory movement into one of six specific actions:
+
+- **<Link href="/docs/getting-started/receiving-stock">Receiving</Link>**: Bringing new stock into the system. This increases your asset value.
+
+- **<Link href="/docs/workflows/ship-stock">Shipping</Link>**: Fulfilling orders. This removes stock from your inventory and records it as sold.
+
+- **<Link href="/docs/workflows/transfer-stock">Transfers</Link>**: Moving items from one location to another (e.g., Warehouse to Storefront). The total stock count remains the same.
+
+- **<Link href="/docs/workflows/adjust-stock">Adjustments</Link>**: Correcting discrepancies found during stock counts, or logging damages and theft.
+
+- **<Link href="/docs/workflows/reservations">Reservations</Link>**: Allocating stock to specific orders without physically moving it, preventing overselling.
+
+- **<Link href="/docs/workflows/reservations">Unreservations</Link>**: Releasing previously reserved stock back to available inventory.
+
+## Anatomy of a Transaction
+
+When you perform any of the actions above, Nooryx creates a detailed ledger entry. This entry connects the operational action to the financial data. Every transaction includes five key pieces of information:
+
+**The Actor**: The specific team member who performed the action.
+
+**The Action**: The type of movement (e.g., ship, receive).
+
+**The Delta**: The exact change in quantity.
+- Positive (+): Stock was added (Receive, Transfer In).
+- Negative (-): Stock was removed (Ship, Transfer Out).
+
+**The Snapshot**: The stock level immediately before and after the action. This ensures the timeline of events is unbroken.
+
+**The Context**: Metadata explaining why the transaction occurred. This includes:
+- Reference: An external document ID, such as a Purchase Order (PO) or Invoice Number.
+- Reasoning: Notes on why stock was adjusted (e.g., "Damaged in transit").
+
+## Immutability and Reversals
+
+Once a transaction is confirmed, it cannot be edited or deleted. If you receive 100 units but meant to receive 10, you cannot simply "backspace" the zero. This restriction is intentional: it prevents accidental data corruption and hides potential mismanagement.
+
+### How to correct mistakes
+
+If an error occurs, you correct it by creating a Reversal (a new transaction that balances the mistake).
+
+**Example:**
+
+- **Mistake**: You accidentally receive 100 units of Blue Shirt.
+  - Ledger: +100
+- **Correction**: You perform an Adjustment to remove 90 units, noting "Correction of receiving error" in the reason field.
+  - Ledger: -90
+- **Result**: Your stock level is now 10, and the history truthfully shows both the error and the fix.
