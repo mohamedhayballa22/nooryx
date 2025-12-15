@@ -1,8 +1,58 @@
 ---
-title: Internal Transfers
-description: Move stock between locations
+title: Transferring Stock
+description: Move inventory between internal locations without changing asset value.
 ---
 
-# Internal Transfers
+import { Callout } from 'fumadocs-ui/components/callout';
+import Link from 'next/link';
 
-Guide to transferring inventory between your owned locations.
+An Internal Transfer is the process of moving inventory from one physical or logical location to another within your organization. Unlike a **Shipment**, which removes stock from your assets to fulfill an order, a transfer keeps the inventory on your books but changes its location.
+
+Nooryx handles transfers as "atomic" events. This means the movement happens instantaneously in the system data: stock is decremented from the source and incremented at the destination in a single action. However, two distinct ledger entries are created to maintain a clear audit trail.
+
+## The Transfer Flow
+
+1.  Navigate to the **Inventory** page or a specific **Master SKU** page.
+2.  Select **Transfer Stock** from the action menu.
+3.  A form will appear to capture the movement details.
+
+### Atomic Movement
+
+In Nooryx, standard transfers do not use an "In Transit" holding state. When you submit a transfer, the inventory quantity is immediately removed from the **Source Location** and added to the **Target Location**.
+
+This approach ensures that your total inventory count remains constant throughout the operation, preventing "ghost inventory" where items temporarily disappear from the system while being moved.
+
+### Cost Preservation
+
+A critical distinction between transferring and adjusting stock is the handling of value.
+
+*   **Adjustments** create a gain or loss on your financial reports.
+*   **Transfers** preserve value.
+
+When you transfer an item, Nooryx moves the item's cost history along with it. If a unit was received at $10.00 in "Warehouse A," it will arrive at "Warehouse B" valued at $10.00. This ensures your total inventory valuation remains accurate regardless of how often items are moved.
+
+## Input Fields
+
+In addition to SKU code which is searchable, the other fields are as follows:
+
+| Field | Requirement | Description |
+| :--- | :--- | :--- |
+| **Quantity** | Required | The number of units to transfer. Must be a positive number. |
+| **Source Location** | Required | Where the inventory is currently physically located. |
+| **Target Location** | Required | The destination where the inventory is being sent. |
+| **Notes** | Optional | Any remarks regarding the transfer. |
+
+
+<Callout type="warning" title="Availability Check">
+  You can only transfer **Available** stock. You cannot transfer items that are currently **Reserved** for an open order. If you need to move reserved items, you must first <Link href="/docs/workflows/reservations">**Unreserve**</Link> them.
+</Callout>
+
+## Submitting the Transfer
+
+Once you confirm the transfer:
+
+1.  **Validation:** Nooryx verifies that the **Source Location** has sufficient **Available** quantity to fulfill the transfer.
+2.  **State Update:** The **On Hand** and **Available** counts are decreased at the source and increased at the target instantly.
+3.  **Ledger Entry:** The system records the movement. While this appears as a single action to the user, the ledger maintains a strict history of the deduction from the source and the addition to the target to ensure full auditability.
+
+You can view the history of these movements in the **Audit Trail**, filtering by the "Transfer" action type.
