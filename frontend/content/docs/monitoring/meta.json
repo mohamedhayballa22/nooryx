@@ -1,4 +1,4 @@
 {
   "title": "Monitoring, Analysis & Alerts",
-  "pages": ["dashboard", "audit-trail", "alerts", "search"]
+  "pages": ["dashboard", "stock-list", "audit-trail", "inventory-value", "alerts"]
 }
