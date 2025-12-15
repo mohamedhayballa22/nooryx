@@ -1,8 +1,74 @@
 ---
-title: Managing Reservations
-description: Reserve and unreserve inventory
+title: Reserving Stock
+description: Allocate stock to orders to prevent overselling.
 ---
 
-# Managing Reservations
+import { Callout } from 'fumadocs-ui/components/callout';
+import Link from 'next/link';
 
-Allocate stock for future orders and manage reserved inventory.
+A **Reservation** is a "soft lock" on your inventory. It allows you to set aside specific items for a customer order without physically removing them from the warehouse immediately.
+
+Using reservations is the primary way Nooryx helps prevent overselling. By reserving items as soon as an order is placed, you ensure that the same unit cannot be sold to two different customers, even if the physical shipment hasn't happened yet.
+
+## The Concept: On Hand vs. Available
+
+As explained in <Link href="/docs/core-concepts/stock-state">Stock State</Link>, Nooryx tracks three quantities for every SKU:
+
+*   **On Hand:** Physical count on the shelf
+*   **Reserved:** Units allocated to orders  
+*   **Available:** What's left to sell (`On Hand - Reserved`)
+
+The system calculates this automatically:
+`Available = On Hand - Reserved`
+
+When you create a reservation, the **Available** quantity drops immediately, preventing other sales channels from accessing that stock. However, the **On Hand** quantity remains unchanged until the items literally leave the building via a <Link href="/docs/workflows/ship-stock">**Shipment**</Link>.
+
+## Creating a Reservation
+
+1.  Navigate to the **Inventory** page or a specific **Master SKU** page.
+2.  Select **Reserve Stock** from the action menu.
+3.  Complete the form to allocate the inventory.
+
+### Input Fields
+
+In addition to SKU code and Location which are searchable, the other fields are as follows:
+
+| Field | Requirement | Description |
+| :--- | :--- | :--- |
+| **Quantity** | Required | The number of units to put on hold. You cannot reserve more than is currently **Available**. |
+| **Order ID** | Optional | A reference number (e.g., `ORD-12345`) linking the stock to a specific sale. Highly recommended for traceability. |
+| **Customer** | Optional | The name of the client for whom the stock is being held. |
+| **Notes** | Optional | Any special instructions (e.g., "Hold for pickup on Friday"). |
+
+Once submitted, the stock is locked. It is no longer visible to other sales channels as "Available."
+
+## Fulfilling a Reservation
+
+When it is time to pack and ship the order, you do not need to delete the reservation. instead, you perform a **Shipment** and select **Reserved** in the "Ship From" dropdown.
+
+This converts the "soft lock" into a permanent deduction:
+1.  The **Reserved** count decreases.
+2.  The **On Hand** count decreases.
+3.  The **Available** count stays the same (because the stock was already removed from availability when you first reserved it).
+
+## Releasing (Unreserving) Stock
+
+If an order is cancelled or a hold expires, you must release the inventory back to the **Available** pool so it can be sold to someone else.
+
+1.  Select **Unreserve Stock** from the action menu.
+2.  Complete the form to release the hold.
+
+### Input Fields
+
+The Unreserve form asks for similar data to the Reserve form, with one critical addition: the **Reason**.
+
+| Field | Requirement | Description |
+| :--- | :--- | :--- |
+| **Quantity** | Required | The number of units to release. |
+| **Reason** | Required | You must document why the reservation is being lifted (e.g., "Order Cancelled," "Payment Failed"). |
+| **Order ID** | Optional | The reference number of the original order being cancelled. |
+| **Notes** | Optional | Additional context about the cancellation. |
+
+<Callout type="info" title="Why is a Reason required?">
+  Unlike reserving stock (which is a standard operational step), *unreserving* usually indicates a failed sale or a process exception. Nooryx requires a reason to help you analyze lost sales and operational friction in your audit logs.
+</Callout>
