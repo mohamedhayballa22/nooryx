@@ -1,8 +1,52 @@
 ---
-title: Activity and Accountability
+title: Audit Trail
 description: Track every inventory change
 ---
 
-# Activity and Accountability
+import { ScrollText, Search, Filter } from 'lucide-react';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import Link from 'next/link';
 
-Using the Audit Trail for troubleshooting and accountability.
+The Audit Trail provides a unified view of the Nooryx ledger. It serves as the permanent record for every transaction that has occurred within the workspace.
+
+Unlike the Inventory page, which shows the current state of stock, the Audit Trail explains how that state was reached. It is the primary tool for investigating discrepancies, verifying staff activity, and tracing the lifecycle of specific items.
+
+## Event Anatomy
+
+Every row in the Audit Trail represents a single, immutable event. Nooryx records the full context of the transaction to ensure traceability.
+
+Each entry includes:
+
+*   **Timestamp:** The exact date and time the event occurred.
+*   **Action Type:** The classification of the movement (e.g., *Received*, *Shipped*, *Adjusted*).
+*   **Context:** The SKU involved, the location where the event took place, and the user (Actor) who performed the action.
+*   **Financial Impact:** The cost associated with the transaction, if applicable (e.g., the cost of goods received).
+*   **Quantity Delta:** The net change in stock (e.g., `+1` or `-5`).
+*   **State Transition:** The stock balance before and after the event (e.g., `13 → 14`). This allows you to verify stock levels at any specific point in history.
+
+## Investigation Tools
+
+The toolbar at the top of the page provides tools to filter and organize the audit trail for analysis.
+
+### Search
+The search bar allows you to query across multiple dimensions simultaneously. You can search by:
+*   **SKU:** To trace the history of a specific product.
+*   **Actor:** To audit the activity of a specific team member.
+*   **Location:** To see all flow in and out of a specific warehouse.
+*   **Metadata:** To find transactions associated with specific notes or references.
+
+### Filtering by Action
+The **Actions** filter allows you to isolate specific types of transactions. This is useful when focusing on specific operational workflows, such as:
+*   Filtering for **Adjustments** to spot manual corrections or write-offs.
+*   Filtering for **Reservations** to analyze how stock is being allocated to orders.
+*   Filtering for **Transfers** to audit movement between locations.
+
+### Sorting
+By default, the Audit Trail is sorted chronologically (Newest first). You can reorganize the view using the **Sort by** menu to analyze data from different perspectives:
+*   **Date:** Chronological order.
+*   **Quantity:** Identify high-volume movements.
+*   **SKU:** Group movements by product.
+*   **Location:** Group movements by facility.
+*   **Action:** Group movements by transaction type.
+
+Both ascending and descending orders are supported for all sort keys.
