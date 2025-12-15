@@ -1,8 +1,43 @@
 ---
-title: Configurable Alerting System
-description: Set up notifications for inventory events
+title: Alerting
+description: Proactive notifications for inventory health and system activity.
 ---
 
-# Configurable Alerting System
+import { Bell, AlertTriangle, AlertOctagon, Info } from 'lucide-react';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import Link from 'next/link';
 
-Configure low-stock alerts and notification preferences.
+Nooryx uses an active alerting system to monitor inventory conditions so operators do not have to manually check reports.
+When a specific logical condition is met (such as stock falling below a safety threshold) the system generates a notification in the Alerts inbox.
+
+This shifts inventory management from reactive checking to proactive resolution.
+
+## The Alert Inbox
+
+The Alerts page acts as a central notification hub. It aggregates all system messages, grouping them by context to prevent clutter.
+
+*   **All Alerts / Unread:** Toggle between viewing history and focusing on new issues.
+*   **Grouping:** Similar alerts (e.g., multiple SKUs needing reordering) are bundled into a single expandable card.
+*   **State Management:** Users can **Mark as read** individually or use **Mark all as read** to clear the inbox after reviewing updates.
+
+## Severity Levels
+
+Nooryx categorizes alerts into three severity levels to help prioritize work.
+
+- <AlertOctagon className="inline text-red-500 w-4 h-4 mr-1 -mt-0.5" />  **Critical**: Indicates an immediate blocker or risk. This typically triggers when an item is completely out of stock (0 quantity).
+- <AlertTriangle className="inline text-yellow-500 w-4 h-4 mr-1 -mt-0.5" /> **Warning**: Indicates an upcoming issue. This triggers when stock falls below the configured **Reorder Point** but is not yet fully depleted.
+- <Info className="inline text-blue-500 w-4 h-4 mr-1 -mt-0.5" /> **Info**: Administrative updates that do not require inventory action, such as a new team member joining the workspace.
+
+## Configuring Triggers
+
+Alerts are deterministic. They are triggered based on the specific thresholds configured in your settings.
+
+1.  **Global Threshold Default:** You can set a workspace-wide **Default Reorder Point** and **Low Stock Threshold** in the <Link href="/docs/settings/operations">**Operations Settings**</Link>. This is used to prefill the reorder point and low stock threshold fields in all the forms that require them.
+2.  **SKU-Level Overrides:** Specific SKUs can have their own reorder points and low stock thresholds defined on the product page (see <Link href="/docs/monitoring/stock-list#sku-configuration">**SKU Configuration**</Link> for more details).
+
+## Resolving Alerts
+
+An alert remains valid until the underlying condition changes or the user dismisses it.
+
+*   **Dismissal:** Clicking **Mark as read** removes the notification from the "Unread" view. This acknowledges the information without changing the stock state.
+*   **Resolution:** To stop the system from generating new reorder alerts for an item, you must replenish the stock via a <Link href="/docs/workflows/receiving">**Receive Stock**</Link> workflow until the quantity exceeds the reorder point.
