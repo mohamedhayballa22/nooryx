@@ -3,6 +3,55 @@ title: The Nooryx Dashboard
 description: Understand your inventory metrics at a glance
 ---
 
-# The Nooryx Dashboard
+import { LayoutDashboard, ArrowRightLeft, TrendingUp, AlertCircle } from 'lucide-react';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import Link from 'next/link';
 
-Breakdown of metric cards and inventory trend analysis.
+The Dashboard is the initial landing view in Nooryx. It aggregates real-time data to provide
+an immediate summary of inventory health. Operators use this view to identify critical issues,
+such as stockouts, without navigating through detailed reports.
+
+## Health Summary
+
+The top section provides a natural language summary of the most pressing inventory events.
+Nooryx analyzes recent movements and stock levels to highlight what needs attention.
+
+This includes:
+*   SKUs that have recently depleted to zero.
+*   SKUs that are low in stock.
+*   Inventory that has remained stagnant for extended periods.
+
+## Location Filtering
+
+By default, the Dashboard displays aggregate data for the entire organization. You can scope the view to a specific facility by selecting a location from the tab bar (e.g., **Paris 3PL Warehouse** or **Berlin Returns Hub**).
+
+Selecting a location filters all metrics, activity feeds, and charts on the page to reflect only that specific site.
+
+## Key Metrics
+
+Four cards provide a quantitative snapshot of the current inventory position.
+- **Total Units on Hand:** The absolute count of physical items currently sitting in the warehouse.
+This includes items that may already be allocated to orders.
+- **Total Units Available:** The number of units free to sell. This value is calculated as **On Hand** minus **Reserved**.
+It represents your actual sellable capacity.
+- **Stockouts:** The number of SKUs with zero quantity available. These items require immediate restocking to prevent lost sales.
+- **Low Stock Items:** The number of SKUs that have fallen below their defined safety stock threshold.
+
+## Activity & Analysis
+
+The central section of the dashboard is divided into three panels that contextualize stock movement.
+
+### Latest Movements
+This panel displays a real-time feed of ledger events. It lists the most recent transactions, including receipts, adjustments, transfers, and shipments. Each entry shows the time, the user responsible, and the financial impact of the movement.
+
+### Inactive Stock
+This list identifies SKUs with no outbound activity over a selected period (e.g., 30 days). Monitoring this metric helps operators identify dead stock, capital tied up in goods that are not generating revenue.
+
+### Top Fast Movers
+This ranking displays SKUs with the highest outbound velocity over the selected timeframe. High-velocity items often require more frequent reordering parameters or distinct storage placement for easier picking.
+
+## Inventory Trend
+
+The bottom section visualizes the total volume of stock over time. You can adjust the timeframe (e.g., Last 6 Months) to observe long-term patterns.
+
+Sudden spikes in the chart typically indicate bulk receiving events, while sharp drops indicate large fulfillment runs. Monitoring of this trend helps identify seasonality and verify that stock levels align with expected business cycles.
