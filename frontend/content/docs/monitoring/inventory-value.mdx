@@ -1,0 +1,52 @@
+---
+title: Inventory Value
+description: Financial analysis of inventory assets and cost of goods sold.
+---
+
+import { Callout } from 'fumadocs-ui/components/callout';
+import { CircleDollarSign, TrendingDown } from 'lucide-react';
+import Link from 'next/link';
+
+The Valuation page translates physical inventory data into financial metrics.
+It provides a real-time view of the capital tied up in stock and the costs associated with recent sales.
+This page serves as the primary data source for accounting reconciliation and profitability analysis.
+
+## Financial Overview
+
+The top panel displays two financial indicators. These metrics update in real-time as inventory moves in and out of the system.
+
+### Total Inventory Value
+This figure represents the current asset value of all "On Hand" stock. It is the sum of the cost of every unit physically present in your locations.
+
+<Callout type="info">
+  This value is calculated using the cost recorded at the time of receipt and your organization's <Link href="/docs/core-concepts/valuation#the-valuation-methods-nooryx-supports">**Valuation Method**</Link>.
+</Callout>
+
+### Cost of Goods Sold (COGS)
+COGS represents the value of inventory that has left the system over a specific period.
+
+While **Inventory Value** measures assets on the balance sheet, **COGS** measures expenses on the income statement. You can adjust the timeframe for this calculation (e.g., "Last Month" or "Last Quarter") using the dropdown menu.
+
+<Callout type="warning">
+Only shipments contribute to COGS in Nooryx.  
+Negative inventory adjustments remove stock and cost from inventory but do not generate COGS.
+</Callout>
+
+## COGS Trend
+
+The trend chart visualizes the distribution of costs over time. This helps operators correlate expenses with operational activity.
+
+*   **Spikes** indicate periods of high fulfillment volume.
+*   **Flatlines** indicate periods of low outbound activity.
+
+Monitoring this trend allows you to verify that costs are being recognized in the correct periods, which is essential for accurate monthly closing.
+
+## SKU Valuation Breakdown
+
+The bottom table provides a granular financial breakdown for every product in the system.
+
+*   **Total Quantity:** The physical count currently on hand.
+*   **Average Cost:** The derived cost per unit. This is calculated by dividing the *Total Value* by the *Total Quantity*. This helps normalize cost fluctuations across different receiving batches.
+*   **Total Value:** The aggregate value of that specific SKU.
+
+You can use this table to identify which items are consuming the most working capital. High-value items with low turnover (high "Total Value" but low movement) often represent inefficient capital allocation.
