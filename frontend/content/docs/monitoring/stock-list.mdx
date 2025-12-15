@@ -1,0 +1,69 @@
+---
+title: Stock List
+description: Comprehensive inventory overview
+---
+
+import { ScanBarcode, Settings, SlidersHorizontal, ArrowUpDown, PackageSearch } from 'lucide-react';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+import Link from 'next/link';
+import { Callout } from 'fumadocs-ui/components/callout';
+
+The Inventory page serves as the operational interface for your stock state. It combines granular visibility into every SKU with the tools necessary to filter data, configure alerts, and initiate physical workflows.
+
+## Data Organization
+
+The controls in the upper-left corner allow you to curate the list view to focus on specific subsets of inventory.
+
+*   **Search:** Locate items by entering a SKU code, product name, or location.
+*   **Status Filter:** Isolate items based on health. For example, you can filter to show only **Out of Stock** or **Low Stock** items to generate a quick restocking list.
+*   **Sorting:** Order the list by any column, such as *Available Quantity* (ascending/descending).
+*   **View Options:** Toggle specific columns on or off to reduce visual noise depending on your current task.
+
+## Operational Tools
+
+The upper-right corner contains tools designed for physical inventory management and rapid data entry.
+
+### Barcode Scanning
+The **Scan Barcode** feature supports input via the device camera, connected USB/Bluetooth scanners, or manual code entry. The system handles scanned data based on its current association:
+
+1.  **Known Barcodes:** If the scanned code matches an existing SKU, Nooryx resolves it immediately and presents options to perform an action (e.g., Receive, Adjust, or Reserve).
+2.  **Unlinked Barcodes:** If the code is not recognized, the system prompts you to link it to an existing SKU or proceed with a transaction. If you proceed, the barcode is automatically linked to that SKU for future scans.
+
+### Action Menu
+Next to the scanner is the primary action menu (labeled **Receive Stock** by default). This dropdown provides direct access to all inventory movement workflows.
+
+<Callout type="info">
+  For detailed instructions on performing these actions, refer to the <Link href="/docs/workflows">**Workflows & Transactions**</Link> section.
+</Callout>
+
+## SKU Configuration
+
+The **Settings** icon (<Settings className="inline-block w-4 h-4"/>) in the upper-right corner opens the configuration panel. This form allows you to define how Nooryx monitors specific items.
+
+If accessed from the main Inventory list, you must search for and select the target SKU. If accessed from a Master SKU Page, the form automatically targets the current product.
+
+You can configure the following parameters:
+
+*   **Alerts:** A toggle to enable or disable system notifications for this item.
+*   **Reorder Point:** The quantity at which the system should flag the item for procurement.
+*   **Low Stock Threshold:** The quantity that triggers the yellow **Low Stock** visual status in the UI. This is purely a visual indicator for operators and differs from the reorder point.
+
+## Inventory Table
+
+The main table provides a detailed view of your inventory state.
+
+*   **SKU Code & Name:** The unique identifiers for the product.
+*   **Location:** The specific facilities where this item is physically present.
+*   **Available:** The quantity of stock free to sell. This excludes "Reserved" units that are committed to pending orders.
+*   **Status:** The visual health indicator derived from your **Low Stock Threshold** settings.
+*   **Last Transaction:** Provides context on the most recent ledger event for the item.
+
+## Master SKU Page
+
+Clicking any row navigates to the **Master SKU Page**. This view isolates data for a single product, functioning as a dedicated dashboard for that item.
+
+It includes:
+*   **Stock Metrics:** A breakdown of **On Hand**, **Available**, and **Reserved** counts.
+*   **Location Distribution:** Tabs to view stock levels across different warehouses.
+*   **Trend Chart:** A visualization of stock volume over time.
+*   **Activity Feed:** A history of every movement involving this specific SKU.
