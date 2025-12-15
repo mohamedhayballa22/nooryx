@@ -1,8 +1,54 @@
 ---
 title: Shipping Stock
-description: Fulfill orders and update inventory
+description: Manage outbound inventory and order fulfillment.
 ---
 
-# Shipping Stock
+import { Callout } from 'fumadocs-ui/components/callout';
+import Link from 'next/link';
 
-Process for shipping products and finalizing ledger entries.
+Shipping is the process of removing items from your inventory to fulfill customer orders. In Nooryx, a shipment transaction performs two vital functions: it reduces stock quantity (the physical count) and realizes the Cost of Goods Sold (COGS) for your financial reporting.
+
+Unlike an **Adjustment** (which is used to correct errors or record loss) a **Shipment** is treated as a revenue-generating event.
+
+## The Shipping Flow
+
+1.  Navigate to the **Inventory** page in the sidebar or the master SKU page.
+2.  Click the dropdown menu in the top-right corner and select **Ship Stock**.
+3.  A form will appear where you define the details of the outbound movement.
+
+### Choosing a Source Bucket
+
+An important decision when shipping stock is determining *where* the stock is drawn from logically. Nooryx distinguishes between **Available** stock (sellable) and **Reserved** stock (allocated), as described in <Link href="/docs/core-concepts/stock-state">**Understanding Stock State**</Link>. The **Ship From** dropdown when shipping allows you to specify this source:
+
+*   **Available:** Select this for immediate orders, such as walk-in retail sales, where the inventory was never put on hold.
+*   **Reserved:** Select this to fulfill existing orders where stock was previously allocated using the <Link href="/docs/workflows/reservations">**Reserve Workflow**</Link>.
+
+<Callout type="info" title="Preventing Negative Stock">
+  Nooryx protects your data integrity by preventing negative inventory. You cannot ship 5 units if you only have 4. Additionally, the system validates the specific bucket you choose; you cannot ship from the **Reserved** bucket if you have no active reservations.
+</Callout>
+
+### Input Fields
+
+The shipping form captures the essential data needed to trace the movement. In addition to **SKU code** and **Location** which are searchable, the other fields are as follows:
+
+| Field | Requirement | Description |
+| :--- | :--- | :--- |
+| **Quantity** | Required | The number of units to ship. This must be a positive number. |
+| **Ship From** | Required | Determines if stock is drawn from **Available** or **Reserved** inventory. |
+| **Notes** | Optional | Any special instructions, delivery details, or internal reference information. |
+
+### Financial Impact
+
+Every shipment creates a permanent financial record. When you submit the form, Nooryx calculates the value of the items leaving your warehouse based on your organization's **Valuation Method** (FIFO, LIFO, or WAC).
+
+This calculation happens automatically. You do not need to manually enter cost prices during shipment. The system uses the cost history stored in the ledger to assign the correct value to the shipment.
+
+## Submitting the Shipment
+
+Once you confirm the shipment:
+
+1.  **Validation:** Nooryx verifies that the Location has enough stock in the selected bucket.
+2.  **State Update:** The **On Hand** quantity is immediately reduced. Depending on the **Ship From** choice, either the **Available** or **Reserved** bucket is decremented.
+3.  **Ledger Entry:** A `Shipment` transaction is written to the ledger. This entry serves as the immutable proof of shipment.
+
+To view the history of this shipment, navigate to the Audit Trail page or the master SKU page.
