@@ -57,7 +57,6 @@ class SettingsResponse(BaseModel):
     # Organization settings
     currency: str
     valuation_method: str
-    alerts: bool
     default_reorder_point: Optional[int]
     default_low_stock_threshold: Optional[int]
     
@@ -65,16 +64,17 @@ class SettingsResponse(BaseModel):
     locale: str
     pagination: int
     date_format: str
+    alerts: bool
 
 
 USER_SETTINGS_DEFAULTS = {
     "locale": "system",
     "pagination": 25,
     "date_format": "system",
+    "alerts": True,
 }
 
 ORG_SETTINGS_DEFAULTS = {
-    "alerts": True,
     "default_reorder_point": None,
     "default_low_stock_threshold": None,
 }
@@ -89,3 +89,4 @@ class SKUThresholdsUpdateRequest(BaseModel):
         "validate_assignment": True,
         "extra": "forbid",
     }
+    
