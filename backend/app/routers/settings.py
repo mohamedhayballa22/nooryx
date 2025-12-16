@@ -132,7 +132,6 @@ async def get_settings(
     
     if org_settings:
         combined_settings.update({
-            "alerts": org_settings.alerts,
             "default_reorder_point": org_settings.default_reorder_point,
             "default_low_stock_threshold": org_settings.default_low_stock_threshold,
         })
@@ -147,6 +146,7 @@ async def get_settings(
             "locale": user_settings.locale,
             "pagination": user_settings.pagination,
             "date_format": user_settings.date_format,
+            "alerts": user_settings.alerts,
         })
 
     return combined_settings
@@ -168,15 +168,15 @@ async def update_settings(
     if not update_data:
         return
     
-    # Organization-level settings
-    org_fields = {"default_low_stock_threshold", "default_reorder_point", "alerts"}
+    # Organization-level settings (alerts removed from here)
+    org_fields = {"default_low_stock_threshold", "default_reorder_point"}
     org_updates = {k: v for k, v in update_data.items() if k in org_fields}
     
-    # User-level settings
-    user_fields = {"locale", "pagination", "date_format"}
+    # User-level settings (alerts added here)
+    user_fields = {"locale", "pagination", "date_format", "alerts"}
     user_updates = {k: v for k, v in update_data.items() if k in user_fields}
 
-    # Validate locale if present (applies to both user and org settings)
+    # Validate locale if present
     if "locale" in user_updates and user_updates["locale"] not in SUPPORTED_LOCALES:
         raise HTTPException(
             status_code=status.HTTP_400_BAD_REQUEST,

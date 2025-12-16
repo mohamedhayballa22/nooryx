@@ -5,7 +5,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select, delete, func, exists
 from sqlalchemy.orm.attributes import flag_modified
 
-from app.models import Alert, AlertReadReceipt, OrganizationSettings, User, SKU
+from app.models import Alert, AlertReadReceipt, UserSettings, User, SKU
 from app.schemas.alerts import (
     LowStockItem,
     LowStockMetadata,
@@ -673,7 +673,7 @@ class AlertService:
         
         Only creates/updates alert if:
         1. SKU has alerts enabled
-        2. Organization-wide alerts are enabled
+        2. At least one user in the organization has alerts enabled
         3. Available across all locations was >= reorder_point before transaction
         4. Available across all locations is < reorder_point after transaction
         
@@ -704,17 +704,22 @@ class AlertService:
         if not alerts_enabled:
             return None
         
-        # Fetch org-wide alerts settings
+        # Check if at least one user in the org has alerts enabled
         result = await self.session.execute(
-            select(OrganizationSettings.alerts)
-            .filter(
-                OrganizationSettings.org_id == self.org_id
-            )
+            select(exists(
+                select(1)
+                .select_from(UserSettings)
+                .join(User, User.id == UserSettings.user_id)
+                .filter(
+                    User.org_id == self.org_id,
+                    UserSettings.alerts == True
+                )
+            ))
         )
-        alerts = result.scalar_one_or_none()
+        any_user_has_alerts = result.scalar()
         
-        # Check if alerts are disabled for this organization
-        if not alerts:
+        # If no users have alerts enabled, don't create alert
+        if not any_user_has_alerts:
             return None
         
         # Check if reorder point was crossed in this transaction OR if item went out of stock

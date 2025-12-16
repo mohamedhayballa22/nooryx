@@ -88,3 +88,8 @@ class LowStockItem(BaseModel):
                 return "critical"
         return "warning"
     
+
+class AlertsStatusResponse(BaseModel):
+    """Response indicating if alerts are enabled for the user."""
+    alerts_enabled: bool
+    

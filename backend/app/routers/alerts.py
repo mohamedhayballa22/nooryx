@@ -2,15 +2,17 @@ from typing import Optional, Literal
 from uuid import UUID
 from fastapi import APIRouter, Depends, HTTPException, status
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 
 from app.core.db import get_session
 from app.core.auth.dependencies import get_current_user
-from app.models import User
+from app.models import User, UserSettings
 from app.services.alert_service import AlertService, AlertTransformer
 from app.schemas.alerts import (
     AlertResponse,
     UnreadCountResponse,
-    MarkReadResponse
+    MarkReadResponse,
+    AlertsStatusResponse
 )
 from fastapi_pagination.ext.sqlalchemy import apaginate
 from fastapi_pagination import Page
@@ -31,6 +33,8 @@ router = APIRouter()
     - Alert type (team_member_joined/low_stock/all)
     
     Results are ordered by creation date (newest first).
+    
+    Returns 403 if user has alerts disabled in their settings.
     """
 )
 async def get_alerts(
@@ -40,6 +44,19 @@ async def get_alerts(
     session: AsyncSession = Depends(get_session)
 ):
     """Get paginated alerts for the current user's organization."""
+    
+    # Check if user has alerts enabled
+    result = await session.execute(
+        select(UserSettings.alerts)
+        .filter(UserSettings.user_id == current_user.id)
+    )
+    alerts_enabled = result.scalar_one()
+    
+    if not alerts_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Alerts are disabled in your settings"
+        )
     
     alert_service = AlertService(session, current_user.org_id)
     
@@ -57,11 +74,41 @@ async def get_alerts(
 
 
 @router.get(
+    "/status",
+    response_model=AlertsStatusResponse,
+    summary="Get alerts status",
+    description="""
+    Check if alerts are enabled for the current user.
+    
+    Frontend should call this before rendering the alerts page to determine
+    which UI state to show:
+    - alerts_enabled: true → Show alerts list
+    - alerts_enabled: false → Show "alerts disabled" message
+    """
+)
+async def get_alerts_status(
+    current_user: User = Depends(get_current_user),
+    session: AsyncSession = Depends(get_session)
+):
+    """Get alerts status for the current user."""
+    
+    result = await session.execute(
+        select(UserSettings.alerts)
+        .filter(UserSettings.user_id == current_user.id)
+    )
+    alerts_enabled = result.scalar_one()
+    
+    return AlertsStatusResponse(alerts_enabled=alerts_enabled)
+
+
+@router.get(
     "/unread-count",
     response_model=UnreadCountResponse,
     summary="Get unread alert count",
     description="""
     Fast endpoint for sidebar badge that returns only the count of unread alerts.
+    
+    Returns 0 if user has alerts disabled.
     
     Frontend should poll this endpoint every 30 seconds or on navigation.
     """
@@ -71,6 +118,16 @@ async def get_unread_count(
     session: AsyncSession = Depends(get_session)
 ):
     """Get count of unread alerts for sidebar badge."""
+    
+    # Check if user has alerts enabled
+    result = await session.execute(
+        select(UserSettings.alerts)
+        .filter(UserSettings.user_id == current_user.id)
+    )
+    alerts_enabled = result.scalar_one()
+    
+    if not alerts_enabled:
+        return UnreadCountResponse(count=0)
     
     alert_service = AlertService(session, current_user.org_id)
     count = await alert_service.get_unread_count(current_user)
@@ -90,6 +147,19 @@ async def mark_alert_as_read(
     session: AsyncSession = Depends(get_session)
 ):
     """Mark a single alert as read."""
+    
+    # Check if user has alerts enabled
+    result = await session.execute(
+        select(UserSettings.alerts)
+        .filter(UserSettings.user_id == current_user.id)
+    )
+    alerts_enabled = result.scalar_one()
+    
+    if not alerts_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Alerts are disabled in your settings"
+        )
     
     alert_service = AlertService(session, current_user.org_id)
     
@@ -114,6 +184,19 @@ async def mark_all_alerts_as_read(
     session: AsyncSession = Depends(get_session)
 ):
     """Mark all alerts as read for the current user."""
+    
+    # Check if user has alerts enabled
+    result = await session.execute(
+        select(UserSettings.alerts)
+        .filter(UserSettings.user_id == current_user.id)
+    )
+    alerts_enabled = result.scalar_one()
+    
+    if not alerts_enabled:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Alerts are disabled in your settings"
+        )
     
     alert_service = AlertService(session, current_user.org_id)
     
