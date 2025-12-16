@@ -213,7 +213,7 @@ export const shipFormConfig: FormConfig<ShipFormValues> = {
         { value: "reserved", label: "Reserved" },
       ],
       description: "What's this?",
-      learnMoreLink: "/docs/workflows/ship-stock#choosing-a-source-bucket",
+      learnMoreLink: "/docs/workflows/ship-stock#choosing-a-source-bucket-ship-from",
       placeholder: "Bucket to ship from",
       gridColumn: "half",
     },
