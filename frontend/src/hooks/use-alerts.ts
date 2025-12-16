@@ -2,6 +2,7 @@
 
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { 
+  getAlertsStatus,
   getAlerts, 
   getUnreadCount, 
   markAlertAsRead, 
@@ -18,10 +19,23 @@ function getErrorStatus(error: unknown): number | undefined {
   return undefined;
 }
 
+export function useAlertsStatus() {
+  return useQuery({
+    queryKey: ["alerts", "status"],
+    queryFn: getAlertsStatus,
+    staleTime: 5 * 60_000, // 5 minutes - status changes rarely
+    refetchOnWindowFocus: false,
+    retry: false,
+  });
+}
+
 export function useAlerts(params: AlertsParams) {
+  const { data: status } = useAlertsStatus();
+  
   const query = useQuery({
     queryKey: ["alerts", "list", params],
     queryFn: () => getAlerts(params),
+    enabled: status?.alerts_enabled === true, // Only fetch if enabled
     staleTime: 2 * 60_000, // 2 minutes
     refetchOnWindowFocus: false,
     retry: false,
@@ -35,6 +49,7 @@ export function useAlerts(params: AlertsParams) {
     totalPages: query.data?.pages ?? 0,
     totalItems: query.data?.total ?? 0,
     errorStatus,
+    alertsEnabled: status?.alerts_enabled ?? true, // Default to true while loading
   };
 }
 

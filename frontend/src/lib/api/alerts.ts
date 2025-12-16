@@ -24,6 +24,10 @@ export interface MarkReadResponse {
   marked_count: number;
 }
 
+export interface AlertsStatusResponse {
+  alerts_enabled: boolean;
+}
+
 export interface AlertsParams {
   page?: number;
   size?: number;
@@ -40,6 +44,10 @@ export interface AlertsResponse {
 }
 
 // API Functions
+
+export async function getAlertsStatus(): Promise<AlertsStatusResponse> {
+  return protectedApiClient<AlertsStatusResponse>("/alerts/status");
+}
 
 export async function getAlerts(
   params: AlertsParams = {}

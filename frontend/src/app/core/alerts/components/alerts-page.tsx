@@ -6,6 +6,7 @@ import AlertCard from './alert-card'
 import AlertsFilter from './alerts-filter'
 import AlertsHeader from './alerts-header'
 import AlertsEmptyState from './alerts-empty-state'
+import AlertsDisabledState from './alerts-disabled-state'
 import { PaginationControls } from '@/components/app-pagination'
 import { useAlerts, useMarkAllAlertsAsRead } from '@/hooks/use-alerts'
 import { useUserSettings } from '@/hooks/use-user-settings'
@@ -63,7 +64,8 @@ export default function AlertsPage() {
     totalItems,
     totalPages,
     isLoading, 
-    error 
+    error,
+    alertsEnabled,
   } = useAlerts({
     page: pageIndex + 1,
     size: pageSize,
@@ -92,6 +94,24 @@ export default function AlertsPage() {
   // Show pagination only when total items exceed page size
   const showPagination = totalItems > pageSize;
 
+  // Show loading state
+  if (isLoading) {
+    return (
+      <div className="mx-auto max-w-2xl py-6">
+        <div className="flex items-center justify-center py-12">
+          <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-foreground" />
+        </div>
+      </div>
+    );
+  }
+
+  // Show alerts disabled state
+  if (!alertsEnabled) {
+    return (
+        <AlertsDisabledState />
+    );
+  }
+
   return (
     <div className="mx-auto max-w-2xl py-6">
       <AlertsHeader unreadCount={unreadCount} onMarkAllRead={handleMarkAllRead} />
@@ -101,11 +121,7 @@ export default function AlertsPage() {
       </div>
 
       <div className="space-y-3 mt-6">
-        {isLoading ? (
-          <div className="flex items-center justify-center py-12">
-            <div className="h-8 w-8 animate-spin rounded-full border-2 border-muted border-t-foreground" />
-          </div>
-        ) : error ? (
+        {error ? (
           <div className="rounded-lg border border-red-500/40 bg-red-500/10 p-4 text-red-600 dark:text-red-400">
             Failed to load alerts
           </div>
@@ -118,7 +134,7 @@ export default function AlertsPage() {
         )}
       </div>
 
-      {showPagination && !isLoading && !error && (
+      {showPagination && !error && (
         <div className="mt-6">
           <PaginationControls
             pageIndex={pageIndex}
