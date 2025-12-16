@@ -354,6 +354,7 @@ function SkuCodeField({ config }: FormFieldProps) {
               isLoading={isLoadingSkus}
               placeholder={config.placeholder || "Type to search SKU..."}
               transformInput={(val) => val.toUpperCase()}
+              allowCreate={config.allowCreate}
             />
           )}
         />
@@ -418,6 +419,7 @@ function LocationField({ config }: FormFieldProps) {
               isLoading={isLoadingLocations}
               placeholder={config.placeholder || "Type to search location..."}
               transformInput={(val) => val.toUpperCase()}
+              allowCreate={config.allowCreate}
             />
           )}
         />

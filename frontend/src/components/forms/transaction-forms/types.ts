@@ -68,6 +68,7 @@ export interface FieldConfig {
   component?: React.ComponentType<any>
   learnMoreLink?: string
   subFields?: FieldConfig[]
+  allowCreate?: boolean
 }
 
 // Context for SKU-specific forms

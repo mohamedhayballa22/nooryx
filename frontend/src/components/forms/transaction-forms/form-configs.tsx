@@ -182,6 +182,7 @@ export const shipFormConfig: FormConfig<ShipFormValues> = {
       type: "autocomplete",
       validation: validationRules.skuCode,
       gridColumn: "full",
+      allowCreate: false,
     },
     {
       name: "location",
@@ -191,6 +192,7 @@ export const shipFormConfig: FormConfig<ShipFormValues> = {
       validation: validationRules.location,
       description: "Where the inventory is being shipped from.",
       gridColumn: "full",
+      allowCreate: false,
     },
     {
       name: "qty",
@@ -286,6 +288,7 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
       type: "autocomplete",
       validation: validationRules.skuCode,
       gridColumn: "full",
+      allowCreate: false,
     },
     {
       name: "location",
@@ -294,6 +297,7 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
       type: "autocomplete",
       validation: validationRules.location,
       gridColumn: "full",
+      allowCreate: false,
     },
     {
       name: "qty",
@@ -397,6 +401,7 @@ export const reserveFormConfig: FormConfig<ReserveFormValues> = {
       type: "autocomplete",
       validation: validationRules.skuCode,
       gridColumn: "full",
+      allowCreate: false,
     },
     {
       name: "location",
@@ -405,6 +410,7 @@ export const reserveFormConfig: FormConfig<ReserveFormValues> = {
       type: "autocomplete",
       validation: validationRules.location,
       gridColumn: "full",
+      allowCreate: false,
     },
     {
       name: "qty",
@@ -506,6 +512,7 @@ export const unreserveFormConfig: FormConfig<UnreserveFormValues> = {
       type: "autocomplete",
       validation: validationRules.skuCode,
       gridColumn: "full",
+      allowCreate: false,
     },
     {
       name: "location",
@@ -514,6 +521,7 @@ export const unreserveFormConfig: FormConfig<UnreserveFormValues> = {
       type: "autocomplete",
       validation: validationRules.location,
       gridColumn: "full",
+      allowCreate: false,
     },
     {
       name: "qty",
@@ -616,6 +624,7 @@ export const transferFormConfig: FormConfig<TransferFormValues> = {
       type: "autocomplete",
       validation: validationRules.skuCode,
       gridColumn: "full",
+      allowCreate: false,
     },
     {
       name: "location",
@@ -625,6 +634,7 @@ export const transferFormConfig: FormConfig<TransferFormValues> = {
       validation: validationRules.location,
       description: "Where the inventory is being transferred from.",
       gridColumn: "half",
+      allowCreate: false,
     },
     {
       name: "target_location",
