@@ -6,7 +6,7 @@ import React from 'react';
 export function BarcodeIllustration() {
   return (
     <div className="not-prose my-12 w-full">
-      <div className="relative rounded-xl border border-neutral-200 bg-[var(--bg-color)] p-8 dark:border-neutral-800 dark:bg-[var(--bg-color-dark)]">
+      <div className="relative rounded-xl border border-neutral-200 bg-background p-8 dark:border-neutral-800">
         
         <div className="relative mx-auto max-w-3xl z-10">
           
@@ -44,10 +44,10 @@ export function BarcodeIllustration() {
 
             {/* Right Column */}
             <div className="relative z-10 flex items-center justify-center h-full">
-              <div className="w-full group relative flex flex-col items-start gap-4 rounded-xl border border-neutral-200 bg-[var(--bg-color)] p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all hover:border-neutral-300 dark:border-neutral-800 dark:bg-[var(--bg-color-dark)] dark:hover:border-neutral-700">
+              <div className="w-full group relative flex flex-col items-start gap-4 rounded-xl border border-neutral-200 bg-background p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all hover:border-neutral-300 dark:border-neutral-800 dark:hover:border-neutral-700">
                 
                 {/* Connector Dot */}
-                <div className="absolute top-1/2 -left-1.5 h-2.5 w-2.5 -translate-y-1/2 rounded-full border border-neutral-200 bg-[var(--bg-color)] dark:border-neutral-800 dark:bg-[var(--bg-color-dark)]" />
+                <div className="absolute top-1/2 -left-1.5 h-2.5 w-2.5 -translate-y-1/2 rounded-full border border-neutral-200 bg-background dark:border-neutral-800" />
 
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
                   <BoxIso />
@@ -84,7 +84,7 @@ export function BarcodeIllustration() {
 
 function BarcodeCard({ type, value, icon }: { type: string; value: string; icon: React.ReactNode }) {
   return (
-    <div className="w-full group relative flex items-center gap-3 rounded-lg border border-neutral-200 bg-[var(--bg-color)] px-3 py-3 shadow-sm transition-all hover:border-neutral-300 dark:border-neutral-800 dark:bg-[var(--bg-color-dark)] dark:hover:border-neutral-700">
+    <div className="w-full group relative flex items-center gap-3 rounded-lg border border-neutral-200 bg-background px-3 py-3 shadow-sm transition-all hover:border-neutral-300 dark:border-neutral-800 dark:hover:border-neutral-700">
       
       <div className="flex h-9 w-9 shrink-0 items-center justify-center rounded-md bg-neutral-50 text-neutral-400 border border-neutral-100 dark:border-neutral-800 dark:bg-neutral-900 dark:text-neutral-500">
         {icon}
@@ -100,7 +100,7 @@ function BarcodeCard({ type, value, icon }: { type: string; value: string; icon:
       </div>
 
       {/* Right-side Connector Dot */}
-      <div className="absolute top-1/2 -right-1.5 h-2 w-2 -translate-y-1/2 rounded-full border border-neutral-200 bg-[var(--bg-color)] dark:border-neutral-800 dark:bg-[var(--bg-color-dark)]" />
+      <div className="absolute top-1/2 -right-1.5 h-2 w-2 -translate-y-1/2 rounded-full border border-neutral-200 bg-background dark:border-neutral-800" />
     </div>
   );
 }
