@@ -1,0 +1,64 @@
+---
+title: Settings & Administration
+description: Configure the behavior, appearance, and security of your workspace.
+---
+
+import { Sliders, Activity, Users, ShieldCheck } from 'lucide-react';
+import { Card, Cards } from 'fumadocs-ui/components/card';
+
+Nooryx allows you to customize your workspace to match your team's operational flow and regional preferences. 
+Configuration is split into four distinct pages.
+
+## General Settings
+
+Located in the **General** tab, these settings allow you to customize your personal interface. 
+Changes made here are **user-specific** and do not affect how the application appears to other team members.
+
+### Interface & Theme
+*   **Interface Theme:** Toggle between Light, Dark, or System Sync modes to match your operating system's appearance.
+
+### Display Settings
+These settings control how data is formatted in your view:
+*   **Default Pagination Size:** Sets the number of rows displayed per page on tables, such as Inventory or Audit Trail.
+*   **Date Format:** Defines how timestamps appear throughout the system (e.g., `DD MMM, YYYY` vs. `MM/DD/YYYY`).
+*   **Locale:** Controls number formatting, thousand separators, and currency symbol placement (e.g., `1,000.00 $` vs `1.000,00 $`).
+
+### Financial Configuration (View Only)
+The **Currency** and **Valuation Method** (FIFO, LIFO, WAC) are displayed here for reference. 
+These core financial parameters are defined during workspace creation and are locked to ensure historical data integrity. They cannot be edited after setup.
+
+## Operations
+
+The **Operations** tab handles logic that affects how stock is managed and monitored.
+
+### Stock Management Defaults
+These values act as **organization-wide** defaults. They are used to pre-fill forms that require them. 
+*   **Default Low Stock Threshold:** The quantity under which items are displayed with a yellow "Low Stock" badge (does not trigger alerts).
+*   **Default Reorder Point:** The quantity under which the system triggers a restocking alert.
+
+### Alerts
+*   **Alerts Toggle:** This switch is **user-specific**. It controls whether *you* receive system notifications for stock levels. Disabling this does not prevent other team members from receiving their alerts.
+
+## Team & Access
+
+The **Team & Access** tab is where you manage the people who can view and edit your inventory data.
+
+### Inviting Members
+To add a new user, click **Invite New Member** and enter their email address. They will receive an email invitation to join the workspace. Until granular roles are fully configurable, all invited members have standard access to view and modify inventory.
+
+## Account & Security
+
+The **Account & Security** tab allows you to manage your personal profile and monitor access to your account.
+
+### Profile & Organization
+You can update your **Full Name** and **Organization Name** here.
+
+### Active Sessions
+Nooryx displays a list of all devices currently logged into your account.
+*   **This Device:** The session you are currently using.
+*   **Other Sessions:** Shows device type (e.g., macOS • Safari), IP address, and last active time.
+*   **Revoke Access:** Click the trash icon next to a session to immediately force a logout on that specific device.
+
+### Danger Zone
+*   **Delete Account:** Permanently removes your user account and personal data. If you are the sole owner of an organization, 
+this will also delete the organization. This action cannot be undone.

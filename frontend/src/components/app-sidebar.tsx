@@ -73,9 +73,12 @@ const docsStructure = [
   {
     header: "Introduction",
     url: "/docs",
-    items: [
-      { title: "The Core Philosophy", url: "/docs/philosophy" },
-    ]
+    items: []
+  },
+  {
+    header: "The Core Philosophy",
+    url: "/docs/philosophy",
+    items: []
   },
   {
     header: "Getting Started",
@@ -92,7 +95,7 @@ const docsStructure = [
     items: [
       { title: "SKUs", url: "/docs/core-concepts/skus" },
       { title: "Managing Locations", url: "/docs/core-concepts/locations" },
-      { title: "Understanding Stock State", url: "/docs/core-concepts/stock-states" },
+      { title: "Understanding Stock State", url: "/docs/core-concepts/stock-state" },
       { title: "Valuation", url: "/docs/core-concepts/valuation" },
     ]
   },
@@ -101,7 +104,7 @@ const docsStructure = [
     url: "/docs/workflows",
     items: [
       { title: "Shipping Stock", url: "/docs/workflows/ship-stock" },
-      { title: "Internal Transfers", url: "/docs/workflows/transfer-stock" },
+      { title: "Transferring Stock", url: "/docs/workflows/transfer-stock" },
       { title: "Adjusting Stock", url: "/docs/workflows/adjust-stock" },
       { title: "Reserving Stock", url: "/docs/workflows/reservations" },
     ]
@@ -111,20 +114,16 @@ const docsStructure = [
     url: "/docs/monitoring",
     items: [
       { title: "The Nooryx Dashboard", url: "/docs/monitoring/dashboard" },
-      { title: "Activity and Accountability", url: "/docs/monitoring/audit-trail" },
-      { title: "Configurable Alerting System", url: "/docs/monitoring/alerts" },
-      { title: "Global Search & Quick Find", url: "/docs/monitoring/search" },
+      { title: "Stock List", url: "/docs/monitoring/stock-list" },
+      { title: "Audit Trail", url: "/docs/monitoring/audit-trail" },
+      { title: "Inventory Value", url: "/docs/monitoring/inventory-value" },
+      { title: "Alerting", url: "/docs/monitoring/alerts" },
     ]
   },
   {
     header: "Settings & Administration",
     url: "/docs/settings",
-    items: [
-      { title: "Team Management", url: "/docs/settings/team" },
-      { title: "General", url: "/docs/settings/general" },
-      { title: "Account & Security", url: "/docs/settings/account-security" },
-      { title: "Billing & Subscription", url: "/docs/settings/billing" },
-    ]
+    items: []
   }
 ]
 
@@ -297,51 +296,70 @@ export function AppSidebar() {
 
               {/* Expanded items */}
               <div className="group-data-[collapsible=icon]:hidden">
-                {docsStructure.map((section) => (
-                  <Collapsible key={section.header} className="group/section">
-                    <SidebarMenuItem>
-                      <div className="flex items-center w-full">
-                        <SidebarMenuButton asChild className="flex-1">
-                          <Link 
-                            href={section.url} 
-                            className="flex items-center"
-                          >
-                            <OpenBook className="w-5 h-5" />
-                            <span >{section.header}</span>
-                          </Link>
-                        </SidebarMenuButton>
-                        <CollapsibleTrigger asChild>
-                          <button className="p-2 hover:bg-accent rounded-md cursor-pointer">
-                            <NavArrowDown className="h-4 w-4 transition-transform group-data-[state=open]/section:rotate-180" />
-                          </button>
-                        </CollapsibleTrigger>
-                      </div>
-                      <CollapsibleContent>
-                        <SidebarMenuSub>
-                          {section.items.map((docItem) => (
-                            <SidebarMenuSubItem key={docItem.title}>
-                              <SidebarMenuSubButton asChild>
-                                <Link 
-                                  href={docItem.url} 
-                                  className="flex items-center text-sm pl-6"
-                                >
-                                  <span>{docItem.title}</span>
-                                </Link>
-                              </SidebarMenuSubButton>
-                            </SidebarMenuSubItem>
-                          ))}
-                        </SidebarMenuSub>
-                      </CollapsibleContent>
+                {docsStructure.map((section) => {
+                  const hasChildren = section.items && section.items.length > 0;
+
+                  // Render as collapsible if it has children
+                  if (hasChildren) {
+                    return (
+                      <Collapsible key={section.header} className="group/section">
+                        <SidebarMenuItem>
+                          <div className="flex items-center w-full">
+                            <SidebarMenuButton asChild className="flex-1">
+                              <Link 
+                                href={section.url} 
+                                className="flex items-center"
+                              >
+                                <OpenBook className="w-5 h-5" />
+                                <span >{section.header}</span>
+                              </Link>
+                            </SidebarMenuButton>
+                            <CollapsibleTrigger asChild>
+                              <button className="p-2 hover:bg-accent rounded-md cursor-pointer">
+                                <NavArrowDown className="h-4 w-4 transition-transform group-data-[state=open]/section:rotate-180" />
+                              </button>
+                            </CollapsibleTrigger>
+                          </div>
+                          <CollapsibleContent>
+                            <SidebarMenuSub>
+                              {section.items.map((docItem) => (
+                                <SidebarMenuSubItem key={docItem.title}>
+                                  <SidebarMenuSubButton asChild>
+                                    <Link 
+                                      href={docItem.url} 
+                                      className="flex items-center text-sm pl-6"
+                                    >
+                                      <span>{docItem.title}</span>
+                                    </Link>
+                                  </SidebarMenuSubButton>
+                                </SidebarMenuSubItem>
+                              ))}
+                            </SidebarMenuSub>
+                          </CollapsibleContent>
+                        </SidebarMenuItem>
+                      </Collapsible>
+                    )
+                  }
+
+                  // Render as simple link if no children
+                  return (
+                    <SidebarMenuItem key={section.header}>
+                      <SidebarMenuButton asChild>
+                        <Link href={section.url} className="flex items-center">
+                          <OpenBook className="w-5 h-5" />
+                          <span>{section.header}</span>
+                        </Link>
+                      </SidebarMenuButton>
                     </SidebarMenuItem>
-                  </Collapsible>
-                ))}
+                  )
+                })}
               </div>
             </SidebarMenu>
           </SidebarGroupContent>
         </SidebarGroup>
 
         {/* Sticky feedback card */}
-        <div className="mt-auto sticky bottom-0 z-10 bg-sidebar pt-1 pb-2 group-data-[collapsible=icon]:hidden">
+        <div className="mt-auto sticky bottom-0 z-10 bg-sidebar pt-1 pb-1 group-data-[collapsible=icon]:hidden">
           {/* Fade Gradient */}
           <div className="absolute -top-6 left-0 right-0 h-6 bg-gradient-to-t from-sidebar to-transparent pointer-events-none" />
           
