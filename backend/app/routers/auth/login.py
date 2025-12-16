@@ -50,8 +50,8 @@ async def login(
         path="/",
     )
     
-    # Generate and set CSRF token (only in prod)
-    if settings.ENVIRONMENT != "dev":
+    # Generate and set CSRF token
+    if settings.CSRF_ENABLED:
         csrf_token = create_csrf_token_with_timestamp()
         response.set_cookie(
             key=settings.CSRF_COOKIE_NAME,

@@ -64,6 +64,7 @@ class Settings(BaseSettings):
     CSRF_TOKEN_EXPIRE_MINUTES: int = 60
     CSRF_COOKIE_NAME: str = "csrf_token"
     CSRF_HEADER_NAME: str = "X-CSRF-Token"
+    CSRF_ENABLED: bool = True
     
     # Shopify integration settings (to uncomment when shopify verification is complete)
     # SHOPIFY_CLIENT_ID: str

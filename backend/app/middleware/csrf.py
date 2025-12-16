@@ -36,8 +36,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         super().__init__(app)
     
     async def dispatch(self, request: Request, call_next) -> Response:
-        # Skip CSRF checks in dev environment
-        if settings.ENVIRONMENT == "dev":
+        # Optionally disable CSRF in non-production environments
+        if not settings.CSRF_ENABLED:
             return await call_next(request)
         
         # Skip for exempt paths
