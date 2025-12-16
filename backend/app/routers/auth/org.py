@@ -18,7 +18,8 @@ from app.core.auth.schemas import (
 from app.core.auth.manager import UserManager
 from app.core.auth.users import get_user_db
 from app.core.auth.invitations import create_invitation_token, decode_invitation_token
-from uuid import UUID, uuid4
+from uuid import UUID
+from uuid6 import uuid7
 from app.services.emails.invitation import send_invitation_email, validate_invitation_email
 from app.services.alert_service import AlertService
 from app.core.logger_config import logger
@@ -38,7 +39,7 @@ async def register_new_org(
 
     # Create Organization
     new_org = Organization(
-        org_id=uuid4(),
+        org_id=uuid7(),
         name=org_data.name,
         currency=org_data.currency,
         valuation_method=org_data.valuation_method,
