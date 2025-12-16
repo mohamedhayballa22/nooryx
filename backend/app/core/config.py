@@ -96,6 +96,20 @@ class Settings(BaseSettings):
                 'The SECRET_KEY is "changethis". For security, please generate a real key.'
             )
         return self
+    
+    @model_validator(mode="after")
+    def _check_csrf_enabled_for_prod(self) -> "Settings":
+        """
+        Warns if CSRF protection is disabled in a production environment.
+        """
+        if self.ENVIRONMENT == "prod" and not self.CSRF_ENABLED:
+            warnings.warn(
+                "You are running in 'prod' environment with CSRF protection disabled. "
+                "This exposes the application to Cross-Site Request Forgery attacks. "
+                "Please set CSRF_ENABLED=True in your .env file.",
+                stacklevel=1,
+            )
+        return self
 
 
 settings = Settings()
