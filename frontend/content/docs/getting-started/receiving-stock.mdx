@@ -33,6 +33,35 @@ Nooryx enforces strict data quality at the point of entry. We reject ambiguous d
   SKU Codes are unique identifiers. Once created, the **SKU Code cannot be edited**, only archived. Ensure your naming convention is consistent (e.g., `CHR-GRY-FAB`). See the <Link href="/docs/core-concepts/skus">**SKU Guide**</Link> for details.
 </Callout>
 
+### Cost Price Per Unit
+
+The **Cost Price Per Unit** represents the acquisition cost of a *single unit* at the moment it enters your inventory.
+
+This value is not cosmetic. It is the financial input that connects physical stock to the ledger.
+
+When you receive stock, Nooryx records a **Receive** transaction with:
+- the quantity received, and
+- the cost price you entered per unit.
+
+From this point forward, that cost becomes part of inventory valuation and downstream financial calculations.
+
+#### What this value is used for
+
+- **Inventory Valuation:** Determines the monetary value of stock currently on hand.
+- **COGS Calculation:** When units leave inventory (via shipment), their cost is pulled from received stock using your selected valuation method (FIFO, LIFO, or WAC).
+- **Auditability:** Each receipt preserves its original unit cost in the immutable ledger.
+
+#### What this value is *not*
+
+- This value is **not** a selling price. It does not affect how much you charge customers.
+Selling prices are managed separately in your sales system.
+- This value is **not** the total cost of the received stock. The total cost is calculated as `Cost Price Per Unit x Quantity Received`.
+
+<Callout type="info" title="Why Nooryx enforces a minimum cost">
+  Inventory is treated as a financial asset. Allowing zero-cost stock would break valuation, reporting, and audit trails. This is why the Cost Price must be greater than zero.
+</Callout>
+
+
 ### Configuring Alerts
 
 At the bottom of the form, you can toggle **Alerts**. This defines when Nooryx should bother you about this item in the future.

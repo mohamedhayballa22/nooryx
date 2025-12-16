@@ -70,7 +70,7 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
       type: "number",
       validation: validationRules.costPrice,
       description: "What's this?",
-      learnMoreLink: "#",
+      learnMoreLink: "/docs/getting-started/receiving-stock#cost-price-per-unit",
       placeholder: "0.00",
       gridColumn: "half",
     },
