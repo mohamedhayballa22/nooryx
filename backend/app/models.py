@@ -636,3 +636,12 @@ class ShopifyIntegration(Base):
     # Relationship
     organization = relationship("Organization", backref="shopify_integration")
     
+    
+class Waitlist(Base):
+    """Email waitlist for early access or beta signups."""
+    
+    __tablename__ = "waitlist"
+
+    email = Column(String(255), primary_key=True, nullable=False, doc="Unique email address.")
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    
