@@ -7,6 +7,8 @@ import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Check } from "lucide-react"
 import { useJoinWaitlist } from "@/hooks/use-waitlist"
+import Link from "next/link"
+import { FieldDescription } from "@/components/ui/field"
 
 const WAITLIST_STORAGE_KEY = "nooryx_waitlist_joined"
 
@@ -40,9 +42,9 @@ export function WaitlistForm() {
 
   const isValidEmail = () => {
     const trimmedEmail = email.trim()
-    const atIndex = trimmedEmail.indexOf("@")
-    const dotIndex = trimmedEmail.lastIndexOf(".")
-    return atIndex > 0 && dotIndex > atIndex + 1 && dotIndex < trimmedEmail.length - 1
+
+    const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/
+      return emailRegex.test(trimmedEmail)
   }
 
   const handleSubmit = async (e: React.FormEvent) => {
@@ -152,6 +154,13 @@ export function WaitlistForm() {
       >
         {isPending ? "Joining..." : "Join waitlist"}
       </Button>
+
+      <FieldDescription className="text-center">
+        Already have an account?{" "}
+        <Link href="/login" className="underline underline-offset-4">
+          Sign in
+        </Link>
+      </FieldDescription>
     </form>
   )
 }
