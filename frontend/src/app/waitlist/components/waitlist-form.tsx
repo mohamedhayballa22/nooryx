@@ -29,8 +29,12 @@ export function WaitlistForm() {
 
   useEffect(() => {
     if (isSuccess && !isReturningUser) {
-      localStorage.setItem(WAITLIST_STORAGE_KEY, "true")
-      setHasSubmitted(true)
+      try {
+        localStorage.setItem(WAITLIST_STORAGE_KEY, "true")
+      } catch (error) {
+        // localStorage unavailable, continue without persistence
+        }
+    setHasSubmitted(true)
     }
   }, [isSuccess, isReturningUser])
 

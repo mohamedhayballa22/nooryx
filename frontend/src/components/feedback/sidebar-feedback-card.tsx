@@ -28,7 +28,11 @@ export function SidebarFeedbackCard() {
   const handleDismiss = (e: React.MouseEvent) => {
     e.stopPropagation()
     setIsVisible(false)
-    localStorage.setItem(STORAGE_KEY, "true")
+    try {
+      localStorage.setItem(STORAGE_KEY, "true")
+    } catch (error) {
+      // localStorage unavailable, continue without persistence
+    }
   }
 
   if (!mounted) return null

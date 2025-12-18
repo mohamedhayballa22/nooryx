@@ -29,7 +29,11 @@ export function SkuMasterView({ skuCode }: SkuMasterViewProps) {
 
   const handlePeriodChange = (newPeriod: PeriodKey) => {
     setPreferredPeriod(newPeriod)
-    localStorage.setItem("sku-trend-period", newPeriod)
+    try {
+      localStorage.setItem("sku-trend-period", newPeriod)
+    } catch (error) {
+      // localStorage unavailable, continue without persistence
+    }
   }
 
   const {

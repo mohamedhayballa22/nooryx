@@ -159,7 +159,11 @@ export function BarcodeScanner({ open, onOpenChange, onScanSuccess }: BarcodeSca
   }
 
   const handleMethodSelect = (method: ScanMethod) => {
-    localStorage.setItem(STORAGE_KEY, method!)
+    try {
+      localStorage.setItem(STORAGE_KEY, method!)
+    } catch (error) {
+      // localStorage unavailable, continue without persistence
+    }
     setScanMethod(method)
     setShowMethodPicker(false)
   }
