@@ -1,17 +1,17 @@
 from fastapi import APIRouter, Depends, HTTPException, Request, status
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select, update
+from sqlalchemy import select, update, func, delete
 from app.core.auth.dependencies import get_current_user
 from app.core.auth.tenant_dependencies import get_tenant_session
-from app.models import User, Organization, RefreshToken, UserSettings, OrganizationSettings, Subscription
+from app.models import User, Organization, RefreshToken, UserSettings, OrganizationSettings, Subscription, SKU
 from datetime import datetime, timezone
 from app.schemas.settings import (
     SettingsUpdateRequest, ORG_SETTINGS_DEFAULTS, 
     USER_SETTINGS_DEFAULTS, SUPPORTED_LOCALES,
     SettingsResponse, SKUThresholdsUpdateRequest,
     UserAccountResponse)
-from app.models import SKU
 import hashlib
+from app.core.db import get_session
 
 router = APIRouter()
 
@@ -270,4 +270,60 @@ async def update_stock_optimized(
     
     await db.commit()
         
+    return
+
+
+@router.delete("/account", status_code=status.HTTP_204_NO_CONTENT)
+async def delete_account(
+    user: User = Depends(get_current_user),
+    db: AsyncSession = Depends(get_session),
+):
+    """
+    Permanently delete the current user's account.
+
+    - If the user is the only member of the organization, the entire organization
+      and all associated data will be deleted.
+    - If other members exist, only the user's account is deleted.
+
+    This operation is atomic and irreversible if it succeeds. If it fails, no changes
+    will be made to the database.
+    """
+
+    # Count users in org
+    user_count_stmt = (
+        select(func.count())
+        .select_from(User)
+        .where(User.org_id == user.org_id)
+    )
+    user_count = (await db.execute(user_count_stmt)).scalar_one()
+
+    # Explicitly delete auth/session state first
+    await db.execute(
+        delete(RefreshToken).where(RefreshToken.user_id == user.id)
+    )
+    
+    if user_count == 1:
+        print("Deleting entire organization as this is the last user.")
+        # Last user - delete entire organization
+        org_stmt = select(Organization).where(
+            Organization.org_id == user.org_id
+        )
+        organization = (await db.execute(org_stmt)).scalar_one_or_none()
+
+        if not organization:
+            raise HTTPException(
+                status_code=status.HTTP_404_NOT_FOUND,
+                detail="Organization not found.",
+            )
+
+        await db.delete(organization)
+        await db.commit()
+        return
+
+    # Multiple users - delete only this user
+
+
+    await db.delete(user)
+    await db.commit()
+    
     return

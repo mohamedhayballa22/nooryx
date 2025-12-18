@@ -49,3 +49,9 @@ export async function deleteSession(
     method: "DELETE",
   });
 }
+
+export async function deleteAccount(): Promise<void> {
+  await protectedApiClient("/settings/account", {
+    method: "DELETE",
+  });
+}

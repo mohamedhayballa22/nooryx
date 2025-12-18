@@ -370,7 +370,7 @@ class Organization(Base):
         overlaps="sku,organization,barcodes"
     )
 
-    subscription = relationship("Subscription", uselist=False, back_populates="organization")
+    subscription = relationship("Subscription", uselist=False, back_populates="organization", cascade="all, delete-orphan")
     settings = relationship("OrganizationSettings", uselist=False, back_populates="organization", cascade="all, delete-orphan")
 
 

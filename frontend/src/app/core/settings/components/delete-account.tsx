@@ -17,6 +17,7 @@ interface DeleteAccountDialogProps {
   onOpenChange: (open: boolean) => void
   email: string
   onConfirm: () => void
+  isPending?: boolean
 }
 
 export function DeleteAccountDialog({
@@ -24,6 +25,7 @@ export function DeleteAccountDialog({
   onOpenChange,
   email,
   onConfirm,
+  isPending = false,
 }: DeleteAccountDialogProps) {
   const [inputValue, setInputValue] = useState("")
   const [isMatch, setIsMatch] = useState(false)
@@ -40,19 +42,19 @@ export function DeleteAccountDialog({
   }, [inputValue, email])
 
   const handleCancel = () => {
+    if (isPending) return
     setInputValue("")
     onOpenChange(false)
   }
 
   const handleDelete = () => {
-    if (isMatch) {
+    if (isMatch && !isPending) {
       onConfirm()
-      onOpenChange(false)
     }
   }
 
   return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
+    <Dialog open={open} onOpenChange={isPending ? undefined : onOpenChange}>
       <DialogContent className="sm:max-w-[425px]">
         <DialogHeader>
           <DialogTitle>Delete Account</DialogTitle>
@@ -68,19 +70,24 @@ export function DeleteAccountDialog({
             placeholder={email}
             value={inputValue}
             onChange={(e) => setInputValue(e.target.value)}
+            disabled={isPending}
           />
         </div>
 
         <DialogFooter>
-          <Button variant="outline" onClick={handleCancel}>
+          <Button 
+            variant="outline" 
+            onClick={handleCancel}
+            disabled={isPending}
+          >
             Cancel
           </Button>
           <Button
             variant="destructive"
             onClick={handleDelete}
-            disabled={!isMatch}
+            disabled={!isMatch || isPending}
           >
-            Delete Account
+            {isPending ? "Deleting..." : "Delete Account"}
           </Button>
         </DialogFooter>
       </DialogContent>

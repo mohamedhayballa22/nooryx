@@ -76,7 +76,7 @@ def _resolve_actor(row):
         return meta_actor
 
     # Final fallback
-    return "System"
+    return "Deleted User"
 
 
 @router.get("/transactions", response_model=Page[TransactionItem])

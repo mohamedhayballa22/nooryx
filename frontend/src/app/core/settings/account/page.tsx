@@ -14,7 +14,7 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Input } from "@/components/ui/input"
 import { cn } from "@/lib/utils"
-import { useDeleteSession, useUserAccount } from "./hooks/use-account"
+import { useDeleteAccount, useDeleteSession, useUserAccount } from "./hooks/use-account"
 import { UAParser } from 'ua-parser-js'
 import { SettingsEditDialog } from "../components/settings-edit-dialog"
 import { DeleteAccountDialog } from "../components/delete-account"
@@ -42,6 +42,7 @@ export default function AccountSecurityPage() {
   const [deleteSessionOpen, setDeleteSessionOpen] = useState(false)
   const [selectedSession, setSelectedSession] = useState<string | null>(null)
   const [deleteAccountOpen, setDeleteAccountOpen] = useState(false)
+  const { mutate: deleteAccountMutate, isPending: isDeletingAccount } = useDeleteAccount();
 
   const { mutate } = useDeleteSession();
 
@@ -57,9 +58,12 @@ export default function AccountSecurityPage() {
   };
 
   const handleAccountDelete = () => {
-    // TODO: Implement account deletion API call
-    console.log("Deleting account for:", user.email)
-  }
+    deleteAccountMutate(undefined, {
+      onError: () => {
+        toast.error("Failed to delete account");
+      },
+    });
+  };
 
   const openDeleteSession = (sessionId: string) => {
     setSelectedSession(sessionId)
@@ -246,6 +250,7 @@ export default function AccountSecurityPage() {
             onOpenChange={setDeleteAccountOpen}
             email={user.email}
             onConfirm={handleAccountDelete}
+            isPending={isDeletingAccount}
           />
         </SettingsSection>
       </Settings>
