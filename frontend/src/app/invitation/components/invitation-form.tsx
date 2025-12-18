@@ -12,6 +12,13 @@ import { useAcceptInvitation } from "@/hooks/use-invitation"
 import { authApi } from "@/lib/api/auth"
 import { useAuth } from "@/lib/auth"
 import Link from "next/link"
+import { AlertCircle, AlertTriangle } from "lucide-react"
+
+interface ErrorState {
+  title: string
+  description: string | React.ReactNode
+  type: "error" | "warning"
+}
 
 interface InvitationFormProps extends React.ComponentProps<"form"> {
   token: string
@@ -25,10 +32,112 @@ export function InvitationForm({ className, token, email, orgName, ...props }: I
   const [password, setPassword] = useState("")
   const [confirmPassword, setConfirmPassword] = useState("")
   const [validationErrors, setValidationErrors] = useState<Record<string, string>>({})
+  const [errorState, setErrorState] = useState<ErrorState | null>(null)
   const router = useRouter()
   const { checkAuth } = useAuth()
 
-  const { mutate: acceptInvitation, isPending, error } = useAcceptInvitation()
+  const { mutate: acceptInvitation, isPending } = useAcceptInvitation()
+
+  const variantStyles =
+    errorState?.type === "warning"
+      ? "bg-muted border-border text-foreground"
+      : "bg-destructive/10 border-destructive/20 text-destructive"
+
+  const parseError = (err: any): ErrorState => {
+    // Handle rate limiting (429)
+    if (err?.status === 429) {
+      const retryAfter = err?.response?.data?.retry_after || 60
+      return {
+        title: "Too Many Attempts",
+        description: `Please wait ${retryAfter} seconds before trying again.`,
+        type: "warning",
+      }
+    }
+
+    // Get error detail from response
+    const detail = err?.response?.data?.detail || err.message || ""
+    const statusCode = err?.response?.status
+
+    // Handle invitation-specific errors
+    if (detail.includes("Invalid or expired invitation")) {
+      return {
+        title: "Invalid Invitation",
+        description: "This invitation link has expired or is no longer valid. Please request a new invitation.",
+        type: "error",
+      }
+    }
+
+    if (detail.includes("User already registered") || detail.includes("already registered")) {
+      // Use a ReactNode for the description to include the Link component
+      const loginLink = (
+        <>
+          An account with this email already exists. Try{" "}
+          <Link href="/login" className="underline underline-offset-4 font-medium">
+            logging in
+          </Link>{" "}
+          instead.
+        </>
+      )
+      return {
+        title: "Account Already Exists",
+        description: loginLink,
+        type: "warning",
+      }
+    }
+
+    if (detail.includes("invitation invalid")) {
+      return {
+        title: "Invalid Invitation",
+        description: "This invitation cannot be used. Please contact your workspace administrator.",
+        type: "error",
+      }
+    }
+
+    if (detail.includes("Registration failed")) {
+      // Extract specific error if available
+      const match = detail.match(/Registration failed: (.+)/)
+      const reason = match ? match[1] : "Please check your information and try again."
+      return {
+        title: "Registration Failed",
+        description: reason,
+        type: "error",
+      }
+    }
+
+    // Password validation errors from backend
+    if (detail.toLowerCase().includes("password")) {
+      return {
+        title: "Invalid Password",
+        description: "Please ensure your password meets the requirements and try again.",
+        type: "error",
+      }
+    }
+
+    // Handle network errors
+    if (!err?.response) {
+      return {
+        title: "Connection Error",
+        description: "Unable to reach the server. Please check your internet connection and try again.",
+        type: "error",
+      }
+    }
+
+    // Handle server errors (5xx)
+    if (statusCode >= 500) {
+      return {
+        title: "Server Error",
+        description: "Something went wrong on our end. Please try again in a moment.",
+        type: "error",
+      }
+    }
+
+    // Generic error fallback
+    return {
+      title: "Something Went Wrong",
+      description: "We couldn't complete your registration. Please try again.",
+      type: "error",
+    }
+  }
 
   const validateForm = (): boolean => {
     const errors: Record<string, string> = {}
@@ -61,6 +170,7 @@ export function InvitationForm({ className, token, email, orgName, ...props }: I
 
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault()
+    setErrorState(null)
 
     if (!validateForm()) return
 
@@ -93,11 +203,13 @@ export function InvitationForm({ className, token, email, orgName, ...props }: I
             router.push("/login")
           }
         },
+        onError: (err: any) => {
+          const error = parseError(err)
+          setErrorState(error)
+        },
       },
     )
   }
-
-  const apiError = error?.message || (error as any)?.response?.data?.detail
 
   return (
     <form className={cn("flex flex-col gap-6", className)} onSubmit={handleSubmit} {...props}>
@@ -107,9 +219,27 @@ export function InvitationForm({ className, token, email, orgName, ...props }: I
           <p className="text-muted-foreground text-sm text-balance">Complete your profile to accept the invitation</p>
         </div>
 
-        {apiError && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-red-800 dark:bg-red-950 dark:text-red-200">
-            {apiError}
+        {errorState && (
+          <div
+            className={cn(
+              "rounded-lg border p-4 animate-in fade-in slide-in-from-top-2 duration-300",
+              variantStyles,
+            )}
+          >
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                {errorState.type === "warning" ? (
+                  <AlertTriangle className="h-5 w-5" />
+                ) : (
+                  <AlertCircle className="h-5 w-5" />
+                )}
+              </div>
+              <div className="flex-1 space-y-1">
+                <p className="text-sm font-medium">{errorState.title}</p>
+                {/* Render description, which can now be a string or a ReactNode */}
+                <p className="text-sm opacity-90">{errorState.description}</p>
+              </div>
+            </div>
           </div>
         )}
 

@@ -14,6 +14,14 @@ import { authApi } from "@/lib/api/auth";
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
 import Link from "next/link";
+import { AlertCircle, AlertTriangle } from "lucide-react";
+
+interface ErrorState {
+  title: string;
+  description: string;
+  type: "error" | "warning";
+  retryAfter?: number;
+}
 
 export function LoginForm({
   className,
@@ -21,14 +29,70 @@ export function LoginForm({
 }: React.ComponentProps<"form">) {
   const [email, setEmail] = useState("");
   const [password, setPassword] = useState("");
-  const [error, setError] = useState("");
+  const [errorState, setErrorState] = useState<ErrorState | null>(null);
   const [isLoading, setIsLoading] = useState(false);
   const { setUser, checkAuth } = useAuth();
   const router = useRouter();
 
+  const variantStyles =
+      errorState?.type === "warning"
+      ? "bg-muted border-border text-foreground"
+      : "bg-destructive/10 border-destructive/20 text-destructive";
+
+  const parseError = (err: any): ErrorState => {
+    // Handle rate limiting (429)
+    if (err?.status === 429) {
+      const retryAfter = err?.response?.data?.retry_after || 60;
+      return {
+        title: "Too Many Attempts",
+        description: `Please wait ${retryAfter} seconds before trying again.`,
+        type: "warning",
+        retryAfter,
+      };
+    }
+
+    // Get error detail from response
+    const detail = err?.response?.data?.detail || err.message || "";
+    const statusCode = err?.response?.status;
+
+    // Handle fastapi-users error codes
+    if (detail === "LOGIN_BAD_CREDENTIALS") {
+      return {
+        title: "Invalid Credentials",
+        description: "The email or password you entered is incorrect. Please try again.",
+        type: "error",
+      };
+    }
+
+    // Handle network errors
+    if (!err?.response) {
+      return {
+        title: "Connection Error",
+        description: "Unable to reach the server. Please check your internet connection and try again.",
+        type: "error",
+      };
+    }
+
+    // Handle server errors (5xx)
+    if (statusCode >= 500) {
+      return {
+        title: "Server Error",
+        description: "Something went wrong on our end. Please try again in a moment.",
+        type: "error",
+      };
+    }
+
+    // Generic error fallback
+    return {
+      title: "Login Failed",
+      description: "We couldn't log you in right now. Please try again.",
+      type: "error",
+    };
+  };
+
   const handleSubmit = async (e: FormEvent<HTMLFormElement>) => {
     e.preventDefault();
-    setError("");
+    setErrorState(null);
     setIsLoading(true);
 
     let success = false;
@@ -48,8 +112,8 @@ export function LoginForm({
       success = true;
       router.push("/core/dashboard");
     } catch (err: any) {
-      const msg = err?.response?.data?.detail || err.message || "Login failed.";
-      setError(msg);
+      const error = parseError(err);
+      setErrorState(error);
     } finally {
       if (!success) setIsLoading(false);
     }
@@ -69,9 +133,26 @@ export function LoginForm({
           </p>
         </div>
 
-        {error && (
-          <div className="rounded-md bg-red-50 p-3 text-sm text-red-800">
-            {error}
+        {errorState && (
+          <div
+            className={cn(
+              "rounded-lg border p-4 animate-in fade-in slide-in-from-top-2 duration-300",
+              variantStyles
+            )}
+          >
+            <div className="flex gap-3">
+              <div className="flex-shrink-0 mt-0.5">
+                {errorState.type === "warning" ? (
+                  <AlertTriangle className="h-5 w-5 text-amber-600" />
+                ) : (
+                  <AlertCircle className="h-5 w-5 text-red-600" />
+                )}
+              </div>
+              <div className="flex-1 space-y-1">
+                <p className="text-sm font-medium">{errorState.title}</p>
+                <p className="text-sm opacity-90">{errorState.description}</p>
+              </div>
+            </div>
           </div>
         )}
 
@@ -89,9 +170,6 @@ export function LoginForm({
         </Field>
 
         <Field>
-          <div className="flex items-center">
-            <FieldLabel htmlFor="password">Password</FieldLabel>
-          </div>
           <Input
             id="password"
             type="password"
