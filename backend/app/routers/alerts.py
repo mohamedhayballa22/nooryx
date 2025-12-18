@@ -50,7 +50,8 @@ async def get_alerts(
         select(UserSettings.alerts)
         .filter(UserSettings.user_id == current_user.id)
     )
-    alerts_enabled = result.scalar_one()
+    alerts_enabled = result.scalar_one_or_none()
+    alerts_enabled = True if alerts_enabled is None else alerts_enabled
     
     if not alerts_enabled:
         raise HTTPException(
@@ -96,7 +97,8 @@ async def get_alerts_status(
         select(UserSettings.alerts)
         .filter(UserSettings.user_id == current_user.id)
     )
-    alerts_enabled = result.scalar_one()
+    alerts_enabled = result.scalar_one_or_none()
+    alerts_enabled = True if alerts_enabled is None else alerts_enabled
     
     return AlertsStatusResponse(alerts_enabled=alerts_enabled)
 
@@ -124,7 +126,8 @@ async def get_unread_count(
         select(UserSettings.alerts)
         .filter(UserSettings.user_id == current_user.id)
     )
-    alerts_enabled = result.scalar_one()
+    alerts_enabled = result.scalar_one_or_none()
+    alerts_enabled = True if alerts_enabled is None else alerts_enabled
     
     if not alerts_enabled:
         return UnreadCountResponse(count=0)
@@ -153,7 +156,8 @@ async def mark_alert_as_read(
         select(UserSettings.alerts)
         .filter(UserSettings.user_id == current_user.id)
     )
-    alerts_enabled = result.scalar_one()
+    alerts_enabled = result.scalar_one_or_none()
+    alerts_enabled = True if alerts_enabled is None else alerts_enabled
     
     if not alerts_enabled:
         raise HTTPException(
@@ -190,7 +194,8 @@ async def mark_all_alerts_as_read(
         select(UserSettings.alerts)
         .filter(UserSettings.user_id == current_user.id)
     )
-    alerts_enabled = result.scalar_one()
+    alerts_enabled = result.scalar_one_or_none()
+    alerts_enabled = True if alerts_enabled is None else alerts_enabled
     
     if not alerts_enabled:
         raise HTTPException(
