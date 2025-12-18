@@ -162,7 +162,7 @@ export default function GuestNavbar() {
                 <Link href="/login">Log In</Link>
               </Button>
               <Button asChild>
-                <Link href="/demo">Get Started</Link>
+                <Link href="/waitlist">Request Early Access</Link>
               </Button>
             </>
           )}
@@ -339,7 +339,7 @@ export default function GuestNavbar() {
                         <Link href="/login">Log In</Link>
                     </Button>
                     <Button className="w-full justify-start" asChild>
-                        <Link href="/demo">Get Started</Link>
+                        <Link href="/waitlist">Request Early Access</Link>
                     </Button>
                   </>
                 )}

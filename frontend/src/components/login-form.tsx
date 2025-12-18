@@ -13,6 +13,7 @@ import { useState, FormEvent } from "react";
 import { authApi } from "@/lib/api/auth";
 import { useAuth } from "@/lib/auth";
 import { useRouter } from "next/navigation";
+import Link from "next/link";
 
 export function LoginForm({
   className,
@@ -114,9 +115,9 @@ export function LoginForm({
         <Field>
           <FieldDescription className="text-center">
             Don&apos;t have an account?{" "}
-            <a href="#" className="underline underline-offset-4">
-              Sign up
-            </a>
+            <Link href="/waitlist" className="underline underline-offset-4">
+              Request early access
+            </Link>
           </FieldDescription>
         </Field>
       </FieldGroup>
