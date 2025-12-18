@@ -26,7 +26,10 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         "/redoc",
         "/health",
         "/api/webhooks",
-        # TODO: Add specific webhooks to exempt paths if needed
+        "/api/auth/sessions/refresh",
+        "/api/auth/join",
+        "/api/waitlist",
+        # TODO: Add specific webhooks to exempt paths
     }
     
     # Methods that require CSRF validation
