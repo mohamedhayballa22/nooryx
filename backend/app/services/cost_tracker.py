@@ -253,7 +253,7 @@ class CostTracker:
         cost_records = await self._get_cost_records(sku_code, location_id, order_by=order_by)
         if not cost_records:
             raise TransactionBadRequest(
-                detail=f"No cost records found for SKU '{sku_code}' at location."
+                detail=f"No cost records found for SKU '{sku_code}' at the specified location."
             )
 
         if valuation_method == "WAC":
