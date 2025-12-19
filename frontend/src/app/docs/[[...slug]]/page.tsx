@@ -2,6 +2,7 @@ import { source } from '@/lib/source';
 import type { Metadata } from 'next';
 import { DocsPage, DocsBody } from 'fumadocs-ui/page';
 import { notFound } from 'next/navigation';
+import { LLMCopyButton, ViewOptions } from '@/components/page-actions';
 
 export default async function Page({
   params,
@@ -14,6 +15,7 @@ export default async function Page({
   if (!page) notFound();
 
   const MDX = page.data.body;
+  const markdownContent = await page.data.getText('raw');
 
   return (
     <DocsPage
@@ -26,6 +28,14 @@ export default async function Page({
     >
       <DocsBody>
         <h1>{page.data.title}</h1>
+        
+        <div className="flex flex-row gap-2 items-center">
+          <LLMCopyButton markdownContent={markdownContent} />
+          <ViewOptions
+            pageUrl={page.url}
+          />
+        </div>
+
         <MDX />
       </DocsBody>
     </DocsPage>

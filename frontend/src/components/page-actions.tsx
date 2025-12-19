@@ -1,0 +1,131 @@
+'use client';
+import { useMemo, useState } from 'react';
+import {
+  Check,
+  ChevronDown,
+  Copy,
+  ExternalLinkIcon,
+} from 'lucide-react';
+import {
+  SiOpenai,
+  SiAnthropic,
+  SiPerplexity,
+  SiGoogle,
+} from 'react-icons/si';
+import { cn } from '@/lib/cn';
+import { useCopyButton } from 'fumadocs-ui/utils/use-copy-button';
+import { buttonVariants } from 'fumadocs-ui/components/ui/button';
+import {
+  Popover,
+  PopoverContent,
+  PopoverTrigger,
+} from 'fumadocs-ui/components/ui/popover';
+import { cva } from 'class-variance-authority';
+
+export function LLMCopyButton({
+  markdownContent,
+}: {
+  markdownContent: string;
+}) {
+  const [checked, onClick] = useCopyButton(async () => {
+    await navigator.clipboard.writeText(markdownContent);
+  });
+
+  return (
+    <button
+      className={cn(
+        buttonVariants({
+          color: 'secondary',
+          size: 'sm',
+          className: 'gap-2 [&_svg]:size-3.5 [&_svg]:text-fd-muted-foreground',
+        }),
+      )}
+      onClick={onClick}
+    >
+      {checked ? <Check /> : <Copy />}
+      Copy Markdown
+    </button>
+  );
+}
+
+const optionVariants = cva(
+  'text-sm p-2 rounded-lg inline-flex items-center gap-2 hover:text-fd-accent-foreground hover:bg-fd-accent [&_svg]:size-4',
+);
+
+export function ViewOptions({
+  pageUrl,
+}: {
+  pageUrl: string;
+}) {
+  const items = useMemo(() => {
+    const fullPageUrl =
+      typeof window !== 'undefined'
+        ? new URL(pageUrl, window.location.origin)
+        : 'loading';
+
+    const q = `Read ${fullPageUrl}, I want to ask questions about it.`;
+
+    return [
+      {
+        title: 'Open in ChatGPT',
+        href: `https://chatgpt.com/?${new URLSearchParams({
+          hints: 'search',
+          q,
+        })}`,
+        icon: <SiOpenai />,
+      },
+      {
+        title: 'Open in Claude',
+        href: `https://claude.ai/new?${new URLSearchParams({
+          q,
+        })}`,
+        icon: <SiAnthropic />,
+      },
+      {
+        title: 'Open in Perplexity',
+        href: `https://www.perplexity.ai/?${new URLSearchParams({
+          q,
+        })}`,
+        icon: <SiPerplexity />,
+      },
+      {
+        title: 'Open in Google AI',
+        href: `https://www.google.com/search?udm=50&source=searchlabs&q=${encodeURIComponent(q)}`,
+        icon: <SiGoogle />,
+      },
+    ];
+  }, [pageUrl]);
+
+
+  return (
+    <Popover>
+      <PopoverTrigger
+        className={cn(
+          buttonVariants({
+            color: 'secondary',
+            size: 'sm',
+            className: 'gap-2',
+          }),
+        )}
+      >
+        Ask AI
+        <ChevronDown className="size-3.5 text-fd-muted-foreground" />
+      </PopoverTrigger>
+      <PopoverContent className="flex flex-col">
+        {items.map((item) => (
+          
+            <a key={item.href}
+            href={item.href}
+            rel="noreferrer noopener"
+            target="_blank"
+            className={cn(optionVariants())}
+          >
+            {item.icon}
+            {item.title}
+            <ExternalLinkIcon className="text-fd-muted-foreground size-3.5 ms-auto" />
+          </a>
+        ))}
+      </PopoverContent>
+    </Popover>
+  );
+}
