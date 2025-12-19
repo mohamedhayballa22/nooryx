@@ -24,22 +24,26 @@ export function SettingRow({
     isFirst && isLast 
       ? "py-0" 
       : isFirst 
-      ? "pt-0 pb-3" 
+      ? "pt-0 pb-4 sm:pb-3" 
       : isLast 
-      ? "pt-3 pb-0" 
-      : "py-3"
+      ? "pt-4 sm:pt-3 pb-0" 
+      : "py-4 sm:py-3"
 
   return (
     <div
-      className={`flex items-center justify-between ${paddingClass}`}
+      className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${paddingClass}`}
     >
-      <div className="flex flex-col">
-        <span className="text-sm font-medium">{label}</span>
+      <div className="flex flex-col space-y-0.5">
+        <span className="text-sm font-medium leading-none">{label}</span>
         {description && (
-          <span className="text-sm text-muted-foreground">{description}</span>
+          <span className="text-sm text-muted-foreground leading-snug">
+            {description}
+          </span>
         )}
       </div>
-      {control}
+      <div className="flex items-center shrink-0">
+        {control}
+      </div>
     </div>
   )
 }
@@ -49,6 +53,7 @@ interface SettingsSubSectionProps {
   title: string
   action?: ReactNode
   children: ReactNode
+  unstyled?: boolean
 }
 
 export function SettingsSubSection({
@@ -56,16 +61,20 @@ export function SettingsSubSection({
   action,
   children,
   unstyled = false,
-}: SettingsSubSectionProps & { unstyled?: boolean }) {
+}: SettingsSubSectionProps) {
   const rows = Array.isArray(children) ? children : [children]
+
+  const header = (
+    <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+      <h3 className="text-lg font-semibold">{title}</h3>
+      {action && <div className="flex items-center">{action}</div>}
+    </div>
+  )
 
   if (unstyled) {
     return (
       <section className="space-y-4">
-        <div className="flex items-center justify-between">
-          <h3 className="text-lg font-semibold">{title}</h3>
-          {action && <div>{action}</div>}
-        </div>
+        {header}
         <div>{children}</div>
       </section>
     )
@@ -73,11 +82,8 @@ export function SettingsSubSection({
 
   return (
     <section className="space-y-4">
-      <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold">{title}</h3>
-        {action && <div>{action}</div>}
-      </div>
-      <Card className="rounded-md shadow-xs border bg-muted/30 py-0">
+      {header}
+      <Card className="rounded-md shadow-sm border bg-muted/30 py-0">
         <CardContent className="p-4 divide-y divide-border">
           {rows.map((child, i) => {
             if (child && typeof child === "object" && "type" in child) {
@@ -108,9 +114,13 @@ interface SettingsSectionProps {
 
 export function SettingsSection({ title, children }: SettingsSectionProps) {
   return (
-    <div className="max-w-3xl space-y-6">
-      {title && <h2 className="text-3xl font-bold tracking-tight">{title}</h2>}
-      <div className="space-y-6">{children}</div>
+    <div className="w-full max-w-3xl space-y-6">
+      {title && (
+        <h2 className="text-2xl sm:text-3xl font-bold tracking-tight">
+          {title}
+        </h2>
+      )}
+      <div className="space-y-8 sm:space-y-6">{children}</div>
     </div>
   )
 }
@@ -121,7 +131,7 @@ interface SettingsProps {
 }
 
 export function Settings({ children }: SettingsProps) {
-  return <div className="max-w-5xl space-y-10">{children}</div>
+  return <div className="w-full max-w-5xl space-y-12 sm:space-y-10">{children}</div>
 }
 
 // Skeleton version
@@ -129,81 +139,32 @@ export function SettingsSkeleton() {
   return (
     <div className="max-w-5xl space-y-10">
       <div className="max-w-3xl space-y-6">
-        <div className="space-y-6">
-          {/* Sub-section 1 */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="h-7 w-32 bg-muted animate-pulse rounded" />
-            </div>
-            <Card className="rounded-md shadow-xs border bg-muted/30 py-0">
-              <CardContent className="p-4 divide-y divide-border">
-                {[...Array(4)].map((_, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center justify-between ${
-                      i === 0 ? "pt-0 pb-3" : i === 3 ? "pt-3 pb-0" : "py-3"
-                    }`}
-                  >
-                    <div className="flex flex-col space-y-2">
-                      <div className="h-4 w-28 bg-muted animate-pulse rounded" />
-                      <div className="h-3 w-48 bg-muted animate-pulse rounded" />
+        <div className="space-y-10 sm:space-y-6">
+          {[...Array(3)].map((_, sectionIdx) => (
+            <section key={sectionIdx} className="space-y-4">
+              <div className="flex flex-col gap-2 sm:flex-row sm:items-center sm:justify-between">
+                <div className="h-7 w-32 bg-muted animate-pulse rounded" />
+              </div>
+              <Card className="rounded-md shadow-xs border bg-muted/30 py-0">
+                <CardContent className="p-4 divide-y divide-border">
+                  {[...Array(3)].map((_, i) => (
+                    <div
+                      key={i}
+                      className={`flex flex-col gap-3 sm:flex-row sm:items-center sm:justify-between ${
+                        i === 0 ? "pt-0 pb-4 sm:pb-3" : i === 2 ? "pt-4 sm:pt-3 pb-0" : "py-4 sm:py-3"
+                      }`}
+                    >
+                      <div className="flex flex-col space-y-2">
+                        <div className="h-4 w-28 bg-muted animate-pulse rounded" />
+                        <div className="h-3 w-48 sm:w-64 bg-muted animate-pulse rounded" />
+                      </div>
+                      <div className="h-6 w-12 bg-muted animate-pulse rounded" />
                     </div>
-                    <div className="h-6 w-12 bg-muted animate-pulse rounded" />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* Sub-section 2 */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="h-7 w-40 bg-muted animate-pulse rounded" />
-            </div>
-            <Card className="rounded-md shadow-xs border bg-muted/30 py-0">
-              <CardContent className="p-4 divide-y divide-border">
-                {[...Array(5)].map((_, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center justify-between ${
-                      i === 0 ? "pt-0 pb-3" : i === 4 ? "pt-3 pb-0" : "py-3"
-                    }`}
-                  >
-                    <div className="flex flex-col space-y-2">
-                      <div className="h-4 w-32 bg-muted animate-pulse rounded" />
-                      <div className="h-3 w-56 bg-muted animate-pulse rounded" />
-                    </div>
-                    <div className="h-6 w-12 bg-muted animate-pulse rounded" />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </section>
-
-          {/* Sub-section 3 */}
-          <section className="space-y-4">
-            <div className="flex items-center justify-between">
-              <div className="h-7 w-36 bg-muted animate-pulse rounded" />
-            </div>
-            <Card className="rounded-md shadow-xs border bg-muted/30 py-0">
-              <CardContent className="p-4 divide-y divide-border">
-                {[...Array(4)].map((_, i) => (
-                  <div
-                    key={i}
-                    className={`flex items-center justify-between ${
-                      i === 0 ? "pt-0 pb-3" : i === 3 ? "pt-3 pb-0" : "py-3"
-                    }`}
-                  >
-                    <div className="flex flex-col space-y-2">
-                      <div className="h-4 w-24 bg-muted animate-pulse rounded" />
-                      <div className="h-3 w-44 bg-muted animate-pulse rounded" />
-                    </div>
-                    <div className="h-6 w-12 bg-muted animate-pulse rounded" />
-                  </div>
-                ))}
-              </CardContent>
-            </Card>
-          </section>
+                  ))}
+                </CardContent>
+              </Card>
+            </section>
+          ))}
         </div>
       </div>
     </div>
