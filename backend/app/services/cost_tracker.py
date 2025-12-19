@@ -29,8 +29,22 @@ class CostTracker:
             self._valuation_method = result.scalar_one()
         return self._valuation_method
 
-    async def _get_cost_records(self, sku_code: str, location_id: UUID, order_by=None):
-        """Reusable query builder for active cost layers."""
+    async def _get_cost_records(
+        self, 
+        sku_code: str, 
+        location_id: UUID, 
+        order_by=None,
+        lock: bool = False
+    ):
+        """
+        Reusable query builder for active cost layers.
+        
+        Args:
+            sku_code: SKU identifier
+            location_id: Location UUID
+            order_by: Optional ordering clause
+            lock: If True, acquire FOR UPDATE lock on rows (critical for consumption)
+        """
         query = (
             select(CostRecord)
             .filter_by(
@@ -42,6 +56,11 @@ class CostTracker:
         )
         if order_by is not None:
             query = query.order_by(order_by)
+        
+        # Lock cost records before consumption to prevent race conditions
+        if lock:
+            query = query.with_for_update()
+        
         result = await self.session.execute(query)
         return result.scalars().all()
 
@@ -76,8 +95,13 @@ class CostTracker:
             await self._recompute_wac_layer(txn.sku_code, txn.location_id)
 
     async def _recompute_wac_layer(self, sku_code: str, location_id: UUID) -> None:
-        """Merge all WAC cost layers into a single averaged one for this SKU/location."""
-        cost_records = await self._get_cost_records(sku_code, location_id)
+        """
+        Merge all WAC cost layers into a single averaged one for this SKU/location.
+        
+        Must lock cost records during WAC recomputation to prevent concurrent
+        consumption during the merge operation.
+        """
+        cost_records = await self._get_cost_records(sku_code, location_id, lock=True)
         if not cost_records:
             return
 
@@ -107,6 +131,10 @@ class CostTracker:
         """
         Consume cost layers for outbound transactions.
         Returns total cost (in minor units) of goods consumed.
+        
+        Acquires row locks on cost records BEFORE consumption to prevent
+        race conditions where multiple concurrent outbound transactions attempt to
+        consume from the same cost layers simultaneously.
         """
         valuation_method = await self.get_valuation_method()
         units_to_consume = abs(txn.qty)
@@ -123,22 +151,41 @@ class CostTracker:
             )
 
     async def _consume_fifo(self, txn: Transaction, units: int) -> int:
-        """Consume using First-In-First-Out method."""
+        """
+        Consume using First-In-First-Out method.
+        Locks cost records in FIFO order to ensure consistent cost layer consumption.
+        """
         cost_records = await self._get_cost_records(
-            txn.sku_code, txn.location_id, order_by=CostRecord.created_at.asc()
+            txn.sku_code, 
+            txn.location_id, 
+            order_by=CostRecord.created_at.asc(),
+            lock=True  # Lock before consumption
         )
         return await self._consume_from_records(cost_records, units)
 
     async def _consume_lifo(self, txn: Transaction, units: int) -> int:
-        """Consume using Last-In-First-Out method."""
+        """
+        Consume using Last-In-First-Out method.
+        Locks cost records in LIFO order to ensure consistent cost layer consumption.
+        """
         cost_records = await self._get_cost_records(
-            txn.sku_code, txn.location_id, order_by=CostRecord.created_at.desc()
+            txn.sku_code, 
+            txn.location_id, 
+            order_by=CostRecord.created_at.desc(),
+            lock=True  # Lock before consumption
         )
         return await self._consume_from_records(cost_records, units)
 
     async def _consume_wac(self, txn: Transaction, units: int) -> int:
-        """Consume using Weighted Average Cost method."""
-        cost_records = await self._get_cost_records(txn.sku_code, txn.location_id)
+        """
+        Consume using Weighted Average Cost method.
+        Locks all cost records to prevent concurrent modifications during WAC calculation.
+        """
+        cost_records = await self._get_cost_records(
+            txn.sku_code, 
+            txn.location_id,
+            lock=True  # Lock before consumption
+        )
         if not cost_records:
             raise InsufficientStockError(detail="No cost basis found for WAC consumption")
 
@@ -177,7 +224,7 @@ class CostTracker:
                         rounding_error += 1
                         break
 
-        # Apply reductions
+        # Apply reductions to LOCKED records
         for cr, consume_qty in int_quantities:
             cr.qty_remaining -= consume_qty
             if cr.qty_remaining < 0:
@@ -194,6 +241,8 @@ class CostTracker:
         """
         Consume units from cost records sequentially (FIFO/LIFO).
         Updates qty_remaining and returns total cost in minor units.
+        
+        NOTE: cost_records must already be locked via with_for_update()
         """
         total_consumed_cost = 0
         remaining_to_consume = units
@@ -222,8 +271,8 @@ class CostTracker:
         Calculate the cost basis (per unit, in minor units) for consuming a specific quantity.
         Used ONLY for outbound transactions (ship, transfer_out, negative adjustments).
         
-        This method determines which cost layers would be consumed according to the
-        organization's valuation method and returns the weighted average unit cost.
+        This is a READ-ONLY operation that does NOT modify cost records, so no locking needed.
+        Actual consumption happens later in consume_cost() which DOES acquire locks.
         
         Args:
             sku_code: SKU identifier
@@ -250,7 +299,13 @@ class CostTracker:
         else:  # WAC
             order_by = None
 
-        cost_records = await self._get_cost_records(sku_code, location_id, order_by=order_by)
+        # No lock needed - this is read-only calculation
+        cost_records = await self._get_cost_records(
+            sku_code, 
+            location_id, 
+            order_by=order_by,
+            lock=False
+        )
         if not cost_records:
             raise TransactionBadRequest(
                 detail=f"No cost records found for SKU '{sku_code}' at the specified location."
@@ -303,8 +358,7 @@ class CostTracker:
         - LIFO: Use most recent (newest) cost layer - consistent with "last in" principle  
         - WAC: Use weighted average across all existing layers - maintains average cost
         
-        This ensures positive adjustments align with the organization's cost accounting philosophy
-        while maintaining cost layer integrity.
+        This is a READ-ONLY inference operation, so no locking needed.
         
         Args:
             sku_code: SKU identifier
@@ -318,11 +372,12 @@ class CostTracker:
         """
         valuation_method = await self.get_valuation_method()
         
-        # Get cost records ordered by most recent first
+        # Get cost records ordered by most recent first (no lock - read-only)
         cost_records = await self._get_cost_records(
             sku_code, 
             location_id, 
-            order_by=CostRecord.created_at.desc()
+            order_by=CostRecord.created_at.desc(),
+            lock=False
         )
         
         if not cost_records:
@@ -343,8 +398,6 @@ class CostTracker:
         
         else:  # FIFO or LIFO
             # Use most recent cost layer (newest purchase)
-            # Rationale: Found/adjusted inventory likely represents recent stock
-            # This maintains chronological cost coherence
             return cost_records[0].unit_cost_minor
     
 
@@ -353,6 +406,8 @@ class CostTracker:
         Fetch the cost of the most recent transaction for this SKU/Location,
         regardless of whether the stock is currently present (qty_remaining >= 0).
         Used for inferring value of 'found' items when stock is currently 0.
+        
+        Read-only operation - no locking needed.
         """
         result = await self.session.execute(
             select(CostRecord.unit_cost_minor)
