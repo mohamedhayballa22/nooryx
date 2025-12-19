@@ -271,6 +271,11 @@ class TransactionService:
             (transfer_out_txn, transfer_in_txn, source_state, target_state)
         """
         try:
+            if txn_payload.location.strip().lower() == txn_payload.target_location.strip().lower():
+                raise TransactionBadRequest(
+                    detail=f"Cannot transfer to the same location. Source and target location are both '{txn_payload.location}'."
+                )
+            
             # 0. Retrieve SKU info (needed for potential auto-creation at target)
             sku_exists, sku_name = await self._get_sku_info(txn_payload.sku_code)
             if not sku_exists:
@@ -279,10 +284,28 @@ class TransactionService:
                     sku_code=txn_payload.sku_code
                 )
             
+            # Validate source location has inventory before attempting transfer
+            source_location_id = await self._get_location_id(txn_payload.location)
+            result = await self.session.execute(
+                select(State)
+                .filter_by(
+                    sku_code=txn_payload.sku_code.upper(),
+                    location_id=source_location_id,
+                    org_id=self.org_id
+                )
+            )
+            source_state_check = result.scalar_one_or_none()
+            
+            if source_state_check is None:
+                raise TransactionBadRequest(
+                    detail=f"SKU '{txn_payload.sku_code}' has no inventory at location '{txn_payload.location}'. "
+                        f"Cannot transfer from location with no inventory."
+                )
+            
             # 1. Calculate transfer unit cost from source location (returns int minor units)
             transfer_unit_cost_minor = await self.cost_tracker.calculate_cost_basis(
                 sku_code=txn_payload.sku_code,
-                location_id=await self._get_location_id(txn_payload.location),
+                location_id=source_location_id,
                 qty=txn_payload.qty
             )
             
