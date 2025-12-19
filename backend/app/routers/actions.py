@@ -30,7 +30,6 @@ def _build_transaction_response(txn, state) -> dict:
 @router.post("/receive")
 async def receive_stock(
     txn: ReceiveTxn,
-    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -39,14 +38,13 @@ async def receive_stock(
         session=db,
         org_id=current_user.org_id,
         user_id=current_user.id,
-        background_tasks=background_tasks
     )
 
     applied_txn, updated_state = await service.apply_transaction(txn)
     
-    await db.commit()
+    await service.check_low_stock_resolution()
     
-    service.schedule_low_stock_resolution()
+    await db.commit()
     
     return _build_transaction_response(applied_txn, updated_state)
 
@@ -54,7 +52,6 @@ async def receive_stock(
 @router.post("/ship")
 async def ship_stock(
     txn: ShipTxn,
-    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -70,14 +67,13 @@ async def ship_stock(
         session=db,
         org_id=current_user.org_id,
         user_id=current_user.id,
-        background_tasks=background_tasks
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
+    
+    await service.check_low_stock_threshold()
 
     await db.commit()
-
-    service.schedule_low_stock_check()
     
     return _build_transaction_response(applied_txn, updated_state)
 
@@ -102,13 +98,13 @@ async def adjust_stock(
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
+    
+    if txn.qty < 0:
+        await service.check_low_stock_threshold()
+    else:
+        await service.check_low_stock_resolution()
 
     await db.commit()
-
-    if txn.qty < 0:
-        service.schedule_low_stock_check()
-    else:
-        service.schedule_low_stock_resolution()
 
     return _build_transaction_response(applied_txn, updated_state)
 
@@ -134,10 +130,10 @@ async def reserve_stock(
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
+    
+    service.check_low_stock_threshold()
 
     await db.commit()
-    
-    service.schedule_low_stock_check()
     
     return _build_transaction_response(applied_txn, updated_state)
 
@@ -163,10 +159,10 @@ async def unreserve_stock(
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
+    
+    service.check_low_stock_resolution()
 
     await db.commit()
-    
-    service.schedule_low_stock_resolution()
     
     return _build_transaction_response(applied_txn, updated_state)
 
