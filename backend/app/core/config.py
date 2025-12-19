@@ -61,7 +61,7 @@ class Settings(BaseSettings):
     FROM_EMAIL: str
     FRONTEND_URL: str = "https://nooryx.com"
     SUPPORT_EMAIL: str = "support@nooryx.com"
-    CSRF_TOKEN_EXPIRE_MINUTES: int = 60
+    CSRF_TOKEN_EXPIRE_MINUTES: int = 60 * 24 * 14  # 14 days - matches refresh token
     CSRF_COOKIE_NAME: str = "csrf_token"
     CSRF_HEADER_NAME: str = "X-CSRF-Token"
     CSRF_ENABLED: bool = True

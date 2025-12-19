@@ -38,7 +38,7 @@ function getCsrfToken(): string | null {
   return csrfCookie.split('=')[1];
 }
 
-// Attempt to refresh the access token
+// Attempt to refresh the access token (and CSRF token)
 async function refreshAccessToken(): Promise<boolean> {
   try {
     const response = await fetch(`${BASE_URL}/auth/sessions/refresh`, {
@@ -46,20 +46,20 @@ async function refreshAccessToken(): Promise<boolean> {
       credentials: 'include',
       headers: {
         'Content-Type': 'application/json',
-        // Add CSRF token for refresh endpoint
-        ...(getCsrfToken() ? { 'X-CSRF-Token': getCsrfToken()! } : {}),
       },
     });
 
+    // The refresh endpoint sets both new access token AND new CSRF token in cookies
     return response.ok;
   } catch (error) {
+    console.error('Token refresh failed:', error);
     return false;
   }
 }
 
 // Redirect to login page
 function redirectToLogin() {
-  // Only redirect if we're in a protected route or on login page
+  // Only redirect if we're in a protected route
   if (typeof window !== 'undefined') {
     const pathname = window.location.pathname;
     const isProtectedRoute = pathname.startsWith('/core');
@@ -102,16 +102,72 @@ async function handle401<T>(
     const refreshSuccess = await refreshPromise;
 
     if (refreshSuccess) {
-      // Retry the original request
+      // Retry the original request with new tokens
       const result = await apiClient<T>(endpoint, { ...options, _isRetry: true });
       return result;
     } else {
       // Refresh failed - only redirect if this was an authenticated request
-      // This means they had a session but it's now invalid
       if (requiresAuth) {
         redirectToLogin();
       }
       throw new ApiError('Authentication failed', 401);
+    }
+  } finally {
+    isRefreshing = false;
+    refreshPromise = null;
+  }
+}
+
+// Handle 403 CSRF errors with token refresh and retry
+async function handle403Csrf<T>(
+  endpoint: string,
+  options: FetchOptions,
+  errorBody: any
+): Promise<T> {
+  const { _isRetry } = options;
+
+  // If this is already a retry, don't try again to prevent infinite loops
+  if (_isRetry) {
+    throw new ApiError(
+      'CSRF token validation failed after refresh. Please reload the page.',
+      403,
+      errorBody
+    );
+  }
+
+  // If we're already refreshing, wait for that to complete
+  if (isRefreshing && refreshPromise) {
+    const refreshSuccess = await refreshPromise;
+    if (refreshSuccess) {
+      // Retry the original request with fresh CSRF token
+      return apiClient(endpoint, { ...options, _isRetry: true });
+    } else {
+      throw new ApiError(
+        'Unable to refresh CSRF token. Please reload the page.',
+        403,
+        errorBody
+      );
+    }
+  }
+
+  // Start refresh process - this will get us a new CSRF token
+  isRefreshing = true;
+  refreshPromise = refreshAccessToken();
+
+  try {
+    const refreshSuccess = await refreshPromise;
+
+    if (refreshSuccess) {
+      // The refresh endpoint has set a new CSRF token cookie
+      // Retry the original request
+      const result = await apiClient<T>(endpoint, { ...options, _isRetry: true });
+      return result;
+    } else {
+      throw new ApiError(
+        'Unable to refresh CSRF token. Please reload the page.',
+        403,
+        errorBody
+      );
     }
   } finally {
     isRefreshing = false;
@@ -164,27 +220,13 @@ export async function apiClient<T = any>(
       redirectToLogin();
     }
 
-    // Handle CSRF errors with helpful message
+    // Handle CSRF errors with token refresh
     if (response.status === 403 && errorBody?.error?.type === 'csrf_error') {
-      // If CSRF token is missing or invalid, try refreshing to get a new one
-      if (!_isRetry) {
-        const refreshSuccess = await refreshAccessToken();
-        if (refreshSuccess) {
-          // Retry with fresh CSRF token
-          return apiClient<T>(endpoint, { ...options, _isRetry: true });
-        }
-      }
-      
-      // Only show error if retry also failed
-      throw new ApiError(
-        'Security token expired. Please refresh the page and try again.',
-        response.status,
-        errorBody
-      );
+      return handle403Csrf<T>(endpoint, options, errorBody);
     }
 
     throw new ApiError(
-      errorBody?.error.detail || errorBody?.error.message || `HTTP error ${response.status}`,
+      errorBody?.error?.detail || errorBody?.error?.message || `HTTP error ${response.status}`,
       response.status,
       errorBody
     );

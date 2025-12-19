@@ -11,6 +11,7 @@ from sqlalchemy import select, update, delete
 from typing import List
 from app.core.logger_config import logger
 import hashlib
+from app.core.auth.csrf_utils import create_csrf_token_with_timestamp
 
 router = APIRouter()
 
@@ -89,19 +90,21 @@ async def refresh(
     session: AsyncSession = Depends(get_session),
 ):
     """
-    Rotate refresh token and issue new access token.
+    Rotate refresh token and issue new access token and CSRF token.
     
     This endpoint implements refresh token rotation for enhanced security. When a valid
     refresh token is presented, it:
     1. Validates the token and checks for expiration/revocation
     2. Issues a new access token and refresh token
-    3. Invalidates the old refresh token (by updating the same DB row)
+    3. Issues a new CSRF token (if enabled)
+    4. Invalidates the old refresh token (by updating the same DB row)
     
     Security features:
     - Token rotation prevents replay attacks
     - Automatic breach detection: if a revoked/expired token is reused, all user sessions are terminated
     - Updates existing token row instead of creating new ones to prevent table bloat
     - Tracks last_used_at for session monitoring
+    - CSRF token is refreshed alongside access token to prevent expiration issues
     """
     raw = request.cookies.get(REFRESH_COOKIE_NAME)
     if not raw:
@@ -197,6 +200,19 @@ async def refresh(
         max_age=REFRESH_COOKIE_MAX_AGE,
         path="/",
     )
+
+    # Generate and set NEW CSRF token
+    if settings.CSRF_ENABLED:
+        csrf_token = create_csrf_token_with_timestamp()
+        response.set_cookie(
+            key=settings.CSRF_COOKIE_NAME,
+            value=csrf_token,
+            httponly=False,  # Must be readable by JS
+            secure=True,
+            samesite="lax",
+            max_age=settings.CSRF_TOKEN_EXPIRE_MINUTES * 60,
+            path="/",
+        )
 
     response.status_code = status.HTTP_204_NO_CONTENT
     return response
