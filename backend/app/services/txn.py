@@ -1,6 +1,6 @@
 from typing import Tuple, Optional
-from fastapi import BackgroundTasks
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, select
 from sqlalchemy.orm.exc import StaleDataError
 from uuid import UUID
@@ -18,7 +18,6 @@ from app.services.exceptions import (
     InsufficientStockError,
     CurrencyError
 )
-from app.core.db import async_session_maker
 from app.services.state_updater import StateUpdater
 from app.services.cost_tracker import CostTracker
 from app.services.currency_service import CurrencyService
@@ -45,7 +44,6 @@ class TransactionService:
         session: AsyncSession, 
         org_id: UUID,
         user_id: UUID | None = None,
-        background_tasks: Optional[BackgroundTasks] = None
     ):
         """
         Initialize transaction service for a specific organization.
@@ -63,7 +61,6 @@ class TransactionService:
         self.cost_tracker = CostTracker(session, org_id)
         self.currency_service = CurrencyService()
         self._org_currency: Optional[str] = None
-        self.background_tasks = background_tasks
         self._threshold_check_data: Optional[dict] = None
     
     async def _get_org_currency(self) -> str:
@@ -170,13 +167,17 @@ class TransactionService:
             # 4.5 Register barcode if provided
             if hasattr(txn_payload, 'barcode') and txn_payload.barcode:
                 if hasattr(txn_payload.barcode, 'value') and txn_payload.barcode.value:
-                    await link_barcode(
-                        db=self.session,
-                        org_id=self.org_id,
-                        value=txn_payload.barcode.value,
-                        sku_code=txn_payload.sku_code,
-                        format=getattr(txn_payload.barcode, 'format', None)
-                    )
+                    try:
+                        await link_barcode(
+                            db=self.session,
+                            org_id=self.org_id,
+                            value=txn_payload.barcode.value,
+                            sku_code=txn_payload.sku_code,
+                            format=getattr(txn_payload.barcode, 'format', None)
+                        )
+                    except IntegrityError:
+                        # Barcode already exists - ignore
+                        pass
             
             # 5. Update inventory state (may raise InsufficientStockError)
             try:
@@ -284,28 +285,72 @@ class TransactionService:
                     sku_code=txn_payload.sku_code
                 )
             
-            # Validate source location has inventory before attempting transfer
-            source_location_id = await self._get_location_id(txn_payload.location)
+            # 1. Get/create both locations first
+            source_location = await self._get_or_create_location(txn_payload.location)
+            target_location = await self._get_or_create_location(txn_payload.target_location)
+            
+            # 2. ATOMIC LOCK: Acquire locks on BOTH states in deterministic order to prevent deadlock
+            # Lock in location_id order to ensure consistent lock acquisition across concurrent transfers
+            lock_order = sorted([source_location.id, target_location.id])
+            
+            # Acquire first lock
             result = await self.session.execute(
                 select(State)
                 .filter_by(
                     sku_code=txn_payload.sku_code.upper(),
-                    location_id=source_location_id,
+                    location_id=lock_order[0],
                     org_id=self.org_id
                 )
+                .with_for_update()
             )
-            source_state_check = result.scalar_one_or_none()
+            state_1 = result.scalar_one_or_none()
             
-            if source_state_check is None:
+            # Acquire second lock
+            result = await self.session.execute(
+                select(State)
+                .filter_by(
+                    sku_code=txn_payload.sku_code.upper(),
+                    location_id=lock_order[1],
+                    org_id=self.org_id
+                )
+                .with_for_update()
+            )
+            state_2 = result.scalar_one_or_none()
+            
+            # Map back to source/target
+            if source_location.id == lock_order[0]:
+                source_state = state_1
+                target_state = state_2
+            else:
+                source_state = state_2
+                target_state = state_1
+            
+            # 3. Validate source location has inventory
+            if source_state is None:
                 raise TransactionBadRequest(
                     detail=f"SKU '{txn_payload.sku_code}' has no inventory at location '{txn_payload.location}'. "
                         f"Cannot transfer from location with no inventory."
                 )
             
-            # 1. Calculate transfer unit cost from source location (returns int minor units)
+            # 4. Create target state if it doesn't exist
+            if target_state is None:
+                target_state = State(
+                    sku_code=txn_payload.sku_code.upper(),
+                    location_id=target_location.id,
+                    org_id=self.org_id,
+                    on_hand=0,
+                    reserved=0
+                )
+                self.session.add(target_state)
+                await self.session.flush()
+            
+            # 5. Calculate org-wide available before transaction
+            available_before = await self._get_org_wide_available_before(txn_payload.sku_code)
+            
+            # 6. Calculate transfer unit cost from source location
             transfer_unit_cost_minor = await self.cost_tracker.calculate_cost_basis(
                 sku_code=txn_payload.sku_code,
-                location_id=source_location_id,
+                location_id=source_location.id,
                 qty=txn_payload.qty
             )
             
@@ -316,61 +361,95 @@ class TransactionService:
                 currency
             )
             
-            # 2. Create transfer_out transaction
-            transfer_out_payload = TransferOutTxn(
+            # 7. Create BOTH transaction records (not yet applied to state)
+            out_txn = Transaction(
+                org_id=self.org_id,
+                location_id=source_location.id,
+                sku_code=txn_payload.sku_code.upper(),
                 action="transfer_out",
-                sku_code=txn_payload.sku_code,
                 qty=-abs(txn_payload.qty),
-                location=txn_payload.location,
+                qty_before=source_state.on_hand,
+                created_by=self.user_id,
+                total_cost_minor=None,  # Will be set after consume_cost
                 txn_metadata={
                     **txn_payload.txn_metadata,
                     'target_location': txn_payload.target_location,
                     'transfer_cost_per_unit': float(transfer_unit_cost_display)
                 }
             )
+            self.session.add(out_txn)
+            await self.session.flush()
             
-            out_txn, source_state = await self.apply_transaction(transfer_out_payload)
-            
-            # 3. Convert minor units back to Decimal major units for transfer_in payload
-            # (apply_transaction will convert it back to minor units for storage)
-            transfer_unit_cost_major = self.currency_service.to_major_units(
-                transfer_unit_cost_minor,
-                currency
-            )
-
             txn_metadata = txn_payload.txn_metadata.copy()
             txn_metadata.pop('target_location', None)
             
-            # 4. Create transfer_in transaction with calculated cost AND sku_name
-            transfer_in_payload = TransferInTxn(
+            in_txn = Transaction(
+                org_id=self.org_id,
+                location_id=target_location.id,
+                sku_code=txn_payload.sku_code.upper(),
                 action="transfer_in",
-                sku_code=txn_payload.sku_code,
-                sku_name=sku_name,
                 qty=abs(txn_payload.qty),
-                location=txn_payload.target_location,
-                unit_cost_major=transfer_unit_cost_major,
-                alerts=getattr(txn_payload, 'alerts', True),
-                reorder_point=getattr(txn_payload, 'reorder_point', 10),
-                low_stock_threshold=getattr(txn_payload, 'low_stock_threshold', 10),
+                qty_before=target_state.on_hand,
+                created_by=self.user_id,
+                total_cost_minor=transfer_unit_cost_minor * abs(txn_payload.qty),
                 txn_metadata={
                     **txn_metadata,
                     'source_location': txn_payload.location,
                     'transfer_cost_per_unit': float(transfer_unit_cost_display)
                 }
             )
+            self.session.add(in_txn)
+            await self.session.flush()
             
-            # 4.5 Register barcode if provided
+            # 8. Register barcode if provided
             if hasattr(txn_payload, 'barcode') and txn_payload.barcode:
                 if hasattr(txn_payload.barcode, 'value') and txn_payload.barcode.value:
-                    await link_barcode(
-                        db=self.session,
-                        org_id=self.org_id,
-                        value=txn_payload.barcode.value,
-                        sku_code=txn_payload.sku_code,
-                        format=getattr(txn_payload.barcode, 'format', None)
-                    )
+                    try:
+                        await link_barcode(
+                            db=self.session,
+                            org_id=self.org_id,
+                            value=txn_payload.barcode.value,
+                            sku_code=txn_payload.sku_code,
+                            format=getattr(txn_payload.barcode, 'format', None)
+                        )
+                    except IntegrityError:
+                        # Barcode already exists - ignore
+                        pass
             
-            in_txn, target_state = await self.apply_transaction(transfer_in_payload)
+            # 9. Apply state updates for BOTH transactions atomically
+            try:
+                await self.state_updater.update_state(source_state, out_txn)
+            except TransactionBadRequest as e:
+                if "not enough" in str(e.detail).lower():
+                    raise InsufficientStockError(
+                        detail=str(e.detail),
+                        sku_code=txn_payload.sku_code,
+                        location=txn_payload.location,
+                        requested=abs(out_txn.qty),
+                        available=source_state.available,
+                        on_hand=source_state.on_hand,
+                        reserved=source_state.reserved
+                    )
+                raise
+            
+            await self.state_updater.update_state(target_state, in_txn)
+            
+            # 10. Handle cost tracking
+            # Consume cost from source
+            total_consumed_cost = await self.cost_tracker.consume_cost(out_txn)
+            if total_consumed_cost is not None and out_txn.qty != 0:
+                out_txn.total_cost_minor = total_consumed_cost
+            
+            # Record cost at target
+            await self.cost_tracker.record_cost(in_txn)
+            
+            # 11. Store threshold check data
+            available_after = available_before + out_txn.qty + in_txn.qty  # Net zero for transfers
+            self._threshold_check_data = {
+                'sku_code': txn_payload.sku_code,
+                'available_before': available_before,
+                'available_after': available_after
+            }
             
             return out_txn, in_txn, source_state, target_state
             
@@ -405,6 +484,7 @@ class TransactionService:
                 code=txn_payload.sku_code.upper(),
                 org_id=self.org_id
             )
+            .with_for_update()
         )
         sku = result.scalar_one_or_none()
         
@@ -454,12 +534,20 @@ class TransactionService:
         location = result.scalar_one_or_none()
         
         if not location:
-            location = Location(
-                name=location_name,
-                org_id=self.org_id
-            )
-            self.session.add(location)
-            await self.session.flush()
+            try:
+                location = Location(
+                    name=location_name,
+                    org_id=self.org_id
+                )
+                self.session.add(location)
+                await self.session.flush()
+            except IntegrityError:
+                # Another session created it
+                await self.session.rollback()
+                result = await self.session.execute(
+                    select(Location).filter_by(name=location_name, org_id=self.org_id)
+                )
+                location = result.scalar_one()
         
         return location
     
@@ -566,104 +654,56 @@ class TransactionService:
                 code=sku_code.upper(),
                 org_id=self.org_id
             )
+            .with_for_update()
         )
         sku_name = result.scalar_one_or_none()
         return (sku_name is not None, sku_name)
     
-    def schedule_low_stock_check(self) -> None:
+    
+    async def check_low_stock_threshold(self) -> None:
         """
-        Schedule a low stock check as a background task if threshold may have been crossed.
+        Check if SKU crossed reorder point threshold and create/update alert if needed.
         
-        This should be called AFTER the transaction is committed in the endpoint.
-        The check runs asynchronously and won't block the response.
+        This runs synchronously before the transaction is committed.
         """
-        if not self.background_tasks or not self._threshold_check_data:
+        if not self._threshold_check_data:
             return
         
-        # Extract check data
         check_data = self._threshold_check_data
         
-        # Schedule the check to run after response is sent
-        self.background_tasks.add_task(
-            self._perform_threshold_check,
-            check_data['sku_code'],
-            check_data['available_before'],
-            check_data['available_after']
-        )
-    
-    async def _perform_threshold_check(
-        self,
-        sku_code: str,
-        available_before: int,
-        available_after: int
-    ) -> None:
-        """
-        Background task that checks if SKU crossed reorder point threshold.
-        
-        This runs AFTER the HTTP response has been sent to the client.
-        Uses a new database session to avoid connection issues.
-        """
-        async with async_session_maker() as session:
-            try:
-                alert_service = AlertService(session, self.org_id)
-                await alert_service.check_sku_crossed_threshold(
-                    sku_code=sku_code,
-                    qty_before=available_before,
-                    qty_after=available_after
-                )
-                await session.commit()
-            except Exception as e:
-                # Log error but don't crash - this is a background task
-                logger.error(f"Error in threshold check for SKU {sku_code}: {e}")
-                await session.rollback()
+        try:
+            alert_service = AlertService(self.session, self.org_id)
+            await alert_service.check_sku_crossed_threshold(
+                sku_code=check_data['sku_code'],
+                qty_before=check_data['available_before'],
+                qty_after=check_data['available_after']
+            )
+        except Exception as e:
+            logger.error(f"Error in threshold check for SKU {check_data['sku_code']}: {e}")
+            # Don't raise - alert failures shouldn't block transactions
 
-    
-    def schedule_low_stock_resolution(self) -> None:
+
+    async def check_low_stock_resolution(self) -> None:
         """
-        Schedule a low stock resolution check as a background task.
+        Check if SKU crossed back above reorder point threshold and resolve alert if needed.
         
-        This should be called AFTER the transaction is committed in the endpoint.
-        The check runs asynchronously and won't block the response.
+        This runs synchronously before the transaction is committed.
         """
-        if not self.background_tasks or not self._threshold_check_data:
+        if not self._threshold_check_data:
             return
         
-        # Extract check data
         check_data = self._threshold_check_data
         
-        # Schedule the resolution check to run after response is sent
-        self.background_tasks.add_task(
-            self._perform_threshold_resolution,
-            check_data['sku_code'],
-            check_data['available_before'],
-            check_data['available_after']
-        )
-
-    async def _perform_threshold_resolution(
-        self,
-        sku_code: str,
-        available_before: int,
-        available_after: int
-    ) -> None:
-        """
-        Background task that checks if SKU crossed back above reorder point threshold.
-        
-        This runs AFTER the HTTP response has been sent to the client.
-        Uses a new database session to avoid connection issues.
-        """
-        async with async_session_maker() as session:
-            try:
-                alert_service = AlertService(session, self.org_id)
-                await alert_service.resolve_sku_threshold(
-                    sku_code=sku_code,
-                    qty_before=available_before,
-                    qty_after=available_after
-                )
-                await session.commit()
-            except Exception as e:
-                # Log error but don't crash - this is a background task
-                logger.error(f"Error in threshold resolution for SKU {sku_code}: {e}")
-                await session.rollback()
+        try:
+            alert_service = AlertService(self.session, self.org_id)
+            await alert_service.resolve_sku_threshold(
+                sku_code=check_data['sku_code'],
+                qty_before=check_data['available_before'],
+                qty_after=check_data['available_after']
+            )
+        except Exception as e:
+            logger.error(f"Error in threshold resolution for SKU {check_data['sku_code']}: {e}")
+            # Don't raise - alert failures shouldn't block transactions
     
     
     async def _get_org_wide_available_before(self, sku_code: str) -> int:
