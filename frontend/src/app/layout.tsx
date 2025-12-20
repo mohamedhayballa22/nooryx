@@ -36,7 +36,7 @@ export default function RootLayout({
               search={{
                 options: {
                   type: 'static',
-                  api: '/docs-search',
+                  api: '/docs-search.json',
                 },
               }}
             >
