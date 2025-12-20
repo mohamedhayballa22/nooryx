@@ -1,6 +1,6 @@
 from decimal import Decimal, ROUND_HALF_UP
 from functools import lru_cache
-from babel.numbers import get_currency_precision
+from babel.numbers import get_currency_precision, list_currencies
 
 from app.services.exceptions import CurrencyError
 
@@ -32,14 +32,18 @@ class CurrencyService:
         Raises:
             CurrencyError: If currency code is invalid
         """
-        try:
-            precision = get_currency_precision(currency_code)
-            return 10 ** precision
-        except Exception as e:
+        
+        VALID_CURRENCIES = frozenset(list_currencies())
+        
+        # Validate currency code exists in Babel's currency data
+        if currency_code not in VALID_CURRENCIES:
             raise CurrencyError(
-                detail=f"Invalid currency code '{currency_code}': {str(e)}",
+                detail=f"Unknown currency code '{currency_code}'",
                 currency_code=currency_code
             )
+        
+        precision = get_currency_precision(currency_code)
+        return 10 ** precision
     
     @classmethod
     def to_minor_units(cls, amount: Decimal, currency_code: str) -> int:
