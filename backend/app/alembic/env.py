@@ -30,8 +30,10 @@ target_metadata = Base.metadata
 # can be acquired:
 # my_important_option = config.get_main_option("my_important_option")
 # ... etc.
-database_url = settings.DATABASE_URL
-config.set_main_option("sqlalchemy.url", database_url)
+current_url = config.get_main_option("sqlalchemy.url")
+if not current_url or current_url == "%(DATABASE_URL)s":
+    from app.core.config import settings
+    config.set_main_option("sqlalchemy.url", str(settings.DATABASE_URL))
 
 
 def run_migrations_offline() -> None:
