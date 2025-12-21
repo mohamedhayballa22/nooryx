@@ -96,10 +96,10 @@ async def get_transactions(
     sort_by: Optional[str] = Query(
         "created_at",
         description="Sort by field",
-        regex="^(created_at|action|sku_code|location|qty)$",
+        patterns="^(created_at|action|sku_code|location|qty)$",
     ),
     order: Optional[str] = Query(
-        "desc", description="Sort order", regex="^(asc|desc)$"
+        "desc", description="Sort order", patterns="^(asc|desc)$"
     ),
 ):
     """

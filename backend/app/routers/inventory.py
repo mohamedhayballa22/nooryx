@@ -45,9 +45,9 @@ async def get_inventory(
     sort_by: Optional[str] = Query(
         "sku_code",
         description="Sort by field",
-        regex="^(sku_code|name|location|available|status)$",
+        patterns="^(sku_code|name|location|available|status)$",
     ),
-    order: Optional[str] = Query("asc", description="Sort order", regex="^(asc|desc)$"),
+    order: Optional[str] = Query("asc", description="Sort order", patterns="^(asc|desc)$"),
 ):
     """
     Returns list of current inventory with stock status across all SKUs 
