@@ -1,7 +1,7 @@
 """
 Pydantic schemas for Shopify integration API.
 """
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from datetime import datetime
 from typing import Optional
 from uuid import UUID
@@ -55,8 +55,9 @@ class ShopifyIntegrationResponse(BaseModel):
     last_synced_at: Optional[datetime] = None
     webhooks_installed: bool
     
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 
 class ShopifyDisconnectResponse(BaseModel):

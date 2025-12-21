@@ -1,4 +1,4 @@
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from typing import Optional, Dict, Any, List
 from datetime import datetime
 
@@ -17,8 +17,9 @@ class TransactionItem(BaseModel):
     qty_after: int
     metadata: Optional[Dict[str, Any]] = None
 
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 class LatestTransactionsResponse(BaseModel):
     """Response model for fetching the most recent transactions."""

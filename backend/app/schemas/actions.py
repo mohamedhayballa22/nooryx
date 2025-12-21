@@ -1,4 +1,4 @@
-from pydantic import BaseModel, Field, field_validator
+from pydantic import BaseModel, Field, field_validator, ConfigDict
 from typing import Optional, Dict, Any, Literal
 from decimal import Decimal
 
@@ -57,7 +57,7 @@ class ShipTxn(BaseTxn):
 class AdjustTxn(BaseTxn):
     """Adjust inventory (correction, damage, etc)."""
     action: Literal["adjust"] = "adjust"
-    qty: int = Field(..., ne=0, description="Adjustment delta (positive or negative)")
+    qty: int = Field(..., json_schema_extra={'ne': 10}, description="Adjustment delta (positive or negative)")
     txn_metadata: Dict[str, Any] = Field(..., description="Must include 'reason' field")
     unit_cost_major: Optional[Decimal] = Field(None, description="Cost price per unit")
     
@@ -108,8 +108,9 @@ class TransferTxn(BaseModel):
         description="Optional metadata (notes, reference, etc.)"
     )
     
-    class Config:
+    model_config = ConfigDict(
         populate_by_name = True
+    )
     
 
 class TransferOutTxn(BaseModel):
@@ -129,8 +130,9 @@ class TransferOutTxn(BaseModel):
         description="Transfer metadata target_location"
     )
     
-    class Config:
+    model_config = ConfigDict(
         populate_by_name = True
+    )
 
 
 class TransferInTxn(BaseModel):
@@ -157,6 +159,7 @@ class TransferInTxn(BaseModel):
         description="Transfer metadata including source_location"
     )
     
-    class Config:
+    model_config = ConfigDict(
         populate_by_name = True
+    )
         

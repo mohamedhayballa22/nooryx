@@ -3,7 +3,7 @@ from app.services.barcodes import link_barcode
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from app.core.auth.dependencies import get_current_user
 from app.core.auth.tenant_dependencies import get_tenant_session
 from app.models import User, SKU, Barcode
@@ -18,8 +18,9 @@ class LookupResponse(BaseModel):
     low_stock_threshold: int
     reorder_point: int
     
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 @router.get("/lookup", response_model=Optional[LookupResponse])
 async def lookup_barcode(

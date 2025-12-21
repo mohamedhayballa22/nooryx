@@ -1,5 +1,5 @@
 from typing import Optional
-from pydantic import BaseModel
+from pydantic import BaseModel, ConfigDict
 from app.schemas.common import OnHandValue
 
 class InventoryItemResponse(BaseModel):
@@ -11,8 +11,9 @@ class InventoryItemResponse(BaseModel):
     last_transaction: str
     status: str
 
-    class Config:
+    model_config = ConfigDict(
         from_attributes = True
+    )
 
 class InventorySummary(BaseModel):
     """A summary of quantities for a SKU at one or more locations."""
