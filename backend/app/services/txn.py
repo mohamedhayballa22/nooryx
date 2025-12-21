@@ -608,7 +608,7 @@ class TransactionService:
             unit_cost_minor: Unit Cost price already converted to minor units (int)
             
         Returns:
-            Persisted Transaction instance with unit_cost_minor in minor units
+            Persisted Transaction instance
         """
         txn_dict = txn_payload.model_dump(exclude={
             'location', 
