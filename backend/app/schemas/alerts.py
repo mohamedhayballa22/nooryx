@@ -74,7 +74,7 @@ class LowStockItem(BaseModel):
     """Internal schema for low stock detection."""
     sku_code: str
     sku_name: str
-    available: int
+    available: float
     reorder_point: int
     
     @property
