@@ -36,15 +36,6 @@ class CostTracker:
         order_by=None,
         lock: bool = False
     ):
-        """
-        Reusable query builder for active cost layers.
-        
-        Args:
-            sku_code: SKU identifier
-            location_id: Location UUID
-            order_by: Optional ordering clause
-            lock: If True, acquire FOR UPDATE lock on rows (critical for consumption)
-        """
         query = (
             select(CostRecord)
             .filter_by(
@@ -54,10 +45,13 @@ class CostTracker:
             )
             .filter(CostRecord.qty_remaining > 0)
         )
-        if order_by is not None:
-            query = query.order_by(order_by)
         
-        # Lock cost records before consumption to prevent race conditions
+        if order_by is not None:
+            if isinstance(order_by, list):
+                query = query.order_by(*order_by) # Unpack list for multiple columns
+            else:
+                query = query.order_by(order_by)
+        
         if lock:
             query = query.with_for_update()
         
@@ -158,8 +152,9 @@ class CostTracker:
         cost_records = await self._get_cost_records(
             txn.sku_code, 
             txn.location_id, 
-            order_by=CostRecord.created_at.asc(),
-            lock=True  # Lock before consumption
+            # Sort by oldest time, then oldest ID
+            order_by=[CostRecord.created_at.asc(), CostRecord.id.asc()], 
+            lock=True
         )
         return await self._consume_from_records(cost_records, units)
 
@@ -171,8 +166,9 @@ class CostTracker:
         cost_records = await self._get_cost_records(
             txn.sku_code, 
             txn.location_id, 
-            order_by=CostRecord.created_at.desc(),
-            lock=True  # Lock before consumption
+            # Sort by newest time, then newest ID
+            order_by=[CostRecord.created_at.desc(), CostRecord.id.desc()], 
+            lock=True
         )
         return await self._consume_from_records(cost_records, units)
 
