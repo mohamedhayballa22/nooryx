@@ -1,7 +1,6 @@
 from datetime import date, datetime
 from typing import List, Optional
-from pydantic import BaseModel, ConfigDict
-from decimal import Decimal
+from pydantic import BaseModel, field_serializer
 
 from  app.schemas.common import TrendPoint
 
@@ -10,21 +9,21 @@ class InventoryValuationRow(BaseModel):
     sku_code: str
     name: str
     total_qty: int
-    avg_cost: Decimal
-    total_value: Decimal
+    avg_cost: float
+    total_value: float
     currency: str
     
 
 class ValuationHeader(BaseModel):
-    total_value: Decimal
+    total_value: float
     currency: str
     method: str
     method_full_name: str
-    timestamp: str
+    timestamp: datetime
 
-    model_config = ConfigDict(
-        json_encoders={Decimal: float}
-    )
+    @field_serializer('timestamp')
+    def serialize_dt(self, dt: datetime):
+        return dt.isoformat()
 
 
 class COGSResponse(BaseModel):
