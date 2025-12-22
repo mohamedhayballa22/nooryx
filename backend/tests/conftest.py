@@ -1,4 +1,3 @@
-# conftest.py
 import asyncio
 import pytest
 import pytest_asyncio
@@ -7,6 +6,7 @@ from alembic.config import Config
 from alembic import command
 from app.models import Organization
 from app.services.txn import TransactionService
+from uuid6 import uuid7
 
 TEST_DATABASE_URL = "postgresql+asyncpg://souleymane:postgres@localhost:5432/test_db"
 
@@ -31,28 +31,30 @@ async def upgrade_database(alembic_config):
 @pytest_asyncio.fixture
 async def db_session():
     """Provides an isolated async session for each test with transaction rollback."""
-    engine = create_async_engine(TEST_DATABASE_URL)
+    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
     
-    async with engine.begin() as conn:
+    # Create a connection
+    async with engine.connect() as conn:
         # Start a transaction
-        async with async_sessionmaker(
-            bind=conn,
-            expire_on_commit=False,
-            class_=AsyncSession
-        )() as session:
-            # Begin a nested transaction
-            await conn.begin_nested()
-            
-            yield session
-            
-            # Rollback everything after the test
-            await session.rollback()
+        trans = await conn.begin()
+        
+        # Create session bound to the connection
+        session = AsyncSession(bind=conn, expire_on_commit=False)
+        
+        yield session
+        
+        # Rollback the transaction (this removes all test data)
+        await session.close()
+        await trans.rollback()
     
     await engine.dispose()
-    
+
 @pytest_asyncio.fixture
 async def session_factory():
-    """Provides a session factory for concurrent operations."""
+    """
+    Provides a session factory for concurrent operations.
+    Automatically tracks and cleans up all organizations created during the test.
+    """
     engine = create_async_engine(TEST_DATABASE_URL)
     
     factory = async_sessionmaker(
@@ -61,7 +63,51 @@ async def session_factory():
         class_=AsyncSession
     )
     
-    yield factory
+    # Track all org_ids created during this test
+    created_org_ids = set()
+    
+    # Wrap the factory to track Organization inserts
+    class TrackingSessionFactory:
+        def __call__(self):
+            return self._create_tracking_session()
+        
+        async def __aenter__(self):
+            session = factory()
+            return await self._wrap_session(session).__aenter__()
+        
+        async def __aexit__(self, *args):
+            pass
+        
+        def _create_tracking_session(self):
+            return self._wrap_session(factory())
+        
+        def _wrap_session(self, session):
+            original_commit = session.commit
+            
+            async def tracking_commit():
+                # Before commit, capture any new Organization instances
+                for obj in session.new:
+                    if isinstance(obj, Organization):
+                        # Flush to get the ID if needed
+                        await session.flush()
+                        created_org_ids.add(obj.org_id)
+                
+                return await original_commit()
+            
+            session.commit = tracking_commit
+            return session
+    
+    tracking_factory = TrackingSessionFactory()
+    
+    yield tracking_factory
+    
+    # Cleanup: Delete all tracked organizations (cascades to related data)
+    if created_org_ids:
+        async with engine.begin() as conn:
+            from sqlalchemy import delete
+            await conn.execute(
+                delete(Organization).where(Organization.org_id.in_(created_org_ids))
+            )
     
     await engine.dispose()
 
@@ -75,8 +121,47 @@ def create_org(db_session):
         )
         db_session.add(org)
         await db_session.flush()
-        # Don't commit here - let the session handle it
         return org
+    return _create
+
+@pytest_asyncio.fixture
+async def create_sku(db_session, create_org):
+    from app.models import SKU
+    
+    async def _create(
+        org,
+        code: str = "TEST-SKU",
+        name: str = "Test SKU",
+        sku: str = None,
+        reorder_point: int = 0,
+        alerts: bool = False,
+    ):
+        if sku is None:
+            sku = str(uuid7())
+        new_sku = SKU(
+            name=name,
+            code=sku,
+            org_id=org.org_id,
+            reorder_point=reorder_point,
+            alerts=alerts,
+        )
+        db_session.add(new_sku)
+        await db_session.flush()
+        return new_sku
+    return _create
+
+@pytest_asyncio.fixture
+async def create_location(db_session, create_org):
+    from app.models import Location
+    
+    async def _create(org, name: str = "Test Location"):
+        location = Location(
+            name=name,
+            org_id=org.org_id
+        )
+        db_session.add(location)
+        await db_session.flush()
+        return location
     return _create
 
 @pytest.fixture
