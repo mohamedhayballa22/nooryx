@@ -642,7 +642,6 @@ class TestCostTracking:
     @pytest.mark.asyncio
     async def test_positive_adjustment_uses_last_known_cost_when_stock_zero(
         self,
-        db_session,
         create_org,
         txn_service,
     ):
