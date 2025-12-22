@@ -1,6 +1,6 @@
 from typing import Optional, List, Dict, Tuple
 from datetime import date, datetime, timedelta, timezone
-from sqlalchemy import select
+from sqlalchemy import select, func, cast, Date, desc
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.schemas.common import TrendPoint
@@ -15,40 +15,56 @@ async def get_inventory_trend_points(
 ) -> Tuple[List[TrendPoint], Optional[date]]:
     """
     Get historical on-hand inventory trend points with interpolation (no extrapolation).
-
-    Args:
-        db: Database session
-        period_days: Number of days to retrieve
-        sku_code: Optional SKU code. If None, aggregates across all SKUs.
-        location_name: Optional location name. If None, aggregates across all locations.
-
-    Returns:
-        Tuple of (trend_points, oldest_data_point)
+    
+    Optimized to fetch only the last transaction per day from the DB to prevent OOM.
     """
     start_date = datetime.now(timezone.utc).date() - timedelta(days=period_days - 1)
     today = datetime.now(timezone.utc).date()
 
-    # Build base query
-    query = (
-        select(Transaction)
+    # 1. Subquery to identify the latest transaction per day per SKU per Location
+    rank_stmt = (
+        select(
+            Transaction.id,
+            Transaction.sku_code,
+            Transaction.location_id,
+            Transaction.qty,
+            Transaction.qty_before,
+            Transaction.action,
+            Transaction.created_at,
+            func.row_number().over(
+                partition_by=[
+                    cast(Transaction.created_at, Date),
+                    Transaction.sku_code,
+                    Transaction.location_id
+                ],
+                order_by=[desc(Transaction.created_at), desc(Transaction.id)]
+            ).label("rn")
+        )
         .join(Location, Transaction.location_id == Location.id)
-        .order_by(Transaction.created_at)
     )
 
-    # Apply filters
+    # Apply filters early in the subquery to minimize scanned rows
     if sku_code is not None:
-        query = query.where(Transaction.sku_code == sku_code)
-
+        rank_stmt = rank_stmt.where(Transaction.sku_code == sku_code)
     if location_name is not None:
-        query = query.where(Location.name == location_name)
+        rank_stmt = rank_stmt.where(Location.name == location_name)
+
+    rank_subq = rank_stmt.subquery()
+
+    # 2. Final query: Get only the 'rn=1' (the last transaction of each day)
+    query = (
+        select(rank_subq)
+        .where(rank_subq.c.rn == 1)
+        .order_by(rank_subq.c.created_at, rank_subq.c.id)
+    )
 
     result = await db.execute(query)
-    transactions = result.scalars().all()
+    transactions = result.all()
 
     if not transactions:
         return [], None
 
-    # Find the earliest transaction date
+    # Find the earliest transaction date (first row because of order_by)
     earliest_txn_date = transactions[0].created_at.date()
 
     # Adjust start_date to not go before earliest transaction (no extrapolation)
@@ -70,7 +86,7 @@ async def get_inventory_trend_points(
 
 
 def _build_daily_on_hand(
-    transactions: List[Transaction],
+    transactions: List[any],
     today: date,
     location_name: Optional[str]
 ) -> Dict[date, int]:
@@ -79,21 +95,18 @@ def _build_daily_on_hand(
     Handles both single location and multi-location aggregation.
     """
     if location_name is not None:
-        # Single location - aggregate across SKUs (if multiple)
         return _build_single_location_daily_on_hand(transactions, today)
     else:
-        # Multiple locations - aggregate across locations and SKUs
         return _build_multi_location_daily_on_hand(transactions, today)
 
 
 def _build_single_location_daily_on_hand(
-    transactions: List[Transaction],
+    transactions: List[any],
     today: date
 ) -> Dict[date, int]:
     """Build daily on-hand for a single location, aggregating across SKUs."""
     sku_daily_on_hand = {}
 
-    # Group transactions by SKU
     for txn in transactions:
         txn_date = txn.created_at.date()
         sku_code = txn.sku_code
@@ -101,6 +114,8 @@ def _build_single_location_daily_on_hand(
         if sku_code not in sku_daily_on_hand:
             sku_daily_on_hand[sku_code] = {}
 
+        # Logic: If it was a reserve action, the on_hand is just qty_before.
+        # Otherwise, on_hand is what was there + the change.
         if txn.action in ["reserve", "unreserve"]:
             on_hand = txn.qty_before
         else:
@@ -108,7 +123,6 @@ def _build_single_location_daily_on_hand(
 
         sku_daily_on_hand[sku_code][txn_date] = on_hand
 
-    # Get all transaction dates
     all_dates = set()
     for sku_data in sku_daily_on_hand.values():
         all_dates.update(sku_data.keys())
@@ -117,22 +131,17 @@ def _build_single_location_daily_on_hand(
         return {}
 
     earliest_date = min(all_dates)
-
-    # Build interpolated series per SKU
     sku_series = _interpolate_series_per_key(sku_daily_on_hand, earliest_date, today)
-
-    # Aggregate across SKUs
     return _aggregate_series(sku_series, earliest_date, today)
 
 
 def _build_multi_location_daily_on_hand(
-    transactions: List[Transaction],
+    transactions: List[any],
     today: date
 ) -> Dict[date, int]:
     """Build daily on-hand for multiple locations and SKUs."""
     location_sku_daily_on_hand = {}
 
-    # Group transactions by (location_id, sku_code)
     for txn in transactions:
         txn_date = txn.created_at.date()
         key = (txn.location_id, txn.sku_code)
@@ -147,7 +156,6 @@ def _build_multi_location_daily_on_hand(
 
         location_sku_daily_on_hand[key][txn_date] = on_hand
 
-    # Get all transaction dates
     all_dates = set()
     for combo_data in location_sku_daily_on_hand.values():
         all_dates.update(combo_data.keys())
@@ -156,11 +164,7 @@ def _build_multi_location_daily_on_hand(
         return {}
 
     earliest_date = min(all_dates)
-
-    # Build interpolated series per location-SKU combination
     combo_series = _interpolate_series_per_key(location_sku_daily_on_hand, earliest_date, today)
-
-    # Aggregate across all combinations
     return _aggregate_series(combo_series, earliest_date, today)
 
 
@@ -169,9 +173,7 @@ def _interpolate_series_per_key(
     earliest_date: date,
     today: date
 ) -> Dict[any, Dict[date, int]]:
-    """
-    Build interpolated time series for each key (SKU, location-SKU combo, etc.).
-    """
+    """Build interpolated time series for each key (SKU, location-SKU combo, etc.)."""
     series = {}
 
     for key, daily in key_daily_on_hand.items():
@@ -201,9 +203,7 @@ def _aggregate_series(
     earliest_date: date,
     today: date
 ) -> Dict[date, int]:
-    """
-    Aggregate multiple time series into a single daily on-hand dictionary.
-    """
+    """Aggregate multiple time series into a single daily on-hand dictionary."""
     daily_on_hand = {}
     current_date = earliest_date
 
@@ -229,9 +229,7 @@ def _interpolate_trend_points(
     start_date: date,
     today: date
 ) -> List[TrendPoint]:
-    """
-    Generate interpolated trend points for the requested period.
-    """
+    """Generate interpolated trend points for the requested period."""
     points = []
     last_known_on_hand = None
 
@@ -242,7 +240,6 @@ def _interpolate_trend_points(
         else:
             break
 
-    # Generate points for the period
     current_date = start_date
     while current_date <= today:
         if current_date in daily_on_hand:

@@ -26,6 +26,7 @@ from app.models import Location, Transaction, State, SKU
 
 
 async def get_top_skus_by_criteria(
+    org_id: str,
     db: AsyncSession,
     location: Optional[str] = None,
     period: str = "7d",
@@ -50,13 +51,13 @@ async def get_top_skus_by_criteria(
     cutoff_date = _parse_period_to_cutoff(period)
     
     # Get location info
-    location_id, single_location_name = await _resolve_location(db, location)
+    location_id, single_location_name = await _resolve_location(org_id, db, location)
     
     # Get SKU data based on criteria
     if inactives:
-        sku_data_list = await _get_inactive_skus(db, location_id, cutoff_date, limit)
+        sku_data_list = await _get_inactive_skus(org_id, db, location_id, cutoff_date, limit)
     else:
-        sku_data_list = await _get_top_movers(db, location_id, cutoff_date, limit)
+        sku_data_list = await _get_top_movers(org_id, db, location_id, cutoff_date, limit)
     
     # Determine response location
     response_location = location if location else single_location_name
@@ -81,6 +82,7 @@ def _parse_period_to_cutoff(period: str) -> datetime:
 
 
 async def _resolve_location(
+    org_id: str,
     db: AsyncSession,
     location: Optional[str]
 ) -> tuple[Optional[str], Optional[str]]:
@@ -95,19 +97,19 @@ async def _resolve_location(
     
     # Get location_id if location is provided
     if location:
-        location_stmt = select(Location.id).where(Location.name == location)
+        location_stmt = select(Location.id).where(and_(Location.name == location, Location.org_id == org_id))
         location_result = await db.execute(location_stmt)
         location_row = location_result.first()
         if location_row:
             location_id = str(location_row[0])  # Convert UUID to string
     
     # Check if only one location exists for auto-assignment
-    total_locations_stmt = select(func.count(Location.id))
+    total_locations_stmt = select(func.count(Location.id)).where(Location.org_id == org_id)
     total_locations_result = await db.execute(total_locations_stmt)
     total_locations = total_locations_result.scalar() or 0
     
     if total_locations == 1 and not location:
-        single_location_stmt = select(Location.name)
+        single_location_stmt = select(Location.name).where(Location.org_id == org_id)
         single_location_result = await db.execute(single_location_stmt)
         single_location_row = single_location_result.first()
         if single_location_row:
@@ -117,6 +119,7 @@ async def _resolve_location(
 
 
 async def _get_top_movers(
+    org_id: str,
     db: AsyncSession,
     location_id: Optional[str],
     cutoff_date: datetime,
@@ -126,7 +129,8 @@ async def _get_top_movers(
     # Build movement query
     movement_conditions = [
         Transaction.is_outbound,
-        Transaction.created_at >= cutoff_date
+        Transaction.created_at >= cutoff_date,
+        Transaction.org_id == org_id
     ]
     if location_id:
         movement_conditions.append(Transaction.location_id == location_id)
@@ -149,7 +153,7 @@ async def _get_top_movers(
         return []
     
     # Get inventory state for these SKUs
-    state_map = await _get_inventory_state(db, location_id, top_sku_codes)
+    state_map = await _get_inventory_state(org_id, db, location_id, top_sku_codes)
     
     # Build response maintaining order from movement query
     return [
@@ -164,65 +168,90 @@ async def _get_top_movers(
 
 
 async def _get_inactive_skus(
+    org_id: str,
     db: AsyncSession,
     location_id: Optional[str],
     cutoff_date: datetime,
     limit: int
 ) -> List[Dict[str, Any]]:
-    """Get top SKUs with no recent outbound movement."""
-    # Get last outbound transaction date for each SKU
-    last_activity_conditions = [Transaction.is_outbound]
-    if location_id:
-        last_activity_conditions.append(Transaction.location_id == location_id)
-    
-    last_activity_stmt = (
+    """
+    Get top SKUs with no recent outbound movement.
+    """
+    # 1. Subquery for last outbound activity per SKU
+    last_activity_sub = (
         select(
             Transaction.sku_code,
             func.max(Transaction.created_at).label("last_outbound")
         )
-        .where(and_(*last_activity_conditions))
-        .group_by(Transaction.sku_code)
+        .where(Transaction.is_outbound == True,
+               Transaction.org_id == org_id,)
     )
     
-    last_activity_result = await db.execute(last_activity_stmt)
-    sku_last_activity = {row.sku_code: row.last_outbound for row in last_activity_result.all()}
+    if location_id:
+        last_activity_sub = last_activity_sub.where(Transaction.location_id == location_id)
     
-    # Get inventory state for all SKUs
-    state_map = await _get_inventory_state(db, location_id)
+    last_activity_sub = last_activity_sub.group_by(Transaction.sku_code).subquery()
+
+    # 2. Main Query: Join SKU + State + Last Activity Subquery
+    stmt = (
+        select(
+            SKU.code.label("sku_code"),
+            SKU.name.label("sku_name"),
+            SKU.low_stock_threshold,
+            # Aggregate available if no location_id, otherwise take direct value
+            func.sum(State.available).label("available") if not location_id else State.available,
+            last_activity_sub.c.last_outbound
+        )
+        .join(State, SKU.code == State.sku_code)
+        .join(last_activity_sub, SKU.code == last_activity_sub.c.sku_code, isouter=True)
+    )
+
+    # 3. Filters
+    conditions = []
+    if location_id:
+        conditions.append(State.location_id == location_id)
     
-    # Filter and sort by inactivity period
-    inactive_skus = []
-    for sku_code, state in state_map.items():
-        last_activity = sku_last_activity.get(sku_code)
-        
-        # SKUs with no activity or haven't been active in the period
-        if last_activity is None or last_activity < cutoff_date:
-            inactive_skus.append({
-                'sku_code': sku_code,
-                'sku_name': state['sku_name'],
-                'available': state['available'],
-                'low_stock_threshold': state['low_stock_threshold'],
-                'last_activity': last_activity
-            })
-    
-    # Sort by last_activity (oldest first), never-active SKUs at the end
-    # Use timezone-aware minimum datetime for comparison
-    min_datetime = datetime.min.replace(tzinfo=timezone.utc)
-    inactive_skus.sort(
-        key=lambda x: x['last_activity'] if x['last_activity'] is not None else min_datetime
+    # Inactive Filter: Never sold (None) OR sold before cutoff
+    conditions.append(
+        (last_activity_sub.c.last_outbound == None) | 
+        (last_activity_sub.c.last_outbound < cutoff_date)
     )
     
-    return inactive_skus[:limit]
+    stmt = stmt.where(and_(*conditions))
+
+    # 4. Grouping (Required for sum calculation)
+    if not location_id:
+        stmt = stmt.group_by(SKU.code, SKU.name, SKU.low_stock_threshold, last_activity_sub.c.last_outbound)
+
+    # 5. Sorting: Oldest movement first, Never-sold (NULLs) last
+    stmt = stmt.order_by(
+        last_activity_sub.c.last_outbound.is_(None),  # Falses (has date) come before Trues (None)
+        last_activity_sub.c.last_outbound.asc()
+    ).limit(limit)
+
+    result = await db.execute(stmt)
+    
+    return [
+        {
+            'sku_code': row.sku_code,
+            'sku_name': row.sku_name,
+            'available': row.available,
+            'low_stock_threshold': row.low_stock_threshold,
+            'last_activity': row.last_outbound
+        }
+        for row in result.all()
+    ]
 
 
 async def _get_inventory_state(
+    org_id: str,
     db: AsyncSession,
     location_id: Optional[str],
     sku_codes: Optional[List[str]] = None
 ) -> Dict[str, Dict[str, Any]]:
     """Get inventory state including SKU-specific low stock thresholds."""
     if location_id:
-        state_conditions = [State.location_id == location_id]
+        state_conditions = [State.location_id == location_id, State.org_id == org_id]
         if sku_codes:
             state_conditions.append(State.sku_code.in_(sku_codes))
         
@@ -244,6 +273,7 @@ async def _get_inventory_state(
                 SKU.low_stock_threshold,
                 func.sum(State.available).label("available")
             )
+            .where(State.org_id == org_id)
             .join(SKU, State.sku_code == SKU.code)
             .group_by(State.sku_code, SKU.name, SKU.low_stock_threshold)
         )
@@ -272,6 +302,7 @@ def determine_stock_status(available: int, low_stock_threshold: int) -> str:
 
 
 async def get_fast_movers_with_stock_condition(
+    org_id: str,
     db: AsyncSession,
     available_min: int,
     available_max: Optional[int] = None,
@@ -279,7 +310,6 @@ async def get_fast_movers_with_stock_condition(
     check_low_stock: bool = False
 ) -> Optional[List[str]]:
     """
-    Get top SKUs with highest outbound movement that meet stock availability criteria.
     Aggregates availability across all locations per SKU.
 
     Args:
@@ -293,43 +323,52 @@ async def get_fast_movers_with_stock_condition(
     Returns:
         List of SKU codes or None if no results
     """
-    if check_low_stock:
-        # Subquery: Get SKUs where available is between available_min and their low_stock_threshold
-        stock_condition_subquery = (
-            select(State.sku_code)
-            .join(SKU, State.sku_code == SKU.code)
-            .group_by(State.sku_code, SKU.low_stock_threshold)
-            .having(
-                and_(
-                    func.sum(State.available) >= available_min,
-                    func.sum(State.available) < SKU.low_stock_threshold,
-                )
-            )
-        ).subquery()
-    else:
-        # Subquery: Get SKUs matching stock criteria (fixed range)
-        having_conditions = [func.sum(State.available) >= available_min]
-        if available_max is not None:
-            having_conditions.append(func.sum(State.available) <= available_max)
-        
-        stock_condition_subquery = (
-            select(State.sku_code)
-            .group_by(State.sku_code)
-            .having(and_(*having_conditions))
-        ).subquery()
+    
+    # 1. Define the Stock Filter Subquery
+    # We aggregate State to the SKU level and apply filters via HAVING
+    stock_filter_stmt = (
+        select(
+            State.sku_code,
+            func.sum(State.available).label("total_available"),
+            SKU.low_stock_threshold
+        )
+        .join(SKU, and_(
+            State.sku_code == SKU.code, 
+            State.org_id == SKU.org_id
+        ))
+        .where(State.org_id == org_id)
+        .group_by(State.sku_code, SKU.low_stock_threshold)
+    )
 
-    # Main query: Get top SKUs by total outbound movement
+    if check_low_stock:
+        # Condition: min <= total < SKU threshold
+        stock_filter_stmt = stock_filter_stmt.having(
+            and_(
+                func.sum(State.available) >= available_min,
+                func.sum(State.available) < SKU.low_stock_threshold
+            )
+        )
+    else:
+        # Condition: min <= total <= max
+        having_conds = [func.sum(State.available) >= available_min]
+        if available_max is not None:
+            having_conds.append(func.sum(State.available) <= available_max)
+        stock_filter_stmt = stock_filter_stmt.having(and_(*having_conds))
+
+    stock_subquery = stock_filter_stmt.subquery()
+
+    # 2. Main Query: Join Transactions with the filtered SKU list
+    # This ensures we only calculate movement for SKUs that meet stock criteria
     stmt = (
         select(
             Transaction.sku_code,
-            func.sum(func.abs(Transaction.qty)).label("total_outbound"),
+            func.sum(func.abs(Transaction.qty)).label("total_outbound")
         )
+        .join(stock_subquery, Transaction.sku_code == stock_subquery.c.sku_code)
         .where(
             and_(
-                Transaction.is_outbound,
-                Transaction.sku_code.in_(
-                    select(stock_condition_subquery.c.sku_code)
-                ),
+                Transaction.org_id == org_id,
+                Transaction.is_outbound == True
             )
         )
         .group_by(Transaction.sku_code)
@@ -344,6 +383,7 @@ async def get_fast_movers_with_stock_condition(
 
 
 async def get_inactive_skus_with_stock(
+    org_id: str,
     db: AsyncSession,
     days: int = 10,
     limit: int = 5
@@ -365,13 +405,17 @@ async def get_inactive_skus_with_stock(
     # Subquery: Get SKUs with any activity in the last N days
     active_skus_subquery = (
         select(distinct(Transaction.sku_code))
-        .where(Transaction.created_at >= cutoff_date)
+        .where(Transaction.created_at >= cutoff_date,
+               Transaction.org_id == org_id,
+               )
     ).scalar_subquery()
 
     # Main query: Get SKUs with stock but not in active list (aggregated across locations)
     stmt = (
         select(State.sku_code, func.sum(State.on_hand).label("total_on_hand"))
-        .where(~State.sku_code.in_(active_skus_subquery))
+        .where(~State.sku_code.in_(active_skus_subquery),
+               State.org_id == org_id,
+               )
         .group_by(State.sku_code)
         .having(func.sum(State.on_hand) > 0)
         .order_by(func.sum(State.on_hand).desc())
