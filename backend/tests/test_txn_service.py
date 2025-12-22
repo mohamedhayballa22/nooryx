@@ -80,7 +80,7 @@ class TestTxnServiceInternals:
         """
         await create_sku(
             org=org,
-            sku="UPDATE-SKU",
+            code="UPDATE-SKU",
             name="Old Name",
             alerts=True,
             reorder_point=10,
@@ -148,7 +148,7 @@ class TestTxnServiceInternals:
         """
         Verify _get_or_create_state creates a new state for a 'receive' action.
         """
-        sku = await create_sku(org=org, sku="STATE-SKU")
+        sku = await create_sku(org=org, code="STATE-SKU")
         location = await create_location(org=org, name="State-Location")
 
         state = await service._get_or_create_state(sku.code, location.id, "receive")
@@ -171,7 +171,7 @@ class TestTxnServiceInternals:
         Verify _get_or_create_state raises TransactionBadRequest for outbound actions
         if no inventory state exists.
         """
-        sku = await create_sku(org=org, sku="NO-STATE-SKU")
+        sku = await create_sku(org=org, code="NO-STATE-SKU")
         location = await create_location(org=org, name="No-State-Location")
 
         for action in ["ship", "adjust", "reserve"]:
@@ -240,7 +240,7 @@ class TestTxnServiceInternals:
         Verify that apply_transfer raises TransactionBadRequest if source and
         target locations are the same.
         """
-        await create_sku(org=org, sku="SAME-LOC-SKU")
+        await create_sku(org=org, code="SAME-LOC-SKU")
         await create_location(org=org, name="Location A")
 
         transfer_payload = TransferTxn(
@@ -389,7 +389,7 @@ class TestTxnServiceCriticalFlows:
         """
         Verify receiving into existing inventory accumulates correctly.
         """
-        sku = await create_sku(org=org, sku="EXISTING-SKU")
+        sku = await create_sku(org=org, code="EXISTING-SKU")
         location = await create_location(org=org, name="Warehouse")
 
         # First receive
@@ -540,7 +540,7 @@ class TestTxnServiceCriticalFlows:
         """
         Verify shipping from location with no inventory state raises error.
         """
-        await create_sku(org=org, sku="EMPTY-SKU")
+        await create_sku(org=org, code="EMPTY-SKU")
         await create_location(org=org, name="Empty-Location")
 
         with pytest.raises(TransactionBadRequest) as exc_info:
@@ -674,7 +674,7 @@ class TestTxnServiceCriticalFlows:
         """
         Verify adjusting non-existent inventory raises error.
         """
-        await create_sku(org=org, sku="NO-INV-SKU")
+        await create_sku(org=org, code="NO-INV-SKU")
         await create_location(org=org, name="Empty-Loc")
 
         with pytest.raises(TransactionBadRequest) as exc_info:
@@ -1070,7 +1070,7 @@ class TestTxnServiceCriticalFlows:
         Note: This test simulates the scenario but actual StaleDataError 
         handling depends on database isolation level.
         """
-        sku = await create_sku(org=org, sku="CONCURRENT-SKU")
+        sku = await create_sku(org=org, code="CONCURRENT-SKU")
         location = await create_location(org=org, name="Concurrent-Loc")
         
         # Create initial inventory
@@ -1109,7 +1109,7 @@ class TestTxnServiceCriticalFlows:
         Verify that receiving into an existing SKU doesn't change its name.
         Critical for data integrity.
         """
-        await create_sku(org=org, sku="NAME-TEST", name="Original Name")
+        await create_sku(org=org, code="NAME-TEST", name="Original Name")
         
         await service.apply_transaction(ReceiveTxn(
             sku_code="NAME-TEST",
@@ -1808,8 +1808,8 @@ class TestTxnServiceFailureRecovery:
         CRITICAL: Verify barcode collision handling doesn't corrupt data.
         """
         # Create SKUs and location first
-        sku_a = await create_sku(org=org, sku="SKU-A", name="SKU A")
-        sku_b = await create_sku(org=org, sku="SKU-B", name="SKU B")
+        sku_a = await create_sku(org=org, code="SKU-A", name="SKU A")
+        sku_b = await create_sku(org=org, code="SKU-B", name="SKU B")
         location = await create_location(org=org, name="Warehouse")
         
         service = TransactionService(session=db_session, org_id=org.org_id)

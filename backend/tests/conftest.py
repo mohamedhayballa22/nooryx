@@ -132,15 +132,14 @@ async def create_sku(db_session, create_org):
         org,
         code: str = "TEST-SKU",
         name: str = "Test SKU",
-        sku: str = None,
         reorder_point: int = 0,
         alerts: bool = False,
     ):
-        if sku is None:
-            sku = str(uuid7())
+        if code is None:
+            code = str(uuid7())
         new_sku = SKU(
             name=name,
-            code=sku,
+            code=code,
             org_id=org.org_id,
             reorder_point=reorder_point,
             alerts=alerts,
