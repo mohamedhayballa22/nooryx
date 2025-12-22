@@ -74,12 +74,21 @@ async def calculate_weekly_delta_single_sku(
         .group_by(cast(Transaction.created_at, Date))
     ).subquery()
 
+    # Build join conditions
+    join_conditions = [Transaction.created_at == day_subquery.c.max_created_at]
+    
+    # Add SKU filter to join to ensure we only get transactions for this SKU
+    join_filters = [Transaction.sku_code == sku_code]
+    if location_id is not None:
+        join_filters.append(Transaction.location_id == location_id)
+    
     joined_stmt = (
         select(Transaction)
         .join(
             day_subquery,
-            Transaction.created_at == day_subquery.c.max_created_at,
+            and_(*join_conditions),
         )
+        .where(and_(*join_filters))
         .order_by(
             func.abs(
                 func.extract(
@@ -95,7 +104,43 @@ async def calculate_weekly_delta_single_sku(
     ideal_txn = result.scalar_one_or_none()
 
     if not ideal_txn:
-        return 0.0
+        # No transaction in ideal window (5-11 days ago)
+        # Fall back: find the most recent transaction BEFORE the window
+        fallback_max_date = today - timedelta(days=11)
+        
+        fallback_filters = [
+            Transaction.created_at <= fallback_max_date,
+            Transaction.sku_code == sku_code,
+        ]
+        if location_id is not None:
+            fallback_filters.append(Transaction.location_id == location_id)
+        
+        fallback_stmt = (
+            select(Transaction)
+            .where(and_(*fallback_filters))
+            .order_by(Transaction.created_at.desc())
+            .limit(1)
+        )
+        
+        result = await db.execute(fallback_stmt)
+        ideal_txn = result.scalar_one_or_none()
+        
+        # If still no transaction found, check if there are ANY transactions
+        if not ideal_txn:
+            # Check if ANY transactions exist for this SKU (to distinguish new inventory from no data)
+            any_txn_filters = [Transaction.sku_code == sku_code]
+            if location_id is not None:
+                any_txn_filters.append(Transaction.location_id == location_id)
+            
+            any_txn_stmt = select(Transaction).where(and_(*any_txn_filters)).limit(1)
+            result = await db.execute(any_txn_stmt)
+            has_any_txn = result.scalar_one_or_none() is not None
+            
+            if has_any_txn and current_on_hand > 0:
+                # New inventory: transactions exist but all are recent (< 5 days ago)
+                return 100.0
+            # No transactions at all, or current is 0
+            return 0.0
 
     # Multi-location case for this SKU
     if location_id is None:
@@ -245,7 +290,42 @@ async def calculate_weekly_delta_all_skus(
     ideal_txn = result.scalar_one_or_none()
 
     if not ideal_txn:
-        return 0.0
+        # No transaction in ideal window (5-11 days ago)
+        # Fall back: find the most recent transaction BEFORE the window
+        fallback_max_date = today - timedelta(days=11)
+        
+        fallback_filters = [
+            Transaction.created_at <= fallback_max_date,
+        ]
+        if location_id is not None:
+            fallback_filters.append(Transaction.location_id == location_id)
+        
+        fallback_stmt = (
+            select(Transaction)
+            .where(and_(*fallback_filters))
+            .order_by(Transaction.created_at.desc())
+            .limit(1)
+        )
+        
+        result = await db.execute(fallback_stmt)
+        ideal_txn = result.scalar_one_or_none()
+        
+        # If still no transaction found, check if there are ANY transactions
+        if not ideal_txn:
+            # Check if ANY transactions exist (to distinguish new inventory from no data)
+            any_txn_filters = []
+            if location_id is not None:
+                any_txn_filters.append(Transaction.location_id == location_id)
+            
+            any_txn_stmt = select(Transaction).where(and_(*any_txn_filters) if any_txn_filters else True).limit(1)
+            result = await db.execute(any_txn_stmt)
+            has_any_txn = result.scalar_one_or_none() is not None
+            
+            if has_any_txn and current_on_hand > 0:
+                # New inventory: transactions exist but all are recent (< 5 days ago)
+                return 100.0
+            # No transactions at all, or current is 0
+            return 0.0
 
     target_timestamp = ideal_txn.created_at
 
