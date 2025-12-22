@@ -120,16 +120,16 @@ async def get_dashboard_summary(
 
     # Fast movers with low stock (uses SKU-specific thresholds internally)
     fast_mover_low_stock_sku = await get_fast_movers_with_stock_condition(
-        db, available_min=1, available_max=None, limit=5, check_low_stock=True
+        user.org_id, db, available_min=1, available_max=None, limit=5, check_low_stock=True
     )
 
     # Fast movers out of stock (top 5 SKUs with highest outbound movement and total available = 0)
     fast_mover_out_of_stock_sku = await get_fast_movers_with_stock_condition(
-        db, available_min=0, available_max=0, limit=5
+        user.org_id, db, available_min=0, available_max=0, limit=5
     )
 
     # Inactive SKUs with stock (SKUs with no activity in last 10 days but have total on_hand > 0)
-    inactive_sku_in_stock = await get_inactive_skus_with_stock(db)
+    inactive_sku_in_stock = await get_inactive_skus_with_stock(user.org_id, db)
 
     return DashboardSummaryResponse(
         first_name=user.first_name,
@@ -147,7 +147,8 @@ async def get_dashboard_summary(
 async def get_top_movers(
     location: Optional[str] = Query(None, description="Filter by location name"),
     period: str = Query("7d", description="Time period to analyze (e.g., '7d', '30d', '365 days')"),
-    db: AsyncSession = Depends(get_tenant_session)
+    db: AsyncSession = Depends(get_tenant_session),
+    user: User = Depends(get_current_user)
 ):
     """
     Get top SKUs by outbound movement volume.
@@ -155,6 +156,7 @@ async def get_top_movers(
     The stock status for each SKU is determined using each SKU's individual `low_stock_threshold`.
     """
     result = await get_top_skus_by_criteria(
+        org_id=user.org_id,
         db=db,
         location=location,
         period=period,
@@ -180,7 +182,8 @@ async def get_top_movers(
 async def get_top_inactives(
     location: Optional[str] = Query(None, description="Filter by location name"),
     period: str = Query("7d", description="Time period to analyze (e.g., '7d', '30d', '365 days')"),
-    db: AsyncSession = Depends(get_tenant_session)
+    db: AsyncSession = Depends(get_tenant_session),
+    user: User = Depends(get_current_user)
 ):
     """
     Get top 5 SKUs with no outbound movement (inactive SKUs).
@@ -188,6 +191,7 @@ async def get_top_inactives(
     The stock status for each SKU is determined using each SKU's individual `low_stock_threshold`.
     """
     result = await get_top_skus_by_criteria(
+        org_id=user.org_id,
         db=db,
         location=location,
         period=period,
