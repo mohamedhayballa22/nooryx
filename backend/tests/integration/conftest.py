@@ -10,6 +10,7 @@ Key differences from service-layer fixtures:
 - Handles cookies, authentication headers, CSRF tokens
 - Tests the full request/response cycle including middleware
 """
+import time
 import pytest
 import pytest_asyncio
 from httpx import AsyncClient, ASGITransport
@@ -108,6 +109,30 @@ async def client(integration_session) -> AsyncGenerator[AsyncClient, None]:
         follow_redirects=True,
     ) as ac:
         yield ac
+        
+
+# =============================================================================
+# Rate Limiting
+# =============================================================================
+        
+@pytest.fixture(autouse=True)
+def bypass_rate_limiting():
+    """
+    Automatically bypass rate limiting for all integration tests.
+    
+    Mocks the rate_limiter.is_allowed method to always return True,
+    preventing any rate limit checks from blocking test requests.
+    """
+    with patch("app.middleware.rate_limit.rate_limiter.is_allowed") as mock_limiter:
+        # Configure mock to always allow requests
+        mock_limiter.return_value = (
+            True,  # allowed
+            {
+                "remaining": 999,
+                "reset_time": time.time() + 3600,
+            }
+        )
+        yield mock_limiter
 
 
 # =============================================================================
