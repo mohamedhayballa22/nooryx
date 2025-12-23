@@ -13,7 +13,6 @@ from app.schemas.valuation import (
     ValuationHeader,
     COGSResponse,
     COGSTrendResponse,
-    TrendPoint,
 )
 from app.core.auth.dependencies import get_current_user
 from app.core.db import get_session
