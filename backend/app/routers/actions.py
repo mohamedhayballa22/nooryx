@@ -1,9 +1,10 @@
-from fastapi import APIRouter, BackgroundTasks, Depends
+from fastapi import APIRouter, Depends
 from sqlalchemy.ext.asyncio import AsyncSession
 
 from app.core.db import get_session
 from app.core.auth.dependencies import get_current_user
-from app.models import User
+from app.models import User, SKU
+from sqlalchemy import select
 from app.services.txn import TransactionService
 from app.schemas.actions import (
     ReceiveTxn, ShipTxn, AdjustTxn, 
@@ -81,7 +82,6 @@ async def ship_stock(
 @router.post("/adjust")
 async def adjust_stock(
     txn: AdjustTxn,
-    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -94,7 +94,6 @@ async def adjust_stock(
         session=db,
         org_id=current_user.org_id,
         user_id=current_user.id,
-        background_tasks=background_tasks
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
@@ -112,7 +111,6 @@ async def adjust_stock(
 @router.post("/reserve")
 async def reserve_stock(
     txn: ReserveTxn,
-    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -126,12 +124,11 @@ async def reserve_stock(
         session=db,
         org_id=current_user.org_id,
         user_id=current_user.id,
-        background_tasks=background_tasks
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
     
-    service.check_low_stock_threshold()
+    await service.check_low_stock_threshold()
 
     await db.commit()
     
@@ -141,7 +138,6 @@ async def reserve_stock(
 @router.post("/unreserve")
 async def unreserve_stock(
     txn: UnreserveTxn,
-    background_tasks: BackgroundTasks,
     current_user: User = Depends(get_current_user),
     db: AsyncSession = Depends(get_session),
 ):
@@ -155,12 +151,11 @@ async def unreserve_stock(
         session=db,
         org_id=current_user.org_id,
         user_id=current_user.id,
-        background_tasks=background_tasks
     )
     
     applied_txn, updated_state = await service.apply_transaction(txn)
     
-    service.check_low_stock_resolution()
+    await service.check_low_stock_resolution()
 
     await db.commit()
     

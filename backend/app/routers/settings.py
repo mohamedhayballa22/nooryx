@@ -303,7 +303,6 @@ async def delete_account(
     )
     
     if user_count == 1:
-        print("Deleting entire organization as this is the last user.")
         # Last user - delete entire organization
         org_stmt = select(Organization).where(
             Organization.org_id == user.org_id

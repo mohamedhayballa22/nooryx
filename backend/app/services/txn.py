@@ -3,7 +3,7 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy import func, select
 from sqlalchemy.orm.exc import StaleDataError
-from uuid import UUID
+from uuid import UUID, uuid4
 
 from app.models import Transaction, State, SKU, Location, Organization
 from app.schemas.actions import (
@@ -162,7 +162,7 @@ class TransactionService:
                 unit_cost_minor
             )
 
-            available_after = available_before + transaction.qty
+            available_after = available_before + (-abs(txn_payload.qty) if txn_payload.action == "reserve" else txn_payload.qty)
             
             # 4.5 Register barcode if provided
             if hasattr(txn_payload, 'barcode') and txn_payload.barcode:
@@ -361,6 +361,9 @@ class TransactionService:
                 currency
             )
             
+            # Generate unique transfer ID to link both transactions
+            transfer_id = str(uuid4())
+            
             # 7. Create BOTH transaction records (not yet applied to state)
             out_txn = Transaction(
                 org_id=self.org_id,
@@ -374,7 +377,8 @@ class TransactionService:
                 txn_metadata={
                     **txn_payload.txn_metadata,
                     'target_location': txn_payload.target_location,
-                    'transfer_cost_per_unit': float(transfer_unit_cost_display)
+                    'transfer_cost_per_unit': float(transfer_unit_cost_display),
+                    'transfer_id': transfer_id,
                 }
             )
             self.session.add(out_txn)
@@ -395,7 +399,8 @@ class TransactionService:
                 txn_metadata={
                     **txn_metadata,
                     'source_location': txn_payload.location,
-                    'transfer_cost_per_unit': float(transfer_unit_cost_display)
+                    'transfer_cost_per_unit': float(transfer_unit_cost_display),
+                    'transfer_id': transfer_id,
                 }
             )
             self.session.add(in_txn)
