@@ -7,14 +7,13 @@ from alembic import command
 from app.models import Organization
 from app.services.txn import TransactionService
 from uuid6 import uuid7
-
-TEST_DATABASE_URL = "postgresql+asyncpg://souleymane:postgres@localhost:5432/test_db"
+from app.core.config import settings
 
 @pytest.fixture(scope="session")
 def alembic_config():
     """Points to your alembic.ini and sets the test database URL."""
     cfg = Config("alembic.ini")
-    cfg.set_main_option("sqlalchemy.url", TEST_DATABASE_URL)
+    cfg.set_main_option("sqlalchemy.url", settings.TEST_DATABASE_URL)
     return cfg
 
 @pytest_asyncio.fixture(scope="session", autouse=True)
@@ -31,7 +30,7 @@ async def upgrade_database(alembic_config):
 @pytest_asyncio.fixture
 async def db_session():
     """Provides an isolated async session for each test with transaction rollback."""
-    engine = create_async_engine(TEST_DATABASE_URL, echo=False)
+    engine = create_async_engine(settings.TEST_DATABASE_URL, echo=False)
     
     # Create a connection
     async with engine.connect() as conn:
@@ -55,7 +54,7 @@ async def session_factory():
     Provides a session factory for concurrent operations.
     Automatically tracks and cleans up all organizations created during the test.
     """
-    engine = create_async_engine(TEST_DATABASE_URL)
+    engine = create_async_engine(settings.TEST_DATABASE_URL)
     
     factory = async_sessionmaker(
         bind=engine,

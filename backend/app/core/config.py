@@ -47,6 +47,7 @@ class Settings(BaseSettings):
     ACCESS_TOKEN_EXPIRE_MINUTES: int = 15
     ENVIRONMENT: Literal["dev", "prod", "test"] = "dev"
     DATABASE_URL: str
+    TEST_DATABASE_URL: str
     REDIS_URL: str
     BACKEND_CORS_ORIGINS: str = ""
     FIRST_USER_EMAIL: str = ""
