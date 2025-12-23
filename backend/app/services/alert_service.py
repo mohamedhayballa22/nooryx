@@ -673,7 +673,7 @@ class AlertService:
         
         Only creates/updates alert if:
         1. SKU has alerts enabled
-        2. At least one user in the organization has alerts enabled
+        2. At least one user in the organization has alerts enabled (default is on)
         3. Available across all locations was >= reorder_point before transaction
         4. Available across all locations is < reorder_point after transaction
         
@@ -704,22 +704,27 @@ class AlertService:
         if not alerts_enabled:
             return None
         
-        # Check if at least one user in the org has alerts enabled
+        # Count total users in org
         result = await self.session.execute(
-            select(exists(
-                select(1)
-                .select_from(UserSettings)
-                .join(User, User.id == UserSettings.user_id)
-                .filter(
-                    User.org_id == self.org_id,
-                    UserSettings.alerts == True
-                )
-            ))
+            select(func.count(User.id))
+            .filter(User.org_id == self.org_id)
         )
-        any_user_has_alerts = result.scalar()
+        total_users = result.scalar()
         
-        # If no users have alerts enabled, don't create alert
-        if not any_user_has_alerts:
+        # Count users who explicitly disabled alerts
+        result = await self.session.execute(
+            select(func.count(UserSettings.user_id))
+            .select_from(UserSettings)
+            .join(User, User.id == UserSettings.user_id)
+            .filter(
+                User.org_id == self.org_id,
+                UserSettings.alerts == False
+            )
+        )
+        users_with_alerts_disabled = result.scalar()
+        
+        # If ALL users have explicitly disabled alerts, don't create alert
+        if users_with_alerts_disabled == total_users:
             return None
         
         # Check if reorder point was crossed in this transaction OR if item went out of stock

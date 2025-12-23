@@ -180,12 +180,12 @@ async def get_transactions(
     sort_column = sort_mapping.get(sort_by, Transaction.created_at)
 
     if order == "desc":
-        query = query.order_by(sort_column.desc())
+        query = query.order_by(sort_column.desc(), Transaction.id.desc())
     else:
-        query = query.order_by(sort_column.asc())
+        query = query.order_by(sort_column.asc(), Transaction.id.asc())
 
     if sort_by != "created_at":
-        query = query.order_by(Transaction.created_at.desc())
+        query = query.order_by(Transaction.created_at.desc(), Transaction.id.desc())
 
     return await apaginate(
         db,
@@ -233,7 +233,7 @@ async def get_latest_transactions_by_sku(
     """
 
     # Check if SKU exists
-    sku_exists_query = select(State.sku_code).where(State.sku_code == sku_code)
+    sku_exists_query = select(State.sku_code).where(State.sku_code == sku_code, State.org_id == user.org_id)
 
     if location is not None:
         sku_exists_query = sku_exists_query.join(State.location).where(Location.name == location)
@@ -285,7 +285,7 @@ async def get_latest_transactions_by_sku(
     if location:
         query = query.where(Location.name == location)
     
-    query = query.order_by(Transaction.created_at.desc()).limit(3)
+    query = query.order_by(Transaction.created_at.desc(), Transaction.id.desc()).limit(3)
     
     result = await db.execute(query)
     rows = result.all()
@@ -375,7 +375,7 @@ async def get_latest_transactions(
     if location:
         query = query.where(Location.name == location)
     
-    query = query.order_by(Transaction.created_at.desc()).limit(4)
+    query = query.order_by(Transaction.created_at.desc(), Transaction.id.desc()).limit(4)
     
     result = await db.execute(query)
     rows = result.all()

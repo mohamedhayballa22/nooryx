@@ -9,6 +9,7 @@ from app.models import Location, Transaction
 
 async def get_inventory_trend_points(
     db: AsyncSession,
+    org_id: str,
     period_days: int,
     sku_code: Optional[str] = None,
     location_name: Optional[str] = None
@@ -40,6 +41,7 @@ async def get_inventory_trend_points(
                 order_by=[desc(Transaction.created_at), desc(Transaction.id)]
             ).label("rn")
         )
+        .where(Transaction.org_id == org_id)
         .join(Location, Transaction.location_id == Location.id)
     )
 

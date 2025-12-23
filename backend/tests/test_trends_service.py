@@ -5,6 +5,7 @@ from datetime import datetime, timedelta, timezone, date
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.services.trends import get_inventory_trend_points
 from app.models import SKU, Location, Transaction, Organization
+from uuid6 import uuid7
 
 # Reuse the helper from test_metrics_service or define a local one
 async def _create_txn(
@@ -51,7 +52,7 @@ class TestTrendsService:
 
     async def test_no_transactions(self, db_session):
         """Should return empty list and None date if no transactions exist."""
-        points, oldest = await get_inventory_trend_points(db_session, period_days=30)
+        points, oldest = await get_inventory_trend_points(db_session, uuid7(), period_days=30)
         assert points == []
         assert oldest is None
 
@@ -74,7 +75,7 @@ class TestTrendsService:
         await _create_txn(db_session, org, sku, loc, 5, "receive", date_3_days_ago, 10)
 
         # Ask for 7 days trend
-        points, oldest = await get_inventory_trend_points(db_session, period_days=7)
+        points, oldest = await get_inventory_trend_points(db_session, org.org_id, period_days=7)
         
         # Oldest data point should be Day -5
         assert oldest == date_5_days_ago.date()
@@ -109,7 +110,7 @@ class TestTrendsService:
         # 3. Receive 5 (Total 85) -- Last one
         await _create_txn(db_session, org, sku, loc, 5, "receive", now - timedelta(days=2, hours=1), 80)
 
-        points, oldest = await get_inventory_trend_points(db_session, period_days=5)
+        points, oldest = await get_inventory_trend_points(db_session, org.org_id, period_days=5)
         
         points_map = {p.date: p.on_hand for p in points}
         assert points_map[(now - timedelta(days=2)).date()] == 85
@@ -127,7 +128,7 @@ class TestTrendsService:
         await _create_txn(db_session, org, sku, loc, 100, "receive", now - timedelta(days=20), 0)
         
         # Request 10 days period
-        points, oldest = await get_inventory_trend_points(db_session, period_days=10)
+        points, oldest = await get_inventory_trend_points(db_session, org.org_id, period_days=10)
         
         # Oldest real data point is 20 days ago
         assert oldest == (now - timedelta(days=20)).date()
@@ -152,7 +153,7 @@ class TestTrendsService:
         # Day -1: Reserve 10. on_hand stays 50.
         await _create_txn(db_session, org, sku, loc, 10, "reserve", now - timedelta(days=1), 50)
         
-        points, _ = await get_inventory_trend_points(db_session, period_days=5)
+        points, _ = await get_inventory_trend_points(db_session, org.org_id, period_days=5)
         points_map = {p.date: p.on_hand for p in points}
         
         assert points_map[(now - timedelta(days=2)).date()] == 50
@@ -173,7 +174,7 @@ class TestTrendsService:
         # SKU A: +5 on Day -1 (Total A=15, B=20 => 35)
         await _create_txn(db_session, org, sku1, loc1, 5, "receive", now - timedelta(days=1), 10)
 
-        points, _ = await get_inventory_trend_points(db_session, period_days=5)
+        points, _ = await get_inventory_trend_points(db_session, org.org_id, period_days=5)
         points_map = {p.date: p.on_hand for p in points}
         
         # Day -3: 10 + 20 = 30
@@ -202,7 +203,7 @@ class TestTrendsService:
         # Loc 2 receives 10 (+10) -> Loc 2 becomes 60
         await _create_txn(db_session, org, sku1, loc2, 10, "transfer_in", now - timedelta(days=2), 50)
         
-        points, _ = await get_inventory_trend_points(db_session, period_days=10)
+        points, _ = await get_inventory_trend_points(db_session, org.org_id, period_days=10)
         points_map = {p.date: p.on_hand for p in points}
         
         # Day -5 (Initial): 100 + 50 = 150
@@ -221,7 +222,7 @@ class TestTrendsService:
         await _create_txn(db_session, org, sku2, loc1, 200, "receive", now - timedelta(days=5), 0)
         
         # Filter for SKU A
-        points, _ = await get_inventory_trend_points(db_session, 10, sku_code=sku1.code)
+        points, _ = await get_inventory_trend_points(db_session, org.org_id, 10, sku_code=sku1.code)
         
         # Should only see 100
         for p in points:
@@ -238,7 +239,7 @@ class TestTrendsService:
         await _create_txn(db_session, org, sku1, loc2, 50, "receive", now - timedelta(days=5), 0)
         
         # Filter for Loc 2
-        points, _ = await get_inventory_trend_points(db_session, 10, location_name=loc2.name)
+        points, _ = await get_inventory_trend_points(db_session, org.org_id, 10, location_name=loc2.name)
         
         for p in points:
             if p.date >= (now - timedelta(days=5)).date():
@@ -259,7 +260,7 @@ class TestTrendsService:
         # Day -1: +20
         await _create_txn(db_session, org, sku, loc, 20, "receive", now - timedelta(days=1), 0)
         
-        points, _ = await get_inventory_trend_points(db_session, 7)
+        points, _ = await get_inventory_trend_points(db_session, org.org_id, 7)
         points_map = {p.date: p.on_hand for p in points}
         
         assert points_map[(now - timedelta(days=4)).date()] == 10

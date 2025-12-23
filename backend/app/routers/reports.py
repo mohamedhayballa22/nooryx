@@ -32,14 +32,15 @@ router = APIRouter()
 @router.get("/metrics", response_model=DashboardMetricsResponse)
 async def get_dashboard_metrics(
     location: Optional[str] = Query(None, description="Location name (None = aggregate across all locations)"),
-    db: AsyncSession = Depends(get_tenant_session)
+    db: AsyncSession = Depends(get_tenant_session),
+    user: User = Depends(get_current_user)
 ):
     """Get aggregated inventory metrics across all SKUs for dashboard display."""
 
     # Validate location exists if provided
     location_id = None
     if location is not None:
-        loc_stmt = select(Location.id).where(Location.name == location)
+        loc_stmt = select(Location.id).where(Location.name == location, Location.org_id == user.org_id)
         loc_result = await db.execute(loc_stmt)
         location_id = loc_result.scalar_one_or_none()
         if location_id is None:
@@ -47,14 +48,16 @@ async def get_dashboard_metrics(
 
     # Auto-assign location if only one exists
     if location is None:
-        loc_count_stmt = select(func.count(Location.id))
+        loc_count_stmt = select(func.count(Location.id)).where(Location.org_id == user.org_id)
         loc_count_result = await db.execute(loc_count_stmt)
         total_locations = loc_count_result.scalar() or 0
         
         if total_locations == 1:
-            single_loc_stmt = select(Location.name).limit(1)
+            single_loc_stmt = select(Location.id, Location.name).where(Location.org_id == user.org_id).limit(1)
             single_loc_result = await db.execute(single_loc_stmt)
-            location = single_loc_result.scalar()
+            single_loc = single_loc_result.one_or_none()
+            if single_loc:
+                location_id, location = single_loc
 
     # Query aggregated inventory totals
     if location_id is not None:
@@ -73,7 +76,7 @@ async def get_dashboard_metrics(
         totals_stmt = select(
             func.sum(State.available).label("total_available"),
             func.sum(State.on_hand).label("total_on_hand"),
-        )
+        ).where(State.org_id == user.org_id)
         
         totals_result = await db.execute(totals_stmt)
         totals_row = totals_result.one()
@@ -107,7 +110,7 @@ async def get_dashboard_summary(
 
     # Check if inventory is empty (no transactions with qty != 0)
     empty_inventory_stmt = select(func.count(Transaction.id)).where(
-        Transaction.qty != 0
+        Transaction.qty != 0, Transaction.org_id == user.org_id
     )
     empty_inventory_result = await db.execute(empty_inventory_stmt)
     has_movements = (empty_inventory_result.scalar() or 0) > 0
@@ -218,10 +221,11 @@ async def get_overall_inventory_trend(
     period: str = Query("30d", pattern=r"^\d+d$"),
     location: Optional[str] = Query(None),
     session: AsyncSession = Depends(get_tenant_session),
+    user: User = Depends(get_current_user),
 ):
     """Get overall inventory trend across all SKUs."""
     # Query states to check existence and location count
-    states_query = select(State).options(selectinload(State.location))
+    states_query = select(State).options(selectinload(State.location)).where(State.org_id == user.org_id)
     
     if location is not None:
         states_query = states_query.join(Location).where(Location.name == location)
@@ -232,7 +236,7 @@ async def get_overall_inventory_trend(
     # Get trend data
     days = int(period.rstrip('d'))
     points, oldest_data_point = await get_inventory_trend_points(
-        session, days, sku_code=None, location_name=location
+        session, user.org_id, days, sku_code=None, location_name=location
     )
     
     # Auto-assign location name if only one location exists
@@ -253,6 +257,7 @@ async def get_inventory_trend(
     period: str = Query("30d", pattern=r"^\d+d$"),
     location: Optional[str] = Query(None),
     session: AsyncSession = Depends(get_tenant_session),
+    user: User = Depends(get_current_user),
 ):
     """Get inventory trend for a specific SKU."""
     # Check if SKU exists
@@ -281,7 +286,7 @@ async def get_inventory_trend(
     # Get trend data
     days = int(period.rstrip('d'))
     points, oldest_data_point = await get_inventory_trend_points(
-        session, days, sku_code=sku_code, location_name=location
+        session, user.org_id, days, sku_code=sku_code, location_name=location
     )
     
     # Auto-assign location name if only one location exists
