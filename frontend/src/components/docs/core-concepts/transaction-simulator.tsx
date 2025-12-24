@@ -34,7 +34,7 @@ function MetricBox({
     <div 
       className={`
         relative flex flex-col items-center justify-center px-6 py-4 rounded-md
-        border transition-all duration-300
+        border transition-all duration-300 w-full max-w-[160px] md:w-auto
         ${isResult 
           ? 'border-neutral-300 dark:border-neutral-700 bg-neutral-100 ' + darkBgClass
           : 'border-neutral-200 dark:border-neutral-800 bg-neutral-50 ' + darkBgClass
@@ -54,15 +54,11 @@ function MetricBox({
       <div className="relative">
         <span className={`
           text-2xl font-mono font-semibold tabular-nums
-          ${isResult 
-            ? 'text-neutral-900 dark:text-neutral-100' 
-            : 'text-neutral-900 dark:text-neutral-100'
-          }
+          text-neutral-900 dark:text-neutral-100
         `}>
           {value}
         </span>
         
-        {/* Animated Operator */}
         {change && (
           <span 
             className={`
@@ -81,18 +77,9 @@ function MetricBox({
             {change}
             <style jsx>{`
               @keyframes fadeInOut {
-                0% {
-                  opacity: 0;
-                  transform: translateY(-50%) scale(0.8);
-                }
-                50% {
-                  opacity: 1;
-                  transform: translateY(-50%) scale(1);
-                }
-                100% {
-                  opacity: 0;
-                  transform: translateY(-50%) scale(0.8);
-                }
+                0% { opacity: 0; transform: translateY(-50%) scale(0.8); }
+                50% { opacity: 1; transform: translateY(-50%) scale(1); }
+                100% { opacity: 0; transform: translateY(-50%) scale(0.8); }
               }
             `}</style>
           </span>
@@ -141,33 +128,24 @@ export function TransactionSimulator() {
     <div className="my-8 rounded-lg border border-neutral-200 dark:border-neutral-800 bg-white dark:bg-[var(--bg-color)] overflow-hidden">
       
       {/* Controls */}
-      <div className="p-6 border-b border-neutral-200 dark:border-neutral-800 flex flex-wrap gap-2">
-        <Button
-          onClick={() => handleAction('receive')}
-          variant="outline"
-          >
-          <BoxIso />
-          Receive +10
+      <div className="p-4 md:p-6 border-b border-neutral-200 dark:border-neutral-800 flex flex-wrap items-center justify-center md:justify-start gap-2">
+        <Button onClick={() => handleAction('receive')} variant="outline" className="flex-1 md:flex-none">
+          <BoxIso width={16} height={16} />
+          <span className="ml-2">Receive +10</span>
         </Button>
-        <Button
-          onClick={() => handleAction('reserve')}
-          variant="outline"
-          >
+        <Button onClick={() => handleAction('reserve')} variant="outline" className="flex-1 md:flex-none">
           <Lock size={14} />
-          Reserve +5
+          <span className="ml-2">Reserve +5</span>
         </Button>
-        <Button
-          onClick={() => handleAction('ship')}
-          variant="outline"
-        >
+        <Button onClick={() => handleAction('ship')} variant="outline" className="flex-1 md:flex-none">
           <Truck size={14} />
-          Ship −5
+          <span className="ml-2">Ship −5</span>
         </Button>
       </div>
 
       {/* Equation Visualization */}
-      <div className="p-8">
-        <div className="flex items-center justify-center gap-6">
+      <div className="p-6 md:p-10">
+        <div className="flex flex-col md:flex-row items-center justify-center gap-4 md:gap-6">
           
           {/* On Hand */}
           <MetricBox 
@@ -177,8 +155,8 @@ export function TransactionSimulator() {
           />
           
           {/* Minus Operator */}
-          <div className="flex items-center justify-center w-8 h-8 text-neutral-400 dark:text-neutral-600">
-            <span className="text-lg font-light">−</span>
+          <div className="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 text-neutral-400 dark:text-neutral-600">
+            <span className="text-xl font-light">−</span>
           </div>
 
           {/* Reserved */}
@@ -188,9 +166,9 @@ export function TransactionSimulator() {
             change={changes.reserved}
           />
 
-          {/* Equals Arrow */}
-          <div className="flex items-center justify-center w-8 h-8 text-neutral-400 dark:text-neutral-600">
-            <ArrowRight size={16} strokeWidth={1.5} />
+          {/* Equals Arrow - Rotates 90deg on mobile */}
+          <div className="flex items-center justify-center w-6 h-6 md:w-8 md:h-8 text-neutral-400 dark:text-neutral-600 transform rotate-90 md:rotate-0">
+            <ArrowRight size={18} strokeWidth={1.5} />
           </div>
 
           {/* Available (Result) */}
@@ -204,7 +182,7 @@ export function TransactionSimulator() {
       </div>
 
       <div className="px-6 py-3 bg-neutral-50 dark:bg-[var(--bg-color)]/50 border-t border-neutral-200 dark:border-neutral-800">
-        <p className="text-xs text-center text-neutral-500 dark:text-neutral-500">
+        <p className="text-[11px] md:text-xs text-center text-neutral-500 dark:text-neutral-500">
           Interact with the buttons above to see how transactions update inventory state
         </p>
       </div>

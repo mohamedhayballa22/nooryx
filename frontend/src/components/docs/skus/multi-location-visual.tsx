@@ -7,9 +7,9 @@ export function MultiLocationVisual() {
     <div className="not-prose my-12 w-full">
       <div className="relative rounded-xl border border-neutral-200 bg-background p-8 dark:border-neutral-800">
         
-        <div className="relative mx-auto max-w-2xl z-10">
+        <div className="relative mx-auto max-w-2xl">
           
-          <div className="flex justify-center relative z-20">
+          <div className="flex justify-center relative">
             <div className="group relative flex items-center gap-3 rounded-lg border border-neutral-200 bg-background px-5 py-3 shadow-sm transition-all hover:border-neutral-300 dark:border-neutral-800 dark:hover:border-neutral-700">
               
               <div className="flex h-8 w-8 items-center justify-center rounded bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
@@ -28,7 +28,7 @@ export function MultiLocationVisual() {
           </div>
 
           {/* Connection Lines Layer */}
-          <div className="relative h-16 w-full -my-1 z-0">
+          <div className="relative h-16 w-full -my-1">
             <svg
               className="absolute inset-0 h-full w-full text-neutral-300 dark:text-neutral-800"
               fill="none"
@@ -44,7 +44,7 @@ export function MultiLocationVisual() {
           </div>
 
           {/* Bottom Nodes */}
-          <div className="grid grid-cols-3 gap-4 relative z-10">
+          <div className="grid grid-cols-3 gap-4 relative">
             <LocationNode name="San Francisco" count={142} />
             <LocationNode name="London" count={85} />
             <LocationNode name="Tokyo" count={64} />

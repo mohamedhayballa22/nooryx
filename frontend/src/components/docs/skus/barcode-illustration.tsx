@@ -1,19 +1,21 @@
 'use client';
 
 import { BoxIso } from 'iconoir-react';
+import { ChevronDown } from 'lucide-react';
 import React from 'react';
 
 export function BarcodeIllustration() {
   return (
     <div className="not-prose my-12 w-full">
-      <div className="relative rounded-xl border border-neutral-200 bg-background p-8 dark:border-neutral-800">
+      <div className="relative rounded-xl border border-neutral-200 bg-background p-6 md:p-8 dark:border-neutral-800">
         
-        <div className="relative mx-auto max-w-3xl z-10">
+        <div className="relative mx-auto max-w-3xl">
           
-          <div className="grid grid-cols-[220px_1fr_220px] h-[300px] items-center">
+          {/* Container: Stack on mobile, Grid on desktop */}
+          <div className="flex flex-col md:grid md:grid-cols-[220px_1fr_220px] md:h-[300px] items-center gap-6 md:gap-0">
             
-            {/* Left Column */}
-            <div className="grid grid-rows-3 h-full w-full relative z-10">
+            {/* Left Column (Barcode Cards) */}
+            <div className="grid grid-cols-1 gap-3 md:gap-0 md:grid-rows-3 h-full w-full relative">
               <div className="flex items-center">
                 <BarcodeCard type="UPC-A" value="012345678905" icon={<BarcodeIcon />} />
               </div>
@@ -25,10 +27,11 @@ export function BarcodeIllustration() {
               </div>
             </div>
 
-            {/* Center Lines */}
-            <div className="relative h-full w-full -mx-4 z-0">
+            {/* Center Connectors (SVG for desktop, Icon for mobile) */}
+            <div className="relative h-12 md:h-full w-full md:-mx-4 flex items-center justify-center">
+              {/* Desktop SVG Lines */}
               <svg
-                className="absolute inset-0 h-full text-neutral-300 dark:text-neutral-800"
+                className="hidden md:block absolute inset-0 h-full text-neutral-300 dark:text-neutral-800"
                 style={{ width: 'calc(100% + 1.5rem)' }}
                 fill="none"
                 stroke="currentColor"
@@ -40,20 +43,25 @@ export function BarcodeIllustration() {
                 <path d="M 0 50 L 100 50" vectorEffect="non-scaling-stroke" />
                 <path d="M 0 83.33 C 50 83.33, 60 50, 100 50" vectorEffect="non-scaling-stroke" />
               </svg>
+
+              {/* Mobile Arrow */}
+              <div className="md:hidden flex flex-col items-center">
+                <ChevronDown className="text-neutral-300 dark:text-neutral-700" size={24} />
+              </div>
             </div>
 
-            {/* Right Column */}
-            <div className="relative z-10 flex items-center justify-center h-full">
+            {/* Right Column (SKU Box) */}
+            <div className="relative flex items-center justify-center h-full w-full">
               <div className="w-full group relative flex flex-col items-start gap-4 rounded-xl border border-neutral-200 bg-background p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all hover:border-neutral-300 dark:border-neutral-800 dark:hover:border-neutral-700">
                 
-                {/* Connector Dot */}
-                <div className="absolute top-1/2 -left-1.5 h-2.5 w-2.5 -translate-y-1/2 rounded-full border border-neutral-200 bg-background dark:border-neutral-800" />
+                {/* Desktop Connector Dot */}
+                <div className="hidden md:block absolute top-1/2 -left-1.5 h-2.5 w-2.5 -translate-y-1/2 rounded-full border border-neutral-200 bg-background dark:border-neutral-800" />
 
                 <div className="flex h-9 w-9 items-center justify-center rounded-lg bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
                   <BoxIso />
                 </div>
                 
-                <div className="space-y-0.5">
+                <div className="space-y-0.5 text-left">
                   <div className="text-[10px] font-bold uppercase tracking-widest text-neutral-500">
                     Resolves To
                   </div>
@@ -90,7 +98,7 @@ function BarcodeCard({ type, value, icon }: { type: string; value: string; icon:
         {icon}
       </div>
 
-      <div className="min-w-0 flex flex-col">
+      <div className="min-w-0 flex flex-col text-left">
         <div className="text-[10px] font-semibold text-neutral-500 uppercase tracking-wider leading-none mb-1 dark:text-neutral-500">
           {type}
         </div>
@@ -99,13 +107,13 @@ function BarcodeCard({ type, value, icon }: { type: string; value: string; icon:
         </div>
       </div>
 
-      {/* Right-side Connector Dot */}
-      <div className="absolute top-1/2 -right-1.5 h-2 w-2 -translate-y-1/2 rounded-full border border-neutral-200 bg-background dark:border-neutral-800" />
+      {/* Right-side Connector Dot (Hidden on Mobile) */}
+      <div className="hidden md:block absolute top-1/2 -right-1.5 h-2 w-2 -translate-y-1/2 rounded-full border border-neutral-200 bg-background dark:border-neutral-800" />
     </div>
   );
 }
 
-// Icons
+// Icons remain the same
 const BarcodeIcon = () => (
   <svg width="16" height="16" viewBox="0 0 24 24" fill="none" xmlns="http://www.w3.org/2000/svg">
     <path d="M5 5V19" stroke="currentColor" strokeWidth="2" strokeLinecap="round" />

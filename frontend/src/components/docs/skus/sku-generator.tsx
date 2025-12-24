@@ -47,7 +47,7 @@ export function SkuBuilder() {
     <div className="not-prose my-12 w-full">
       <div className="relative rounded-xl border border-neutral-200 bg-[var(--bg-color)] dark:border-neutral-800 dark:bg-[var(--bg-color-dark)] overflow-hidden">
         
-        <div className="relative z-10 flex flex-col md:flex-row">
+        <div className="relative flex flex-col md:flex-row">
           
           {/* LEFT: Builder Controls */}
           <div className="flex-1 p-8 border-b md:border-b-0 md:border-r border-neutral-200 dark:border-neutral-800">
