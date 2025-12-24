@@ -52,13 +52,24 @@ const ACTION_CONFIG: Record<string, {
 const QuantityBadge = ({ 
   before, 
   after,
+  quantity,
+  action,
   formatQuantity 
 }: { 
   before: number; 
   after: number;
+  quantity: number;
+  action: string;
   formatQuantity: (val: number) => string;
 }) => {
-  const delta = after - before;
+  const isReservation = action === "reserved" || action === "unreserved";
+  
+  // For reservations, we use the quantity field directly with custom logic
+  // For others, we calculate the delta from before/after
+  const delta = isReservation 
+    ? (action === "reserved" ? -quantity : quantity)
+    : after - before;
+
   const isNeutral = delta === 0;
   const isPositive = delta > 0;
 
@@ -72,12 +83,19 @@ const QuantityBadge = ({
           isNeutral && "text-muted-foreground"
         )}
       >
-        {isPositive ? "+" : ""}
-        {formatQuantity(delta)}
+        {isPositive ? "+" : ""}{formatQuantity(delta)}
       </span>
-      {!isNeutral && (
+      
+      {/* Show arrow only if it's NOT a reservation and NOT neutral */}
+      {!isReservation && !isNeutral && (
         <span className="text-[10px] text-muted-foreground/50 font-mono tabular-nums">
           {formatQuantity(before)} → {formatQuantity(after)}
+        </span>
+      )}
+
+      {isReservation && (
+        <span className="block text-right text-[10px] text-muted-foreground/40 font-medium">
+          No change to on-hand
         </span>
       )}
     </div>
@@ -258,6 +276,8 @@ const TransactionRow = ({
               <QuantityBadge 
                 before={item.qty_before} 
                 after={item.qty_after} 
+                quantity={item.quantity}
+                action={item.action}
                 formatQuantity={formatQuantity}
               />
             </div>
