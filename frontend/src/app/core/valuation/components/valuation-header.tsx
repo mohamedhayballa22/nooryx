@@ -97,7 +97,7 @@ export function ValuationHeader({
           {/* Total Value */}
           <div className="space-y-2">
             <p className="text-sm font-medium text-muted-foreground">Total Inventory Value</p>
-            <p className="text-balance font-mono text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
+            <p className="break-words font-mono text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
               {formatCurrency(total_value)}
             </p>
           </div>

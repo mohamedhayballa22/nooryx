@@ -252,7 +252,7 @@ export function COGSHeader({
             <p className="text-sm font-medium text-muted-foreground">
               Cost of Goods Sold
             </p>
-            <p className="text-balance font-mono text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
+            <p className="break-words font-mono text-5xl font-bold tracking-tight text-foreground sm:text-6xl">
               {formatCurrency(total_cogs)}
             </p>
           </div>
