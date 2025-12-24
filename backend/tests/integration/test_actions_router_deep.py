@@ -248,7 +248,7 @@ class TestDatabasePersistence:
                 CostRecord.sku_code == sku_code,
                 CostRecord.org_id == org.org_id
             )
-            .order_by(CostRecord.created_at)
+            .order_by(CostRecord.created_at, CostRecord.id)
         )).scalars().all()
 
         assert len(cost_records) == 3
@@ -448,7 +448,7 @@ class TestCostCalculation:
                 CostRecord.sku_code == sku_code,
                 CostRecord.org_id == org.org_id
             )
-            .order_by(CostRecord.created_at)
+            .order_by(CostRecord.created_at, CostRecord.id)
         )).scalars().all()
 
         # Batch 1 should be untouched
@@ -1182,7 +1182,7 @@ class TestEdgeCases:
             select(CostRecord).where(
                 CostRecord.sku_code == sku_code,
                 CostRecord.org_id == org.org_id
-            ).order_by(CostRecord.created_at)
+            ).order_by(CostRecord.created_at, CostRecord.id)
         )).scalars().all()
         
         # For WAC, layers get merged
@@ -1251,7 +1251,7 @@ class TestTransactionLedger:
             select(Transaction).where(
                 Transaction.sku_code == sku_code,
                 Transaction.org_id == org.org_id
-            ).order_by(Transaction.created_at)
+            ).order_by(Transaction.created_at, Transaction.id)
         )).scalars().all()
 
         assert len(transactions) == 3
