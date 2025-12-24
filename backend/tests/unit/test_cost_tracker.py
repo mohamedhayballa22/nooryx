@@ -84,7 +84,7 @@ class TestCostTracking:
         result = await db_session.execute(
             select(CostRecord)
             .filter_by(sku_code="FIFO-WIDGET", org_id=org.org_id)
-            .order_by(CostRecord.created_at.asc())
+            .order_by(CostRecord.created_at.asc(), CostRecord.id.asc())
         )
         layers = result.scalars().all()
         
@@ -157,7 +157,7 @@ class TestCostTracking:
         result = await db_session.execute(
             select(CostRecord)
             .filter_by(sku_code="LIFO-WIDGET", org_id=org.org_id)
-            .order_by(CostRecord.created_at.asc())
+            .order_by(CostRecord.created_at.asc(), CostRecord.id.asc())
         )
         layers = result.scalars().all()
         
