@@ -197,6 +197,7 @@ export function AppSidebar() {
     <span 
       className={`
         ${NooryxFont.className}
+        select-none
         mt-0.5
         text-2xl
         font-medium
