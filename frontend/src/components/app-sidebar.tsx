@@ -51,6 +51,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { SidebarFeedbackCard } from "./feedback/sidebar-feedback-card"
 import { FeedbackModal } from "./feedback/feedback-modal"
+import { NooryxFont } from "@/app/fonts/typeface"
 
 const mainItems = [
   { title: "Dashboard", url: "/core/dashboard", icon: HomeSimple },
@@ -184,20 +185,34 @@ export function AppSidebar() {
   return (
     <Sidebar collapsible="icon">
       {/* Header */}
-      <SidebarHeader className="h-14 border-b px-4 group-data-[collapsible=icon]:px-0">
-        <div className="flex h-full items-center gap-2 group-data-[collapsible=icon]:justify-center">
-          <Image
-            src="/mock-logo.svg"
-            alt="Nooryx logo"
-            width={24}
-            height={24}
-            className="flex-shrink-0 pt-1"
-          />
-          <span className="text-lg font-semibold group-data-[collapsible=icon]:hidden">
-            Nooryx
-          </span>
-        </div>
-      </SidebarHeader>
+      <SidebarHeader className="h-14 border-b px-4 group-data-[collapsible=icon]:px-3">
+  <div className="flex h-full items-center gap-3 overflow-hidden">
+    <Image
+      src="/nooryx-logo.svg"
+      alt="Nooryx logo"
+      width={24}
+      height={24}
+      className="flex-shrink-0 dark:invert transition-transform duration-200 ease-in-out"
+    />
+    <span 
+      className={`
+        ${NooryxFont.className}
+        mt-0.5
+        text-2xl
+        font-medium
+        whitespace-nowrap
+        transition-all
+        duration-200
+        ease-in-out
+        group-data-[collapsible=icon]:opacity-0
+        group-data-[collapsible=icon]:translate-x-2
+        group-data-[collapsible=icon]:pointer-events-none
+      `}
+    >
+      Nooryx
+    </span>
+  </div>
+</SidebarHeader>
 
       {/* Main Menu */}
       <SidebarContent className="sidebar-scrollbar">
