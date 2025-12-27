@@ -140,7 +140,6 @@ export const receiveFormConfig: FormConfig<ReceiveFormValues> = {
     const payload: any = {
       ...rest,
       sku_code: rest.sku_code.trim().toUpperCase(),
-      location: rest.location.trim().toUpperCase(),
       action: "receive",
     }
 
@@ -246,7 +245,6 @@ export const shipFormConfig: FormConfig<ShipFormValues> = {
     const payload: any = {
       ...rest,
       sku_code: rest.sku_code.trim().toUpperCase(),
-      location: rest.location.trim().toUpperCase(),
       action: "ship",
     }
 
@@ -358,7 +356,6 @@ export const adjustFormConfig: FormConfig<AdjustFormValues> = {
     const payload: any = {
       ...rest,
       sku_code: rest.sku_code.trim().toUpperCase(),
-      location: rest.location.trim().toUpperCase(),
       action: "adjust",
       txn_metadata: { reason: reason.trim() },
     }
@@ -469,7 +466,6 @@ export const reserveFormConfig: FormConfig<ReserveFormValues> = {
     const payload: any = {
       ...rest,
       sku_code: rest.sku_code.trim().toUpperCase(),
-      location: rest.location.trim().toUpperCase(),
       action: "reserve",
     }
 
@@ -581,7 +577,6 @@ export const unreserveFormConfig: FormConfig<UnreserveFormValues> = {
     const payload: any = {
       ...rest,
       sku_code: rest.sku_code.trim().toUpperCase(),
-      location: rest.location.trim().toUpperCase(),
       action: "unreserve",
     }
 
@@ -684,8 +679,6 @@ export const transferFormConfig: FormConfig<TransferFormValues> = {
     const payload: any = {
       ...rest,
       sku_code: rest.sku_code.trim().toUpperCase(),
-      location: rest.location.trim().toUpperCase(),
-      target_location: rest.target_location.trim().toUpperCase(),
       action: "transfer",
     }
 

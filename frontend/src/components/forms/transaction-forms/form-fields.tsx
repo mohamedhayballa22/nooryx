@@ -393,8 +393,7 @@ function LocationField({ config }: FormFieldProps) {
     useLocationSearch(locationQuery)
 
   const handleLocationChange = (val: string) => {
-    const formattedVal = val.trim().toUpperCase()
-    setValue(config.name, formattedVal, { shouldValidate: true })
+    setValue(config.name, val, { shouldValidate: true })
   }
 
   return (
@@ -418,7 +417,6 @@ function LocationField({ config }: FormFieldProps) {
               onSearchChange={setLocationQuery}
               isLoading={isLoadingLocations}
               placeholder={config.placeholder || "Type to search location..."}
-              transformInput={(val) => val.toUpperCase()}
               allowCreate={config.allowCreate}
             />
           )}
