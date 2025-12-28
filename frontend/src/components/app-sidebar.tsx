@@ -163,6 +163,7 @@ export function AppSidebar() {
             onClick: () => {
               router.push("/core/alerts")
               queryClient.invalidateQueries({ queryKey: ["alerts", "list"]})
+              queryClient.invalidateQueries({ queryKey: ["team", "members"] })
             }
           },
           duration: 7000,
