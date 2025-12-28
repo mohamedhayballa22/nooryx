@@ -1,7 +1,7 @@
 "use client"
 
-import { useMemo, useEffect } from "react"
-import { AreaChart, Area, XAxis, CartesianGrid } from "recharts"
+import React, { useMemo } from "react"
+import { AreaChart, Area, XAxis, CartesianGrid, ResponsiveContainer, YAxis } from "recharts"
 import {
   Card,
   CardContent,
@@ -22,8 +22,8 @@ import {
 } from "@/components/ui/dropdown-menu"
 import { Button } from "@/components/ui/button"
 import { ChevronDown } from "lucide-react"
-import { Skeleton } from "@/components/ui/skeleton"
 import { EmptyTrend } from "@/components/empty-trend"
+import { Skeleton } from "@/components/ui/skeleton"
 
 import type { InventoryTrend } from "@/lib/api/inventory"
 import { useFormatting } from "@/hooks/use-formatting"
@@ -36,12 +36,147 @@ interface TrendChartProps {
   onPeriodChange: (value: PeriodKey) => void
 }
 
-export default function TrendChart({
+const PureChartArea = React.memo(function PureChartArea({ 
+  data, 
+  formatDate, 
+  locale 
+}: { 
+  data: any[], 
+  formatDate: (d: string | number | Date) => string,
+  locale: string 
+}) {
+  
+  const axisFormatter = useMemo(() => {
+    return new Intl.DateTimeFormat(locale, {
+      month: "short",
+      day: "numeric",
+    })
+  }, [locale])
+
+  const yDomain = useMemo(() => {
+    if (data.length === 0) return [0, 'auto']
+    
+    const values = data.map(d => d.on_hand)
+    const min = Math.min(...values)
+    const max = Math.max(...values)
+    const range = max - min
+    
+    const padding = Math.max(range * 0.1, 1)
+    
+    return [
+      Math.floor(min - padding),
+      Math.ceil(max + padding)
+    ]
+  }, [data])
+
+  return (
+    <ResponsiveContainer width="100%" height="100%" debounce={200}>
+      <AreaChart
+        accessibilityLayer
+        data={data}
+        margin={{ left: 4, right: 12, top: 20 }}
+      >
+        <CartesianGrid vertical={false} />
+        
+        <YAxis 
+          domain={yDomain as [number, number]}
+          hide={false}
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          width={40} // Add fixed width to prevent label cutoff
+        />
+        
+        <XAxis
+          dataKey="date" 
+          type="number" 
+          domain={['dataMin', 'dataMax']} 
+          tickLine={false}
+          axisLine={false}
+          tickMargin={8}
+          minTickGap={30}
+          tickFormatter={axisFormatter.format} 
+        />
+        
+        <ChartTooltip 
+          cursor={false} 
+          content={
+            <ChartTooltipContent 
+              labelFormatter={(value, payload) => {
+                const timestamp = payload?.[0]?.payload?.date
+                return formatDate(timestamp ?? value) 
+              }} 
+            />
+          } 
+        />
+        <defs>
+          <linearGradient id="fillOnHand" x1="0" y1="0" x2="0" y2="1">
+            <stop offset="5%" stopColor="var(--on-hand)" stopOpacity={0.8} />
+            <stop offset="95%" stopColor="var(--on-hand)" stopOpacity={0.1} />
+          </linearGradient>
+        </defs>
+        <Area
+          dataKey="on_hand"
+          type="monotone"
+          fill="url(#fillOnHand)"
+          fillOpacity={0.4}
+          stroke="var(--on-hand)"
+          strokeWidth={2}
+          isAnimationActive={false}
+        />
+      </AreaChart>
+    </ResponsiveContainer>
+  )
+})
+
+export const TrendChart = React.memo(function TrendChart({
   inventoryTrend,
   period,
   onPeriodChange,
 }: TrendChartProps) {
   const { formatDate, locale } = useFormatting()
+
+  const optimizedData = useMemo(() => {
+    if (!inventoryTrend?.points) return []
+    return inventoryTrend.points.map(point => ({
+      ...point,
+      date: new Date(point.date).getTime() 
+    }))
+  }, [inventoryTrend.points])
+
+  const { hasInsufficientData, validPeriods } = useMemo(() => {
+    if (!inventoryTrend.points || inventoryTrend.points.length < 2) {
+      return { 
+        hasInsufficientData: true, 
+        validPeriods: { "7d": false, "31d": false, "180d": false, "365d": false } 
+      }
+    }
+
+    const firstValue = inventoryTrend.points[0].on_hand
+    const allSame = inventoryTrend.points.every((p) => p.on_hand === firstValue)
+    
+    const oldestTime = new Date(inventoryTrend.oldest_data_point).getTime()
+    const nowTime = Date.now()
+    const daysDiff = (nowTime - oldestTime) / (1000 * 60 * 60 * 24)
+
+    if (allSame && daysDiff <= 7) {
+      return { 
+        hasInsufficientData: true, 
+        validPeriods: { "7d": false, "31d": false, "180d": false, "365d": false } 
+      }
+    }
+
+    return {
+      hasInsufficientData: false,
+      validPeriods: {
+        "7d": daysDiff > 0,
+        "31d": daysDiff > 7,
+        "180d": daysDiff > 31,
+        "365d": daysDiff > 180,
+      } as Record<PeriodKey, boolean>
+    }
+  }, [inventoryTrend.points, inventoryTrend.oldest_data_point])
+
   const periodLabelMap: Record<PeriodKey, string> = {
     "7d": "Last Week",
     "31d": "Last Month",
@@ -49,70 +184,7 @@ export default function TrendChart({
     "365d": "Last Year",
   }
 
-  const hasInsufficientData = useMemo(() => {
-    if (inventoryTrend.points.length < 2) return true
-
-    const firstValue = inventoryTrend.points[0].on_hand
-    const allSame = inventoryTrend.points.every(
-      (point) => point.on_hand === firstValue
-    )
-
-    if (allSame) {
-      const oldest = new Date(inventoryTrend.oldest_data_point)
-      const now = new Date()
-      const daysDiff = Math.floor(
-        (now.getTime() - oldest.getTime()) / (1000 * 60 * 60 * 24)
-      )
-      return daysDiff <= 7
-    }
-
-    return false
-  }, [inventoryTrend.points, inventoryTrend.oldest_data_point])
-
-  const validPeriods = useMemo(() => {
-    if (hasInsufficientData) {
-      return {
-        "7d": false,
-        "31d": false,
-        "180d": false,
-        "365d": false,
-      } as Record<PeriodKey, boolean>
-    }
-
-    const oldest = new Date(inventoryTrend.oldest_data_point)
-    const now = new Date()
-    const daysDiff = Math.floor(
-      (now.getTime() - oldest.getTime()) / (1000 * 60 * 60 * 24)
-    )
-
-    return {
-      "7d": daysDiff > 0,
-      "31d": daysDiff > 7,
-      "180d": daysDiff > 31,
-      "365d": daysDiff > 180,
-    } as Record<PeriodKey, boolean>
-  }, [inventoryTrend.oldest_data_point, hasInsufficientData])
-
-  // Auto-adjust period to closest valid option
-  useEffect(() => {
-    if (hasInsufficientData) return
-    
-    if (!validPeriods[period]) {
-      // Define period order from longest to shortest
-      const periodOrder: PeriodKey[] = ["365d", "180d", "31d", "7d"]
-      const currentIndex = periodOrder.indexOf(period)
-      
-      // Find the closest valid period (walk backwards from current)
-      for (let i = currentIndex + 1; i < periodOrder.length; i++) {
-        if (validPeriods[periodOrder[i]]) {
-          onPeriodChange(periodOrder[i])
-          return
-        }
-      }
-    }
-  }, [period, validPeriods, hasInsufficientData, onPeriodChange])
-
-  const displayPeriod = hasInsufficientData ? "7d" : period
+  const displayPeriod = validPeriods[period] ? period : "7d"
 
   const chartConfig = {
     on_hand: {
@@ -173,58 +245,18 @@ export default function TrendChart({
           <EmptyTrend />
         ) : (
           <ChartContainer config={chartConfig} className="h-full w-full">
-            <AreaChart
-              accessibilityLayer
-              data={inventoryTrend.points}
-              margin={{ left: 12, right: 12, top: 20 }}
-            >
-              <CartesianGrid vertical={false} />
-              <XAxis
-                dataKey="date"
-                tickLine={false}
-                axisLine={false}
-                tickMargin={8}
-                tickFormatter={(value) => {
-                  const date = new Date(value)
-                  return date.toLocaleDateString(locale, {
-                    month: "short",
-                    day: "numeric",
-                  })
-                }}
-              />
-              <ChartTooltip cursor={false} content={
-                  <ChartTooltipContent
-                    labelFormatter={(label) => formatDate(label)}
-                  />
-              } />
-              <defs>
-                <linearGradient id="fillOnHand" x1="0" y1="0" x2="0" y2="1">
-                  <stop
-                    offset="5%"
-                    stopColor="var(--on-hand)"
-                    stopOpacity={0.8}
-                  />
-                  <stop
-                    offset="95%"
-                    stopColor="var(--on-hand)"
-                    stopOpacity={0.1}
-                  />
-                </linearGradient>
-              </defs>
-              <Area
-                dataKey="on_hand"
-                type="monotone"
-                fill="url(#fillOnHand)"
-                fillOpacity={0.4}
-                stroke="var(--on-hand)"
-                strokeWidth={2}
-              />
-            </AreaChart>
+            <PureChartArea 
+              data={optimizedData} 
+              formatDate={formatDate}
+              locale={locale}
+            />
           </ChartContainer>
         )}
       </CardContent>
     </Card>
   )
+}) as React.NamedExoticComponent<TrendChartProps> & {
+  Skeleton: React.FC
 }
 
 TrendChart.Skeleton = function TrendChartSkeleton() {
@@ -248,3 +280,5 @@ TrendChart.Skeleton = function TrendChartSkeleton() {
     </Card>
   )
 }
+
+export default TrendChart
