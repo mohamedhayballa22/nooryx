@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { DashboardMetrics } from "./components/DashboardMetrics"
 import { TopSKUsCard } from "./components/TopSKUsCard"
 import DashboardHeader from "./components/DashboardHeader"
@@ -23,7 +23,27 @@ export default function DashboardPage() {
   // Each section manages its own period
   const [moversPeriod, setMoversPeriod] = useState<PeriodKey>("31d")
   const [inactivesPeriod, setInactivesPeriod] = useState<PeriodKey>("31d")
-  const [trendPeriod, setTrendPeriod] = useState<PeriodKey>("365d")
+  const [trendPeriod, setTrendPeriod] = useState<PeriodKey | null>(() => {
+      if (typeof window !== "undefined") {
+        return (localStorage.getItem("dashboard-trend-period") as PeriodKey) || null
+      }
+      return null
+    })
+
+  // Memoize location parameter to avoid creating new values on every render
+  const locationParam = useMemo(
+    () => (selectedLocation === "all" ? undefined : selectedLocation),
+    [selectedLocation]
+  )
+
+  const handlePeriodChange = (newPeriod: PeriodKey) => {
+    setTrendPeriod(newPeriod)
+    try {
+      localStorage.setItem("dashboard-trend-period", newPeriod)
+    } catch (error) {
+      // localStorage unavailable, continue without persistence
+    }
+  }
 
   const {
     data: summaryData,
@@ -33,36 +53,27 @@ export default function DashboardPage() {
   const {
     data: metricsData,
     isLoading: isMetricsLoading,
-  } = useDashbaordMetrics(selectedLocation === "all" ? undefined : selectedLocation)
+  } = useDashbaordMetrics(locationParam)
 
   const {
     data: transactionsData,
     isLoading: isTransactionsLoading,
-  } = useDashLatestTransactions(selectedLocation === "all" ? undefined : selectedLocation)
+  } = useDashLatestTransactions(locationParam)
 
   const {
     data: topMoversData,
     isLoading: isTopMoversLoading,
-  } = useTopMovers(
-    selectedLocation === "all" ? undefined : selectedLocation,
-    moversPeriod
-  )
+  } = useTopMovers(locationParam, moversPeriod)
 
   const {
     data: topInactivesData,
     isLoading: isTopInactivesLoading,
-  } = useTopInactives(
-    selectedLocation === "all" ? undefined : selectedLocation,
-    inactivesPeriod
-  )
+  } = useTopInactives(locationParam, inactivesPeriod)
 
   const {
     data: trendData,
     isLoading: isTrendLoading,
-  } = useDashInventoryTrend(
-    selectedLocation === "all" ? undefined : selectedLocation,
-    trendPeriod
-  )
+  } = useDashInventoryTrend(locationParam, trendPeriod ?? "31d")
 
   return (
     <div className="grid gap-5">
@@ -134,8 +145,8 @@ export default function DashboardPage() {
         ) : trendData ? (
           <TrendChart
             inventoryTrend={trendData}
-            period={trendPeriod}
-            onPeriodChange={setTrendPeriod}
+            period={trendPeriod ?? "31d"}
+            onPeriodChange={handlePeriodChange}
           />
         ) : null}
       </div>
