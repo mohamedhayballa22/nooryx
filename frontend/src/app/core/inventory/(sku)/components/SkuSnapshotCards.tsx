@@ -2,12 +2,13 @@
 
 import { MetricCard } from "@/components/MetricCard"
 import type { InventorySnapshot } from "@/lib/api/inventory"
+import React from "react"
 
 interface SkuSnapshotCardsProps {
   data: InventorySnapshot
 }
 
-export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
+export const SkuSnapshotCards = React.memo(function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
   const { summary, locations, location, inventory_pct, status} = data
   const { available, reserved, on_hand } = summary
 
@@ -107,6 +108,8 @@ export function SkuSnapshotCards({ data }: SkuSnapshotCardsProps) {
       />
     </section>
   )
+}) as React.NamedExoticComponent<SkuSnapshotCardsProps> & {
+  Skeleton: React.FC
 }
 
 SkuSnapshotCards.Skeleton = function SkuSnapshotCardsSkeleton() {

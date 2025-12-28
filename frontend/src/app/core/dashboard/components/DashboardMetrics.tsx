@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import { MetricCard } from "@/components/MetricCard"
 import { DashboardMetricsData } from "@/lib/api/dashboard"
 
@@ -7,7 +8,7 @@ interface DashboardMetricsProps {
   data: DashboardMetricsData
 }
 
-export function DashboardMetrics({ data }: DashboardMetricsProps) {
+export const DashboardMetrics = React.memo(function DashboardMetrics({ data }: DashboardMetricsProps) {
   const { total_available, total_on_hand, stockouts, low_stock, location } = data
 
   const hasDelta = total_on_hand.delta_pct !== 0
@@ -45,7 +46,7 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
         }
         subtitle={onHandSubtitle}
       />
-      
+
       <MetricCard
         title="TOTAL UNITS AVAILABLE"
         value={total_available}
@@ -80,6 +81,8 @@ export function DashboardMetrics({ data }: DashboardMetricsProps) {
       />
     </section>
   )
+}) as React.NamedExoticComponent<DashboardMetricsProps> & {
+  Skeleton: React.FC
 }
 
 DashboardMetrics.Skeleton = function DashboardMetricsSkeleton() {
@@ -95,3 +98,4 @@ DashboardMetrics.Skeleton = function DashboardMetricsSkeleton() {
     </section>
   )
 }
+

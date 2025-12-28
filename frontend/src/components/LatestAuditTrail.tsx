@@ -1,5 +1,6 @@
 "use client"
 
+import React from "react"
 import Link from "next/link"
 import { Card, CardHeader, CardTitle, CardDescription, CardContent } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -8,7 +9,7 @@ import { AuditTrail } from "@/components/audit-trail"
 import { EmptyLatestAuditTrail } from "@/components/EmptyLatestAuditTrail"
 import type { LatestAuditTrailData } from "@/lib/api/inventory"
 
-export function LatestAuditTrail({ sku_code, location, transactions }: LatestAuditTrailData) {
+export const LatestAuditTrail = React.memo(function LatestAuditTrail({ sku_code, location, transactions }: LatestAuditTrailData) {
   const historyUrl = sku_code
     ? `/core/audit-trail?search=${encodeURIComponent(sku_code)}`
     : '/core/audit-trail';
@@ -25,7 +26,7 @@ export function LatestAuditTrail({ sku_code, location, transactions }: LatestAud
               {location ? location : "All Locations"}
             </CardDescription>
           </div>
-          
+
           {/* Button shown on larger screens - only when there are transactions */}
           {hasTransactions && (
             <Link href={historyUrl} className="hidden sm:block">
@@ -66,6 +67,8 @@ export function LatestAuditTrail({ sku_code, location, transactions }: LatestAud
       </CardContent>
     </Card>
   )
+}) as React.NamedExoticComponent<LatestAuditTrailData> & {
+  Skeleton: React.FC
 }
 
 LatestAuditTrail.Skeleton = function LatestAuditTrailSkeleton() {
@@ -74,7 +77,7 @@ LatestAuditTrail.Skeleton = function LatestAuditTrailSkeleton() {
       <CardHeader className="flex-shrink-0">
         <div className="flex flex-col sm:flex-row sm:items-start sm:justify-between gap-4">
           <div className="flex-1 space-y-2">
-            <Skeleton className="h-6 w-1/3" /> 
+            <Skeleton className="h-6 w-1/3" />
             <Skeleton className="h-4 w-1/4" />
           </div>
           <Skeleton className="hidden sm:block h-9 w-32 rounded-md" />

@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import React, { useState } from "react"
 import Link from "next/link"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
 import { Button } from "@/components/ui/button"
@@ -34,7 +34,7 @@ interface TopSKUsCardProps {
 
 const TOTAL_ROWS = 5
 
-export function TopSKUsCard({
+export const TopSKUsCard = React.memo(function TopSKUsCard({
   title,
   description,
   data,
@@ -188,7 +188,7 @@ export function TopSKUsCard({
                   </div>
 
                   <div className="flex-shrink-0 flex flex-col items-end gap-1.5 sm:flex-row sm:items-center sm:gap-4">
-                    
+
                     {/* Stock Bar */}
                     <div className="w-16 sm:w-20">
                       <div className="h-1.5 bg-muted rounded-full overflow-hidden w-full">
@@ -234,6 +234,8 @@ export function TopSKUsCard({
       </CardContent>
     </Card>
   )
+}) as React.NamedExoticComponent<TopSKUsCardProps> & {
+  Skeleton: React.FC
 }
 
 TopSKUsCard.Skeleton = function TopSKUsCardSkeleton() {
@@ -255,18 +257,18 @@ TopSKUsCard.Skeleton = function TopSKUsCardSkeleton() {
               className="flex items-start sm:items-center gap-3 px-3 py-3 sm:gap-4 sm:px-4 rounded-lg border border-muted/20 bg-muted/5"
             >
               <Skeleton className="flex-shrink-0 w-8 h-8 rounded-full" />
-              
+
               <div className="flex-1 min-w-0 space-y-1.5">
                 <Skeleton className="h-4 w-24" />
                 <Skeleton className="h-3 w-16 sm:w-32" />
               </div>
 
               <div className="flex-shrink-0 flex flex-col items-end gap-2 sm:flex-row sm:items-center sm:gap-4">
-                 <Skeleton className="h-1.5 w-16 sm:w-20 rounded-full" />
-                 <div className="space-y-1 text-right">
-                    <Skeleton className="h-5 w-10 ml-auto" />
-                    <Skeleton className="h-2.5 w-12 ml-auto" />
-                 </div>
+                <Skeleton className="h-1.5 w-16 sm:w-20 rounded-full" />
+                <div className="space-y-1 text-right">
+                  <Skeleton className="h-5 w-10 ml-auto" />
+                  <Skeleton className="h-2.5 w-12 ml-auto" />
+                </div>
               </div>
             </div>
           ))}
@@ -275,3 +277,4 @@ TopSKUsCard.Skeleton = function TopSKUsCardSkeleton() {
     </Card>
   )
 }
+

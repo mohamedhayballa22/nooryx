@@ -23,6 +23,7 @@ import { UnreserveForm } from "@/components/forms/unreserve-form"
 import { TransferForm } from "@/components/forms/transfer-form"
 import { UpdateSkuForm } from "@/components/forms/updatesku/update-sku-form"
 import type { InventorySnapshot } from "@/lib/api/inventory"
+import React from "react"
 
 interface Props {
   data: InventorySnapshot
@@ -30,7 +31,7 @@ interface Props {
   onTabChange: (tab: string) => void
 }
 
-export default function SkuHeader({ data, selectedLocation, onTabChange }: Props) {
+export const SkuHeader = React.memo(function SkuHeader({ data, selectedLocation, onTabChange }: Props) {
   const { sku_code, name, alerts, low_stock_threshold, reorder_point, status, locations, location_names } = data
   const [isReceiveFormOpen, setIsReceiveFormOpen] = useState(false)
   const [activeForm, setActiveForm] = useState<string | null>(null)
@@ -201,6 +202,8 @@ export default function SkuHeader({ data, selectedLocation, onTabChange }: Props
       />
     </>
   )
+}) as React.NamedExoticComponent<Props> & {
+  Skeleton: React.FC
 }
 
 SkuHeader.Skeleton = function SkuHeaderSkeleton() {
