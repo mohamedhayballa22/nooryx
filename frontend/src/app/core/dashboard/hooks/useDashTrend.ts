@@ -13,7 +13,7 @@ function getErrorStatus(error: unknown): number | undefined {
 
 export function useDashInventoryTrend(
   location?: string,
-  period: string = "30d",
+  period: string = "31d",
 ) {
   const query = useQuery({
     queryKey: ["inventory", "trend", period, location],
@@ -21,6 +21,7 @@ export function useDashInventoryTrend(
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     retry: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const hasData = Array.isArray(query.data?.points) && query.data.points.length > 0;

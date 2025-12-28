@@ -19,6 +19,7 @@ export function useSkuTransactions(skuId: string, location?: string) {
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     retry: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const hasData = Array.isArray(query.data) && query.data.length > 0;

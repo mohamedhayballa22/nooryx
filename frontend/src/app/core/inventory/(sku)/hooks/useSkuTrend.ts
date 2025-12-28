@@ -14,7 +14,7 @@ function getErrorStatus(error: unknown): number | undefined {
 export function useSkuTrend(
   skuId: string,
   location?: string,
-  period: string = "30d",
+  period: string = "31d",
 ) {
   const query = useQuery({
     queryKey: ["trend", skuId, period, location],
@@ -23,6 +23,7 @@ export function useSkuTrend(
     staleTime: 5 * 60_000,
     refetchOnWindowFocus: false,
     retry: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const hasData = Array.isArray(query.data?.points) && query.data.points.length > 0;

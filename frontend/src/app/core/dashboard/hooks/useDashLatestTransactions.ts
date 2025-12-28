@@ -16,6 +16,7 @@ export function useDashLatestTransactions(location?: string) {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     retry: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const hasData = !!query.data;

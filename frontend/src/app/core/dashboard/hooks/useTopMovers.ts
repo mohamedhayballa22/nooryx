@@ -16,6 +16,7 @@ export function useTopMovers(location?: string, period: string = "7d") {
     staleTime: 60_000,
     refetchOnWindowFocus: false,
     retry: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const hasData = !!query.data;

@@ -16,6 +16,7 @@ export function useCOGS(period: string, params?: COGSParams) {
     staleTime: 120_000,
     refetchOnWindowFocus: false,
     retry: false,
+    placeholderData: (previousData) => previousData,
   });
 
   const hasData = !!query.data;
