@@ -2,9 +2,9 @@
 
 import { useState, useMemo } from "react"
 import { SkuSnapshotCards } from "@/app/core/inventory/(sku)/components/SkuSnapshotCards"
-import TrendChart from "@/components/TrendChart"
+import { TrendChart } from "@/components/TrendChart"
 import { LatestAuditTrail } from "@/components/LatestAuditTrail"
-import SkuHeader from "@/app/core/inventory/(sku)/components/SkuHeader"
+import { SkuHeader } from "@/app/core/inventory/(sku)/components/SkuHeader"
 import { useSku } from "@/app/core/inventory/(sku)/hooks/useSku"
 import { useSkuTransactions } from "@/app/core/inventory/(sku)/hooks/useSkuTransactions"
 import { useSkuTrend } from "@/app/core/inventory/(sku)/hooks/useSkuTrend"
@@ -27,6 +27,12 @@ export function SkuMasterView({ skuCode }: SkuMasterViewProps) {
     return null
   })
 
+  // Memoize location parameter to avoid creating new values on every render
+    const locationParam = useMemo(
+      () => (selectedLocation === "all" ? undefined : selectedLocation),
+      [selectedLocation]
+    )
+
   const handlePeriodChange = (newPeriod: PeriodKey) => {
     setPreferredPeriod(newPeriod)
     try {
@@ -40,7 +46,7 @@ export function SkuMasterView({ skuCode }: SkuMasterViewProps) {
     data: skuData,
     isLoading: isSkuLoading,
     errorStatus: skuSnapshotStatus,
-  } = useSku(skuCode, selectedLocation === "all" ? undefined : selectedLocation)
+  } = useSku(skuCode, locationParam)
 
   const {
     data: trendData,
@@ -48,15 +54,15 @@ export function SkuMasterView({ skuCode }: SkuMasterViewProps) {
     errorStatus: trendStatus,
   } = useSkuTrend(
     skuCode,
-    selectedLocation === "all" ? undefined : selectedLocation,
-    preferredPeriod ?? "365d"
+    locationParam,
+    preferredPeriod ?? "31d"
   )
 
   const {
     data: transactionsData,
     isLoading: isTransactionsLoading,
     errorStatus: transactionsStatus,
-  } = useSkuTransactions(skuCode, selectedLocation === "all" ? undefined : selectedLocation)
+  } = useSkuTransactions(skuCode, locationParam)
 
   const displayPeriod = useMemo<PeriodKey>(() => {
     if (!trendData?.oldest_data_point) return "31d"
