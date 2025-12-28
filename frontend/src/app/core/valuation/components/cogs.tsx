@@ -5,13 +5,12 @@ import { Button } from "@/components/ui/button"
 import { Badge } from "@/components/ui/badge"
 import { Card, CardContent } from "@/components/ui/card"
 import {
-  Select,
-  SelectContent,
-  SelectItem,
-  SelectTrigger,
-  SelectValue,
-} from "@/components/ui/select"
-import { RefreshCw, ArrowUp, ArrowDown, Calendar, ArrowUpDown } from "lucide-react"
+  DropdownMenu,
+  DropdownMenuContent,
+  DropdownMenuItem,
+  DropdownMenuTrigger,
+} from "@/components/ui/dropdown-menu"
+import { RefreshCw, ArrowUp, ArrowDown, Calendar, ArrowUpDown, Check, ChevronDown } from "lucide-react"
 import { useEffect, useState } from "react"
 import { useFormatting } from "@/hooks/use-formatting"
 import { subMonths, subYears, formatDistanceToNow } from "date-fns"
@@ -62,7 +61,7 @@ const PERIOD_OPTIONS: PeriodOption[] = [
   {
     value: "all_time",
     label: "All Time",
-    comparisonLabel: undefined, // No comparison for all time
+    comparisonLabel: undefined,
     getStartDate: () => new Date(0),
   },
 ]
@@ -162,47 +161,39 @@ export function COGSHeader({
 
         {/* Top Right Controls */}
         <div className="absolute right-4 top-4 z-10 flex items-center gap-2 mt-1">
-          {/* Mobile: Calendar icon only */}
-          <div className="block md:hidden">
-            <Select 
-              value={selectedPeriod} 
-              onValueChange={handlePeriodChange}
-              disabled={isPeriodSelectorDisabled}
-            >
-              <SelectTrigger className="h-7 w-7 border-0 bg-transparent p-0 -mr-2 hover:bg-accent hover:text-accent-foreground [&>svg]:hidden disabled:opacity-50 disabled:cursor-not-allowed disabled:hover:bg-transparent">
-                <span className="flex items-center justify-center">
-                  <Calendar className="h-3.5 w-3.5 text-muted-foreground" />
+          {/* Period Dropdown */}
+          <DropdownMenu>
+            <DropdownMenuTrigger asChild>
+              <Button
+                variant="outline"
+                size="sm"
+                className="cursor-pointer px-2 md:px-3"
+                disabled={isPeriodSelectorDisabled}
+              >
+                <span className="md:hidden">
+                  <Calendar className="h-4 w-4" />
                 </span>
-              </SelectTrigger>
-              <SelectContent align="end">
-                {PERIOD_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value} className="text-xs">
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
-          
-          {/* Desktop: Normal dropdown */}
-          <div className="hidden md:block">
-            <Select 
-              value={selectedPeriod} 
-              onValueChange={handlePeriodChange}
-              disabled={isPeriodSelectorDisabled}
-            >
-              <SelectTrigger className="h-7 w-[140px] rounded-md text-xs cursor-pointer disabled:opacity-50 disabled:cursor-not-allowed">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent align="end">
-                {PERIOD_OPTIONS.map((option) => (
-                  <SelectItem key={option.value} value={option.value} className="text-xs">
-                    {option.label}
-                  </SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-          </div>
+                <span className="hidden md:flex items-center gap-1.5">
+                  {currentPeriod?.label || "Select Period"}
+                  <ChevronDown className="h-4 w-4" />
+                </span>
+              </Button>
+            </DropdownMenuTrigger>
+            <DropdownMenuContent align="end">
+              {PERIOD_OPTIONS.map((option) => (
+                <DropdownMenuItem
+                  key={option.value}
+                  onClick={() => handlePeriodChange(option.value)}
+                  className={
+                    selectedPeriod === option.value ? "font-medium text-primary" : undefined
+                  }
+                >
+                  {option.label}
+                  <Check className={`ml-auto h-4 w-4 ${selectedPeriod === option.value ? "opacity-100" : "opacity-0"}`} />
+                </DropdownMenuItem>
+              ))}
+            </DropdownMenuContent>
+          </DropdownMenu>
           
           {onRefresh && (
             <Button
