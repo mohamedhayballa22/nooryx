@@ -1,6 +1,6 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useMemo } from "react"
 import { ValuationHeader } from "./components/valuation-header"
 import { COGSHeader } from "./components/cogs"
 import COGSTrendChart from "./components/cogs-trend"
@@ -11,10 +11,25 @@ import { useTotalValuation } from "./hooks/use-total-valuation"
 import { useCOGS } from "./hooks/use-cogs"
 import { useCOGSTrend } from "./hooks/use-cogs-trend"
 import { useUserSettings } from "@/hooks/use-user-settings"
-import { subMonths, startOfDay } from "date-fns"
+import { subMonths, subYears, startOfDay } from "date-fns"
 
-type PeriodKey = "7d" | "30d" | "90d" | "180d"
+type PeriodKey = "7d" | "30d" | "90d" | "180d" | "1y"
 type GranularityKey = "daily" | "weekly" | "monthly"
+
+interface COGSTrendSettings {
+  period: PeriodKey
+  granularity: GranularityKey
+}
+
+type COGSPeriodKey = "last_month" | "last_3_months" | "last_6_months" | "last_year" | "all_time"
+
+const COGS_PERIOD_START_DATES: Record<COGSPeriodKey, () => Date> = {
+  last_month: () => subMonths(new Date(), 1),
+  last_3_months: () => subMonths(new Date(), 3),
+  last_6_months: () => subMonths(new Date(), 6),
+  last_year: () => subYears(new Date(), 1),
+  all_time: () => new Date(0),
+}
 
 export default function Page() {
   const { settings } = useUserSettings()
@@ -25,18 +40,63 @@ export default function Page() {
     pageSize: defaultPageSize,
   })
 
-  const initialStartDate = startOfDay(subMonths(new Date(), 1)).toISOString()
-  
-  const [cogsStartDate, setCogsStartDate] = useState<string>(
-    initialStartDate
-  )
+  // State for COGS header period with localStorage persistence
+  const [selectedPeriod, setSelectedPeriod] = useState<COGSPeriodKey>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("cogs-period-setting")
+        if (stored) {
+          const parsed = stored as COGSPeriodKey
+          const validPeriods: COGSPeriodKey[] = [
+            "last_month",
+            "last_3_months",
+            "last_6_months",
+            "last_year",
+            "all_time"
+          ]
+          
+          if (validPeriods.includes(parsed)) {
+            return parsed
+          }
+        }
+      } catch (error) {
+        // localStorage unavailable or invalid, use default
+      }
+    }
+    return "last_month"
+  })
 
-  // State for COGS header period
-  const [selectedPeriod, setSelectedPeriod] = useState<string>("last_month")
+  // Compute start date from selected period
+  const cogsStartDate = useMemo(() => {
+    if (selectedPeriod === "all_time") {
+      return undefined
+    }
+    return startOfDay(COGS_PERIOD_START_DATES[selectedPeriod]()).toISOString()
+  }, [selectedPeriod])
 
-  // State for COGS trend chart
-  const [trendPeriod, setTrendPeriod] = useState<PeriodKey>("30d")
-  const [trendGranularity, setTrendGranularity] = useState<GranularityKey>("daily")
+  // State for COGS trend chart with localStorage persistence
+  const [trendSettings, setTrendSettings] = useState<COGSTrendSettings>(() => {
+    if (typeof window !== "undefined") {
+      try {
+        const stored = localStorage.getItem("cogs-trend-settings")
+        if (stored) {
+          const parsed = JSON.parse(stored) as COGSTrendSettings
+          const validPeriods: PeriodKey[] = ["7d", "30d", "90d", "180d", "1y"]
+          const validGranularities: GranularityKey[] = ["daily", "weekly", "monthly"]
+          
+          if (
+            validPeriods.includes(parsed.period) &&
+            validGranularities.includes(parsed.granularity)
+          ) {
+            return parsed
+          }
+        }
+      } catch (error) {
+        // localStorage unavailable or invalid JSON, use defaults
+      }
+    }
+    return { period: "30d", granularity: "daily" }
+  })
 
   const { 
     data: headerData, 
@@ -54,13 +114,16 @@ export default function Page() {
     start_date: cogsStartDate,
   })
 
+  // Memoize query parameters to avoid recreating objects on every render
+  const cogsTrendQueryParams = useMemo(() => ({
+    granularity: trendSettings.granularity,
+    period: trendSettings.granularity === "daily" ? trendSettings.period : undefined,
+  }), [trendSettings.granularity, trendSettings.period])
+
   const {
     data: cogsTrendData,
     isLoading: isLoadingCOGSTrend,
-  } = useCOGSTrend({
-    granularity: trendGranularity,
-    period: trendGranularity === "daily" ? trendPeriod : undefined,
-  })
+  } = useCOGSTrend(cogsTrendQueryParams)
   
   const { data: tableData, isLoading: isLoadingTable } = useSKUValuations(
     pagination.pageIndex,
@@ -76,12 +139,34 @@ export default function Page() {
   }
 
   const handleCOGSPeriodChange = (startDate: string, period: string) => {
-    if (period === "all_time") {
-      setCogsStartDate(undefined as any)
-    } else {
-      setCogsStartDate(startDate)
+    const newPeriod = period as COGSPeriodKey
+    setSelectedPeriod(newPeriod)
+    
+    try {
+      localStorage.setItem("cogs-period-setting", newPeriod)
+    } catch (error) {
+      // localStorage unavailable, continue without persistence
     }
-    setSelectedPeriod(period)
+  }
+
+  const handleTrendPeriodChange = (newPeriod: PeriodKey) => {
+    const newSettings = { ...trendSettings, period: newPeriod }
+    setTrendSettings(newSettings)
+    try {
+      localStorage.setItem("cogs-trend-settings", JSON.stringify(newSettings))
+    } catch (error) {
+      // localStorage unavailable, continue without persistence
+    }
+  }
+
+  const handleTrendGranularityChange = (newGranularity: GranularityKey) => {
+    const newSettings = { ...trendSettings, granularity: newGranularity }
+    setTrendSettings(newSettings)
+    try {
+      localStorage.setItem("cogs-trend-settings", JSON.stringify(newSettings))
+    } catch (error) {
+      // localStorage unavailable, continue without persistence
+    }
   }
 
   return (
@@ -129,10 +214,10 @@ export default function Page() {
           cogsTrendData && (
             <COGSTrendChart
               cogsTrend={cogsTrendData}
-              period={trendPeriod}
-              granularity={trendGranularity}
-              onPeriodChange={setTrendPeriod}
-              onGranularityChange={setTrendGranularity}
+              period={trendSettings.period}
+              granularity={trendSettings.granularity}
+              onPeriodChange={handleTrendPeriodChange}
+              onGranularityChange={handleTrendGranularityChange}
             />
           )
         )}
