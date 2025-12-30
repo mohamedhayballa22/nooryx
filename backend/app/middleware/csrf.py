@@ -20,6 +20,8 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     # Paths that don't require CSRF validation
     EXEMPT_PATHS = {
         "/api/auth/jwt/login",
+        "/api/auth/admin/login",
+        "/api/auth/admin/sessions/logout",
         "/api/auth/register",
         "/openapi.json",
         "/api-docs",

@@ -15,9 +15,14 @@ from app.middleware.csrf import CSRFMiddleware
 from app.routers import (
     actions, inventory, transactions, reports, 
     search, valuation, team, settings as settings_router,
-    billing, alerts, barcodes, feedback, waitlist
+    billing, alerts, barcodes, feedback, waitlist, admin,
+    access_grants
     )
 from app.routers.auth import session, org, login
+from app.routers.auth.admin import admin_login, admin_session
+from app.bootstrap.admin import create_initial_admin
+from contextlib import asynccontextmanager
+from app.core.db import async_session_maker
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -28,9 +33,17 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 
     return f"{tag}-{route.name}"
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    async with async_session_maker() as session:
+        await create_initial_admin(session)
+    yield
+
+
 
 app = FastAPI(
     title="Nooryx",
+    lifespan=lifespan,
     generate_unique_id_function=custom_generate_unique_id,
     debug=settings.ENVIRONMENT == "dev",
     docs_url= None if settings.ENVIRONMENT != "dev" else "/api-docs",
@@ -72,6 +85,10 @@ app.include_router(billing.router, tags=["Billing"], prefix="/api/billing")
 app.include_router(team.router, tags=["Team"], prefix="/api/team")
 app.include_router(feedback.router, tags=["Feedback"], prefix="/api/feedback")
 app.include_router(waitlist.router, tags=["Waitlist"], prefix="/api/waitlist")
+app.include_router(admin.router, tags=["Admin"], prefix="/api/admin")
+app.include_router(access_grants.router, tags=["Access Grants"], prefix="/api")
+app.include_router(admin_login.router, tags=["Admin Login"], prefix="/api/auth/admin")
+app.include_router(admin_session.router, tags=["Admin Session Management"], prefix="/api/auth/admin/sessions")
 app.include_router(
     org.router, 
     tags=["Org Registration"], 

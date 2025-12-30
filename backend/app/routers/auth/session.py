@@ -238,7 +238,7 @@ async def logout(
 
     # Delete all refresh tokens for this user (cleanup instead of soft delete)
     await session.execute(
-        delete(RefreshToken).where(RefreshToken.token_hash == current_token_hash)
+        delete(RefreshToken).where(RefreshToken.token_hash == current_token_hash, RefreshToken.user_id == user.id)
     )
     await session.commit()
 

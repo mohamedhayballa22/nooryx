@@ -5,21 +5,16 @@ from fastapi_users import BaseUserManager
 from fastapi_users.exceptions import UserAlreadyExists
 from app.core.auth.users import get_user_manager
 from app.core.db import get_session, async_session_maker
-from app.models import Organization, User, Subscription
+from app.models import Organization, User
 from app.core.auth.dependencies import get_current_user
 from app.core.auth.schemas import (
-    OrgRegisterRequest,
-    OrgRegisterResponse,
     UserCreate,
     InvitationAcceptRequest,
     InvitationAcceptResponse, 
     InvitationCreateRequest, 
 )
-from app.core.auth.manager import UserManager
-from app.core.auth.users import get_user_db
 from app.core.auth.invitations import create_invitation_token, decode_invitation_token
 from uuid import UUID
-from uuid6 import uuid7
 from app.services.emails.invitation import send_invitation_email, validate_invitation_email
 from app.services.alert_service import AlertService
 from app.core.logger_config import logger
@@ -27,49 +22,49 @@ from app.core.logger_config import logger
 
 router = APIRouter()
 
-@router.post("/register-new-org", response_model=OrgRegisterResponse, status_code=status.HTTP_201_CREATED)
-async def register_new_org(
-    payload: OrgRegisterRequest,
-    session: AsyncSession = Depends(get_session),
-    user_db=Depends(get_user_db),
-):
-    """Creates a new organization, its initial subscription, and first user atomically."""
-    org_data = payload.org
-    user_data = payload.user
+# @router.post("/register-new-org", response_model=OrgRegisterResponse, status_code=status.HTTP_201_CREATED)
+# async def register_new_org(
+#     payload: OrgRegisterRequest,
+#     session: AsyncSession = Depends(get_session),
+#     user_db=Depends(get_user_db),
+# ):
+#     """Creates a new organization, its initial subscription, and first user atomically."""
+#     org_data = payload.org
+#     user_data = payload.user
 
-    # Create Organization
-    new_org = Organization(
-        org_id=uuid7(),
-        name=org_data.name,
-        currency=org_data.currency,
-        valuation_method=org_data.valuation_method,
-    )
-    session.add(new_org)
-    await session.flush()  # ensures org_id is available
+#     # Create Organization
+#     new_org = Organization(
+#         org_id=uuid7(),
+#         name=org_data.name,
+#         currency=org_data.currency,
+#         valuation_method=org_data.valuation_method,
+#     )
+#     session.add(new_org)
+#     await session.flush()  # ensures org_id is available
 
-    # Create Subscription (default plan)
-    new_subscription = Subscription(
-        org_id=new_org.org_id,
-    )
-    session.add(new_subscription)
-    await session.flush()
+#     # Create Subscription (default plan)
+#     new_subscription = Subscription(
+#         org_id=new_org.org_id,
+#     )
+#     session.add(new_subscription)
+#     await session.flush()
 
-    # Create the first user tied to the org
-    user_manager = UserManager(user_db)
-    user_data.org_id = new_org.org_id
-    try:
-        user = await user_manager.create(user_data, safe=True)
-    except Exception as e:
-        raise HTTPException(status_code=400, detail=str(e))
+#     # Create the first user tied to the org
+#     user_manager = UserManager(user_db)
+#     user_data.org_id = new_org.org_id
+#     try:
+#         user = await user_manager.create(user_data, safe=True)
+#     except Exception as e:
+#         raise HTTPException(status_code=400, detail=str(e))
 
-    await session.commit()
+#     await session.commit()
 
-    return OrgRegisterResponse(
-        org_id=new_org.org_id,
-        user_id=user.id,
-        email=user.email,
-        org_name=new_org.name,
-    )
+#     return OrgRegisterResponse(
+#         org_id=new_org.org_id,
+#         user_id=user.id,
+#         email=user.email,
+#         org_name=new_org.name,
+#     )
 
 
 @router.post("/invite", status_code=status.HTTP_204_NO_CONTENT)
