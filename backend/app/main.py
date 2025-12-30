@@ -23,6 +23,7 @@ from app.routers.auth.admin import admin_login, admin_session
 from app.bootstrap.admin import create_initial_admin
 from contextlib import asynccontextmanager
 from app.core.db import async_session_maker
+from app.seeds.seed_demo_org import seed_demo_org
 
 
 def custom_generate_unique_id(route: APIRoute) -> str:
@@ -37,6 +38,7 @@ def custom_generate_unique_id(route: APIRoute) -> str:
 async def lifespan(app: FastAPI):
     async with async_session_maker() as session:
         await create_initial_admin(session)
+        await seed_demo_org()
     yield
 
 
