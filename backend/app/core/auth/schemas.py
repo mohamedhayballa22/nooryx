@@ -1,7 +1,7 @@
 from fastapi_users import schemas
 from uuid import UUID
 from typing import Optional
-from pydantic import BaseModel, Field, EmailStr
+from pydantic import BaseModel, Field, EmailStr, field_validator, validator
 from datetime import datetime
 
 class UserRead(schemas.BaseUser[UUID]):
@@ -49,3 +49,43 @@ class InvitationAcceptRequest(BaseModel):
 class InvitationAcceptResponse(BaseModel):
     email: EmailStr
     org_name: str
+
+# Access Grants
+
+class AccessGrantRequest(BaseModel):
+    """Request to grant access to a new organization."""
+    email: EmailStr
+    subscription_months: int = Field(ge=1, le=36, description="Subscription length in months")
+
+
+class AccessClaimRequest(BaseModel):
+    """Request to claim access and create workspace."""
+    token: str
+    email: EmailStr
+    first_name: str = Field(min_length=1, max_length=100)
+    last_name: str = Field(min_length=1, max_length=100)
+    password: str = Field(min_length=8)
+    company_name: str = Field(min_length=1, max_length=255)
+    valuation_method: str = Field(default="WAC", description="FIFO, LIFO, or WAC")
+    currency: str = Field(min_length=3, max_length=3, description="ISO 4217 currency code")
+    
+    @field_validator("valuation_method")
+    def validate_valuation_method(cls, v):
+        allowed = ["FIFO", "LIFO", "WAC"]
+        if v.upper() not in allowed:
+            raise ValueError(f"valuation_method must be one of {allowed}")
+        return v.upper()
+    
+    @field_validator("currency")
+    def validate_currency(cls, v):
+        return v.upper()
+
+
+class AccessClaimResponse(BaseModel):
+    """Response after successful access claim."""
+    org_id: UUID
+    user_id: UUID
+    email: str
+    org_name: str
+    subscription_end_date: datetime
+    

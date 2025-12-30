@@ -66,6 +66,9 @@ class Settings(BaseSettings):
     CSRF_COOKIE_NAME: str = "csrf_token"
     CSRF_HEADER_NAME: str = "X-CSRF-Token"
     CSRF_ENABLED: bool = True
+    FIRST_ADMIN_EMAIL: str = ""
+    FIRST_ADMIN_PASSWORD: str = ""
+    ACCESS_GRANT_TOKEN_EXPIRE_HOURS: int = 72
     
     # Shopify integration settings (to uncomment when shopify verification is complete)
     # SHOPIFY_CLIENT_ID: str

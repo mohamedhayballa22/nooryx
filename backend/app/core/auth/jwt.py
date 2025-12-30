@@ -21,3 +21,24 @@ auth_backend = AuthenticationBackend(
     transport=cookie_transport,
     get_strategy=get_jwt_strategy,
 )
+
+# Admin authentication
+admin_cookie_transport = CookieTransport(
+    cookie_max_age=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+    cookie_name="admin_access_token",
+    cookie_secure=True,
+    cookie_httponly=True,
+)
+
+def get_admin_jwt_strategy() -> JWTStrategy:
+    return JWTStrategy(
+        secret=settings.SECRET_KEY,
+        lifetime_seconds=settings.ACCESS_TOKEN_EXPIRE_MINUTES * 60,
+        token_audience=["nooryx_admins"],
+    )
+
+admin_auth_backend = AuthenticationBackend(
+    name="admin_jwt",
+    transport=admin_cookie_transport,
+    get_strategy=get_admin_jwt_strategy,
+)
