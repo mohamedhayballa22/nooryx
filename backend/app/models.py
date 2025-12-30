@@ -399,6 +399,15 @@ class User(SQLAlchemyBaseUserTableUUID, Base):
     )
 
 
+class NooryxAdmin(SQLAlchemyBaseUserTableUUID, Base):
+    """Nooryx admin user account with access to admin dashboard."""
+    
+    __tablename__ = "nooryx_admins"
+    
+    created_at = Column(DateTime(timezone=True), server_default=func.now())
+    updated_at = Column(DateTime(timezone=True), onupdate=func.now())
+
+
 class Subscription(Base):
     """Subscription and billing information for organizations."""
     
