@@ -474,7 +474,7 @@ export default function DashboardHeader({ data, selectedLocation, onTabChange }:
         </h1>
 
         {/* Message */}
-        <div className="space-y-2 max-w-[800px]">
+        <div className="space-y-2 max-w-[850px]">
           <p className="text-base text-md text-foreground leading-relaxed">{displayedMessage}</p>
           {message.canExpand && (
             <button
