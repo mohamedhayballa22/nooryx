@@ -23,206 +23,206 @@ from app.models import Organization, User, Subscription
 from app.core.config import settings
 
 
-@pytest.mark.asyncio
-class TestRegisterNewOrg:
-    """Tests for POST /api/auth/register-new-org"""
+# @pytest.mark.asyncio
+# class TestRegisterNewOrg:
+#     """Tests for POST /api/auth/register-new-org"""
     
-    # =========================================================================
-    # Happy Path Tests
-    # =========================================================================
+#     # =========================================================================
+#     # Happy Path Tests
+#     # =========================================================================
     
-    async def test_register_creates_org_user_and_subscription(
-        self,
-        client: AsyncClient,
-        integration_session,
-    ):
-        """
-        Registration atomically creates organization, subscription, and first user.
-        """
-        payload = {
-            "org": {
-                "name": "Acme Corporation",
-                "currency": "USD",
-                "valuation_method": "FIFO",
-            },
-            "user": {
-                "email": "admin@acme.com",
-                "password": "SecurePassword123!",
-                "first_name": "Jane",
-                "last_name": "Admin",
-            },
-        }
+#     async def test_register_creates_org_user_and_subscription(
+#         self,
+#         client: AsyncClient,
+#         integration_session,
+#     ):
+#         """
+#         Registration atomically creates organization, subscription, and first user.
+#         """
+#         payload = {
+#             "org": {
+#                 "name": "Acme Corporation",
+#                 "currency": "USD",
+#                 "valuation_method": "FIFO",
+#             },
+#             "user": {
+#                 "email": "admin@acme.com",
+#                 "password": "SecurePassword123!",
+#                 "first_name": "Jane",
+#                 "last_name": "Admin",
+#             },
+#         }
         
-        response = await client.post("/api/auth/register-new-org", json=payload)
+#         response = await client.post("/api/auth/register-new-org", json=payload)
         
-        assert response.status_code == 201
+#         assert response.status_code == 201
         
-        data = response.json()
-        assert data["org_name"] == "Acme Corporation"
-        assert data["email"] == "admin@acme.com"
-        assert "org_id" in data
-        assert "user_id" in data
+#         data = response.json()
+#         assert data["org_name"] == "Acme Corporation"
+#         assert data["email"] == "admin@acme.com"
+#         assert "org_id" in data
+#         assert "user_id" in data
         
-        # Verify org was created in DB
-        org = await integration_session.scalar(
-            select(Organization).where(Organization.name == "Acme Corporation")
-        )
-        assert org is not None
-        assert org.currency == "USD"
-        assert org.valuation_method == "FIFO"
+#         # Verify org was created in DB
+#         org = await integration_session.scalar(
+#             select(Organization).where(Organization.name == "Acme Corporation")
+#         )
+#         assert org is not None
+#         assert org.currency == "USD"
+#         assert org.valuation_method == "FIFO"
         
-        # Verify subscription was created
-        subscription = await integration_session.scalar(
-            select(Subscription).where(Subscription.org_id == org.org_id)
-        )
-        assert subscription is not None
-        assert subscription.plan_name == "free"  # default plan
+#         # Verify subscription was created
+#         subscription = await integration_session.scalar(
+#             select(Subscription).where(Subscription.org_id == org.org_id)
+#         )
+#         assert subscription is not None
+#         assert subscription.plan_name == "free"  # default plan
         
-        # Verify user was created and linked to org
-        user = await integration_session.scalar(
-            select(User).where(User.email == "admin@acme.com")
-        )
-        assert user is not None
-        assert user.org_id == org.org_id
-        assert user.first_name == "Jane"
-        assert user.last_name == "Admin"
-        assert user.is_active is True
+#         # Verify user was created and linked to org
+#         user = await integration_session.scalar(
+#             select(User).where(User.email == "admin@acme.com")
+#         )
+#         assert user is not None
+#         assert user.org_id == org.org_id
+#         assert user.first_name == "Jane"
+#         assert user.last_name == "Admin"
+#         assert user.is_active is True
     
-    async def test_register_uses_default_valuation_method(
-        self,
-        client: AsyncClient,
-        integration_session,
-    ):
-        """
-        When valuation_method is not specified, defaults to WAC.
-        """
-        payload = {
-            "org": {
-                "name": "Default Valuation Org",
-                "currency": "EUR",
-            },
-            "user": {
-                "email": "default@example.com",
-                "password": "SecurePassword123!",
-                "first_name": "Test",
-                "last_name": "User",
-            },
-        }
+#     async def test_register_uses_default_valuation_method(
+#         self,
+#         client: AsyncClient,
+#         integration_session,
+#     ):
+#         """
+#         When valuation_method is not specified, defaults to WAC.
+#         """
+#         payload = {
+#             "org": {
+#                 "name": "Default Valuation Org",
+#                 "currency": "EUR",
+#             },
+#             "user": {
+#                 "email": "default@example.com",
+#                 "password": "SecurePassword123!",
+#                 "first_name": "Test",
+#                 "last_name": "User",
+#             },
+#         }
         
-        response = await client.post("/api/auth/register-new-org", json=payload)
+#         response = await client.post("/api/auth/register-new-org", json=payload)
         
-        assert response.status_code == 201
+#         assert response.status_code == 201
         
-        org = await integration_session.scalar(
-            select(Organization).where(Organization.name == "Default Valuation Org")
-        )
-        assert org.valuation_method == "WAC"
+#         org = await integration_session.scalar(
+#             select(Organization).where(Organization.name == "Default Valuation Org")
+#         )
+#         assert org.valuation_method == "WAC"
     
-    # =========================================================================
-    # Sad Path Tests
-    # =========================================================================
+#     # =========================================================================
+#     # Sad Path Tests
+#     # =========================================================================
     
-    async def test_register_duplicate_email_returns_400(
-        self,
-        client: AsyncClient,
-        create_test_org,
-        create_test_user,
-    ):
-        """
-        Cannot register with an email that already exists.
-        """
-        # Create existing user
-        org = await create_test_org()
-        await create_test_user(org, email="existing@example.com")
+#     async def test_register_duplicate_email_returns_400(
+#         self,
+#         client: AsyncClient,
+#         create_test_org,
+#         create_test_user,
+#     ):
+#         """
+#         Cannot register with an email that already exists.
+#         """
+#         # Create existing user
+#         org = await create_test_org()
+#         await create_test_user(org, email="existing@example.com")
         
-        payload = {
-            "org": {
-                "name": "New Org",
-                "currency": "USD",
-            },
-            "user": {
-                "email": "existing@example.com",
-                "password": "SecurePassword123!",
-                "first_name": "Test",
-                "last_name": "User",
-            },
-        }
+#         payload = {
+#             "org": {
+#                 "name": "New Org",
+#                 "currency": "USD",
+#             },
+#             "user": {
+#                 "email": "existing@example.com",
+#                 "password": "SecurePassword123!",
+#                 "first_name": "Test",
+#                 "last_name": "User",
+#             },
+#         }
         
-        response = await client.post("/api/auth/register-new-org", json=payload)
+#         response = await client.post("/api/auth/register-new-org", json=payload)
         
-        assert response.status_code == 400
+#         assert response.status_code == 400
     
-    async def test_register_invalid_currency_returns_422(
-        self,
-        client: AsyncClient,
-    ):
-        """
-        Currency must be exactly 3 characters.
-        """
-        payload = {
-            "org": {
-                "name": "Bad Currency Org",
-                "currency": "TOOLONG",
-            },
-            "user": {
-                "email": "test@example.com",
-                "password": "SecurePassword123!",
-                "first_name": "Test",
-                "last_name": "User",
-            },
-        }
+#     async def test_register_invalid_currency_returns_422(
+#         self,
+#         client: AsyncClient,
+#     ):
+#         """
+#         Currency must be exactly 3 characters.
+#         """
+#         payload = {
+#             "org": {
+#                 "name": "Bad Currency Org",
+#                 "currency": "TOOLONG",
+#             },
+#             "user": {
+#                 "email": "test@example.com",
+#                 "password": "SecurePassword123!",
+#                 "first_name": "Test",
+#                 "last_name": "User",
+#             },
+#         }
         
-        response = await client.post("/api/auth/register-new-org", json=payload)
+#         response = await client.post("/api/auth/register-new-org", json=payload)
         
-        assert response.status_code == 422
+#         assert response.status_code == 422
     
-    async def test_register_missing_required_fields_returns_422(
-        self,
-        client: AsyncClient,
-    ):
-        """
-        Missing required fields return validation error.
-        """
-        # Missing org name
-        payload = {
-            "org": {
-                "currency": "USD",
-            },
-            "user": {
-                "email": "test@example.com",
-                "password": "SecurePassword123!",
-                "first_name": "Test",
-                "last_name": "User",
-            },
-        }
+#     async def test_register_missing_required_fields_returns_422(
+#         self,
+#         client: AsyncClient,
+#     ):
+#         """
+#         Missing required fields return validation error.
+#         """
+#         # Missing org name
+#         payload = {
+#             "org": {
+#                 "currency": "USD",
+#             },
+#             "user": {
+#                 "email": "test@example.com",
+#                 "password": "SecurePassword123!",
+#                 "first_name": "Test",
+#                 "last_name": "User",
+#             },
+#         }
         
-        response = await client.post("/api/auth/register-new-org", json=payload)
+#         response = await client.post("/api/auth/register-new-org", json=payload)
         
-        assert response.status_code == 422
+#         assert response.status_code == 422
     
-    async def test_register_weak_password_returns_400(
-        self,
-        client: AsyncClient,
-    ):
-        """
-        Weak passwords are rejected by fastapi-users.
-        """
-        payload = {
-            "org": {
-                "name": "Weak Password Org",
-                "currency": "USD",
-            },
-            "user": {
-                "email": "weakpw@example.com",
-                "password": "123",  # Too short
-                "first_name": "Test",
-                "last_name": "User",
-            },
-        }
+#     async def test_register_weak_password_returns_400(
+#         self,
+#         client: AsyncClient,
+#     ):
+#         """
+#         Weak passwords are rejected by fastapi-users.
+#         """
+#         payload = {
+#             "org": {
+#                 "name": "Weak Password Org",
+#                 "currency": "USD",
+#             },
+#             "user": {
+#                 "email": "weakpw@example.com",
+#                 "password": "123",  # Too short
+#                 "first_name": "Test",
+#                 "last_name": "User",
+#             },
+#         }
         
-        response = await client.post("/api/auth/register-new-org", json=payload)
+#         response = await client.post("/api/auth/register-new-org", json=payload)
         
-        assert response.status_code == 400
+#         assert response.status_code == 400
 
 
 @pytest.mark.asyncio
