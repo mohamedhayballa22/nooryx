@@ -85,7 +85,6 @@ async def claim_access(
     Claim access using a token and create the workspace (organization, subscription, and user).
     All operations are atomic - if any step fails, everything rolls back.
     """
-    print(f"payload: {payload}")
     # Decode and validate token
     try:
         token_data = decode_access_grant_token(payload.token)

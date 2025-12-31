@@ -1,4 +1,4 @@
-const NEXT_PUBLIC_API_URL = 'http://localhost:8000/api';
+const NEXT_PUBLIC_API_URL = '/api';
 
 export async function apiFetch(
   path: string,

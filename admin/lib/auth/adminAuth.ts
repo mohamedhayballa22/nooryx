@@ -7,19 +7,15 @@ export const authProvider: AuthProvider = {
     form.append('username', username);
     form.append('password', password);
 
-    await apiFetch('/auth/admin/login', {
+    await apiFetch('/admin/login', {
       method: 'POST',
       body: form,
     });
   },
-
-  /**
-   * Never reject, ever.
-   * Otherwise react-admin WILL call logout().
-   */
+  
   checkAuth: async () => {
     try {
-      const res = await apiFetch('/auth/admin/sessions/current');
+      const res = await apiFetch('/admin/sessions/current');
       if (!res.ok) {
         return Promise.reject();
       }
@@ -30,7 +26,7 @@ export const authProvider: AuthProvider = {
   },
 
   getIdentity: async () => {
-    const res = await apiFetch('/auth/admin/sessions/current');
+    const res = await apiFetch('/admin/sessions/current');
     const user = await res.json();
 
     return {
@@ -49,7 +45,7 @@ export const authProvider: AuthProvider = {
 
   logout: async () => {
     // This will always succeed now
-    await apiFetch('/auth/admin/sessions/logout', {
+    await apiFetch('/admin/sessions/logout', {
       method: 'POST',
     });
   },

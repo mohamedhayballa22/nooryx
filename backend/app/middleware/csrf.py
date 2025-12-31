@@ -20,8 +20,9 @@ class CSRFMiddleware(BaseHTTPMiddleware):
     # Paths that don't require CSRF validation
     EXEMPT_PATHS = {
         "/api/auth/jwt/login",
-        "/api/auth/admin/login",
-        "/api/auth/admin/sessions/logout",
+        "/api/access/claim",
+        "/api/admin/login",
+        "/api/admin/sessions/logout",
         "/api/auth/register",
         "/openapi.json",
         "/api-docs",
@@ -53,10 +54,19 @@ class CSRFMiddleware(BaseHTTPMiddleware):
         if request.method not in self.PROTECTED_METHODS:
             return await call_next(request)
         
-        # Get CSRF token from cookie
-        csrf_cookie = request.cookies.get(settings.CSRF_COOKIE_NAME)
+        # Determine if this is an admin request
+        is_admin_request = request.url.path.startswith("/api/admin")
         
-        # Get CSRF token from header
+        # Choose the appropriate cookie name
+        csrf_cookie_name = (
+            settings.ADMIN_CSRF_COOKIE_NAME if is_admin_request 
+            else settings.CSRF_COOKIE_NAME
+        )
+        
+        # Get CSRF token from cookie
+        csrf_cookie = request.cookies.get(csrf_cookie_name)
+        
+        # Get CSRF token from header (both use same header name)
         csrf_header = request.headers.get(settings.CSRF_HEADER_NAME)
         
         # Validate both exist
@@ -68,6 +78,7 @@ class CSRFMiddleware(BaseHTTPMiddleware):
                 method=request.method,
                 has_cookie=bool(csrf_cookie),
                 has_header=bool(csrf_header),
+                cookie_name_checked=csrf_cookie_name,  # Add for debugging
             )
             return JSONResponse(
                 status_code=403,

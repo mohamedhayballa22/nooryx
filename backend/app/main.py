@@ -89,8 +89,8 @@ app.include_router(feedback.router, tags=["Feedback"], prefix="/api/feedback")
 app.include_router(waitlist.router, tags=["Waitlist"], prefix="/api/waitlist")
 app.include_router(admin.router, tags=["Admin"], prefix="/api/admin")
 app.include_router(access_grants.router, tags=["Access Grants"], prefix="/api")
-app.include_router(admin_login.router, tags=["Admin Login"], prefix="/api/auth/admin")
-app.include_router(admin_session.router, tags=["Admin Session Management"], prefix="/api/auth/admin/sessions")
+app.include_router(admin_login.router, tags=["Admin Login"], prefix="/api/admin")
+app.include_router(admin_session.router, tags=["Admin Session Management"], prefix="/api/admin/sessions")
 app.include_router(
     org.router, 
     tags=["Org Registration"], 

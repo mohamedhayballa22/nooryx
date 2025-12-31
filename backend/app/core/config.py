@@ -66,6 +66,7 @@ class Settings(BaseSettings):
     CSRF_COOKIE_NAME: str = "csrf_token"
     CSRF_HEADER_NAME: str = "X-CSRF-Token"
     CSRF_ENABLED: bool = True
+    ADMIN_CSRF_COOKIE_NAME: str = "admin_csrf_token"
     FIRST_ADMIN_EMAIL: str = ""
     FIRST_ADMIN_PASSWORD: str = ""
     ACCESS_GRANT_TOKEN_EXPIRE_HOURS: int = 72

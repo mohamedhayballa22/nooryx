@@ -1,5 +1,5 @@
 const BASE_URL =
-  process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000/api';
+  process.env.NEXT_PUBLIC_API_URL || '/api';
 
 export class AdminApiError extends Error {
   status: number;
@@ -16,7 +16,7 @@ function getCsrfToken(): string | null {
   if (typeof document === 'undefined') return null;
   const cookies = document.cookie.split(';');
   const csrfCookie = cookies.find(c =>
-    c.trim().startsWith('csrf_token=')
+    c.trim().startsWith('admin_csrf_token=')
   );
   return csrfCookie ? csrfCookie.split('=')[1] : null;
 }
