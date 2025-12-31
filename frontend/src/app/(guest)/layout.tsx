@@ -1,10 +1,10 @@
 "use client";
 
-import GuestNavbar from "@/components/guest-navbar";
 import { useAuth } from "@/lib/auth";
 import { AuthLoading } from "@/components/auth-loading";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
+import { Header } from "@/components/header";
 
 export default function GuestLayout({
   children,
@@ -37,7 +37,7 @@ export default function GuestLayout({
   // For all other guest routes: render normally
   return (
     <div className="min-h-screen flex flex-col">
-      <GuestNavbar />
+      <Header />
       <main className="flex-1 pt-20">{children}</main>
     </div>
   );

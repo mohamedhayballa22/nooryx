@@ -187,34 +187,34 @@ export function AppSidebar() {
     <Sidebar collapsible="icon">
       {/* Header */}
       <SidebarHeader className="h-14 border-b px-4 group-data-[collapsible=icon]:px-3">
-  <div className="flex h-full items-center gap-3 overflow-hidden">
-    <Image
-      src="/nooryx-logo.svg"
-      alt="Nooryx logo"
-      width={24}
-      height={24}
-      className="flex-shrink-0 dark:invert transition-transform duration-200 ease-in-out"
-    />
-    <span 
-      className={`
-        ${NooryxFont.className}
-        select-none
-        mt-0.5
-        text-2xl
-        font-medium
-        whitespace-nowrap
-        transition-all
-        duration-200
-        ease-in-out
-        group-data-[collapsible=icon]:opacity-0
-        group-data-[collapsible=icon]:translate-x-2
-        group-data-[collapsible=icon]:pointer-events-none
-      `}
-    >
-      Nooryx
-    </span>
-  </div>
-</SidebarHeader>
+        <div className="flex h-full items-center gap-3 overflow-hidden">
+          <Image
+            src="/nooryx-logo.svg"
+            alt="Nooryx logo"
+            width={24}
+            height={24}
+            className="flex-shrink-0 dark:invert transition-transform duration-200 ease-in-out"
+          />
+          <span 
+            className={`
+              ${NooryxFont.className}
+              select-none
+              mt-0.5
+              text-2xl
+              font-medium
+              whitespace-nowrap
+              transition-all
+              duration-200
+              ease-in-out
+              group-data-[collapsible=icon]:opacity-0
+              group-data-[collapsible=icon]:translate-x-2
+              group-data-[collapsible=icon]:pointer-events-none
+            `}
+          >
+            Nooryx
+          </span>
+        </div>
+      </SidebarHeader>
 
       {/* Main Menu */}
       <SidebarContent className="sidebar-scrollbar">

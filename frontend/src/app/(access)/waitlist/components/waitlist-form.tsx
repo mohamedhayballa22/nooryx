@@ -158,7 +158,7 @@ export function WaitlistForm() {
       <FieldDescription className="text-center">
         Already have an account?{" "}
         <Link href="/login" className="underline underline-offset-4">
-          Sign in
+          Log in
         </Link>
       </FieldDescription>
     </form>
