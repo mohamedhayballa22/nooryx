@@ -172,8 +172,9 @@ async def run_process():
         print("-> Calculating new timestamps...")
         span = (END_DATE - START_DATE).total_seconds()
         cluster_cache = {}
-        update_plan = []
+        raw_plan = []
 
+        # Generate candidate timestamps
         for idx, txn in enumerate(txns):
             progress = idx / len(txns)
             base_time = START_DATE + timedelta(seconds=progress * span)
@@ -187,9 +188,20 @@ async def run_process():
                     cluster_cache[cluster_key] = base_time
             
             new_ts = generate_timestamp(base_time, time_pref)
-            update_plan.append((txn, new_ts))
+            raw_plan.append((txn, new_ts))
         
-        update_plan.sort(key=lambda x: x[1])
+        # Enforce monotonic order while preserving original sequence
+        print("-> Enforcing monotonic timestamp order...")
+        last_ts = START_DATE - timedelta(seconds=1)
+        update_plan = []
+        
+        for txn, proposed_ts in raw_plan:
+            if proposed_ts <= last_ts:
+                # Push forward to maintain order
+                proposed_ts = last_ts + timedelta(milliseconds=random.randint(50, 500))
+            
+            last_ts = proposed_ts
+            update_plan.append((txn, proposed_ts))
 
         print(f"\nPlanned range: {update_plan[0][1]} to {update_plan[-1][1]}")
         confirm = input("-> Proceed with ATOMIC update (Transactions + Alerts)? (yes/no): ")
@@ -292,7 +304,6 @@ async def run_process():
                         alert_metadata={
                             "sku_codes": sku_codes,
                             "details": clean_details,
-                            # UPDATED: Use the actual alert timestamp
                             "check_timestamp": group_ts.isoformat()
                         },
                         created_at=group_ts

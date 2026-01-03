@@ -4,6 +4,9 @@ This module is idempotent and will only seed if the org doesn't exist.
 """
 
 from pathlib import Path
+from datetime import datetime, timezone, timedelta
+from typing import Optional
+import re
 
 from sqlalchemy import text
 from sqlalchemy.ext.asyncio import AsyncSession
@@ -17,10 +20,18 @@ SEED_OUTPUT_FILE = "./app/seeds/demo_org_seed.sql"
 class DemoOrgSeeder:
     """Handles seeding of demo organization data."""
     
-    def __init__(self, session: AsyncSession, org_id: str, seed_file: str):
+    def __init__(
+        self, 
+        session: AsyncSession, 
+        org_id: str, 
+        seed_file: str,
+        time_shift_to_now: bool = True
+    ):
         self.session = session
         self.org_id = org_id
         self.seed_file = Path(seed_file)
+        self.time_shift_to_now = time_shift_to_now
+        self.time_offset = None  # Will be calculated if time_shift_to_now is True
         
     async def org_exists(self) -> bool:
         """Check if the organization already exists."""
@@ -48,6 +59,93 @@ class DemoOrgSeeder:
                 summary[table] = count
         
         return summary
+    
+    def extract_transaction_timestamps(self, sql_content: str) -> list[datetime]:
+        """Extract timestamps specifically from transaction INSERT statements."""
+        timestamps = []
+        
+        # Split content into lines
+        lines = sql_content.split('\n')
+        
+        # Pattern to match timestamps in ISO 8601 format
+        timestamp_pattern = r"'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:\+\d{2}:\d{2})?)'"
+        
+        for line in lines:
+            # Only process lines that are INSERT statements for transactions table
+            if 'INSERT INTO transactions' in line:
+                # Find all timestamps in this line
+                matches = re.findall(timestamp_pattern, line)
+                
+                # The last timestamp in a transaction INSERT is typically the created_at
+                if matches:
+                    try:
+                        ts = datetime.fromisoformat(matches[-1])
+                        timestamps.append(ts)
+                    except ValueError:
+                        continue
+        
+        return timestamps
+    
+    def calculate_time_offset(self, sql_content: str) -> Optional[tuple]:
+        """
+        Calculate the time offset needed to shift the latest transaction to now.
+        
+        Returns:
+            Tuple of (offset_seconds, latest_timestamp) or None if no timestamps found
+        """
+        timestamps = self.extract_transaction_timestamps(sql_content)
+        
+        if not timestamps:
+            print("   Warning: No transaction timestamps found")
+            return None
+        
+        # Find the latest transaction timestamp
+        latest_timestamp = max(timestamps)
+        
+        # Calculate offset to shift latest to now
+        now = datetime.now(timezone.utc)
+        offset = now - latest_timestamp
+        
+        return (offset.total_seconds(), latest_timestamp)
+    
+    def shift_timestamp(self, timestamp_str: str, offset_seconds: float) -> str:
+        """Shift a timestamp string by the given offset in seconds."""
+        try:
+            # Parse the timestamp
+            ts = datetime.fromisoformat(timestamp_str)
+            
+            # Add the offset
+            shifted_ts = ts + timedelta(seconds=offset_seconds)
+            
+            # Return in the same ISO format
+            return shifted_ts.isoformat()
+        except (ValueError, AttributeError):
+            # If parsing fails, return original
+            return timestamp_str
+    
+    def apply_time_shift(self, sql_content: str, offset_seconds: float) -> str:
+        """
+        Apply time shift to all timestamps in the SQL content.
+        
+        Args:
+            sql_content: The original SQL content
+            offset_seconds: Number of seconds to add to each timestamp
+        
+        Returns:
+            Modified SQL content with shifted timestamps
+        """
+        # Pattern matches ISO 8601 timestamps in single quotes
+        timestamp_pattern = r"'(\d{4}-\d{2}-\d{2}T\d{2}:\d{2}:\d{2}(?:\.\d+)?(?:\+\d{2}:\d{2})?)'"
+        
+        def replace_timestamp(match):
+            original_ts = match.group(1)
+            shifted_ts = self.shift_timestamp(original_ts, offset_seconds)
+            return f"'{shifted_ts}'"
+        
+        # Replace all timestamps
+        modified_content = re.sub(timestamp_pattern, replace_timestamp, sql_content)
+        
+        return modified_content
     
     def parse_sql_statements(self, sql_content: str) -> list[str]:
         """Parse SQL file into individual executable statements."""
@@ -91,6 +189,20 @@ class DemoOrgSeeder:
         with open(self.seed_file, 'r', encoding='utf-8') as f:
             sql_content = f.read()
         
+        # Apply time shift if requested
+        if self.time_shift_to_now:
+            offset_info = self.calculate_time_offset(sql_content)
+            
+            if offset_info:
+                offset_seconds, latest_ts = offset_info
+                print(f"   Time-shifting data: latest transaction was {latest_ts}")
+                print(f"   Applying offset: {offset_seconds / 86400:.1f} days")
+                
+                sql_content = self.apply_time_shift(sql_content, offset_seconds)
+                self.time_offset = offset_seconds
+            else:
+                print("   Warning: No transaction timestamps found, skipping time shift")
+        
         # Parse into individual statements
         statements = self.parse_sql_statements(sql_content)
         
@@ -124,13 +236,14 @@ class DemoOrgSeeder:
         """
         exists = await self.org_exists()
         
-        if exists:
+        if exists and not force:
             return False
         
         if exists and force:
             print(f"  Force re-seeding demo org {self.org_id} (org exists)")
         else:
-            print(f"Seeding demo organization: {self.org_id}")
+            action = "with time-shift" if self.time_shift_to_now else ""
+            print(f"Seeding demo organization: {self.org_id} {action}")
         
         try:
             await self.execute_seed_file()
@@ -138,6 +251,8 @@ class DemoOrgSeeder:
             # Show summary of what was seeded
             summary = await self.get_org_summary()
             print(f"Successfully seeded demo org from {self.seed_file.name}")
+            if self.time_offset:
+                print(f"   Applied time offset: {self.time_offset / 86400:.1f} days")
             if summary:
                 print(f"   Seeded: {dict(summary)}")
             
@@ -149,13 +264,14 @@ class DemoOrgSeeder:
             raise
 
 
-async def seed_demo_org(force: bool = False) -> None:
+async def seed_demo_org(force: bool = False, time_shift_to_now: bool = True) -> None:
     """
     Seed demo organization data if it doesn't exist.
     Called during application startup.
     
     Args:
         force: If True, re-seed even if org exists
+        time_shift_to_now: If True, shift all timestamps so latest transaction is today
     """
     
     try:
@@ -163,7 +279,8 @@ async def seed_demo_org(force: bool = False) -> None:
             seeder = DemoOrgSeeder(
                 session=session,
                 org_id=SOURCE_ORG_ID,
-                seed_file=SEED_OUTPUT_FILE
+                seed_file=SEED_OUTPUT_FILE,
+                time_shift_to_now=time_shift_to_now
             )
             await seeder.seed(force=force)
             
@@ -178,9 +295,13 @@ async def seed_demo_org(force: bool = False) -> None:
 
 
 # Optional: Manual seeding endpoint for testing
-async def manual_seed(force: bool = False) -> dict:
+async def manual_seed(force: bool = False, time_shift_to_now: bool = True) -> dict:
     """
     Manually trigger seeding. Use in admin endpoint.
+    
+    Args:
+        force: If True, re-seed even if org exists
+        time_shift_to_now: If True, shift all timestamps so latest transaction is today
     
     Returns:
         Status dict with seeding result
@@ -190,7 +311,8 @@ async def manual_seed(force: bool = False) -> dict:
             seeder = DemoOrgSeeder(
                 session=session,
                 org_id=SOURCE_ORG_ID,
-                seed_file=SEED_OUTPUT_FILE
+                seed_file=SEED_OUTPUT_FILE,
+                time_shift_to_now=time_shift_to_now
             )
             
             exists = await seeder.org_exists()
@@ -201,6 +323,8 @@ async def manual_seed(force: bool = False) -> dict:
                 "seeded": seeded,
                 "org_id": SOURCE_ORG_ID,
                 "existed_before": exists,
+                "time_shifted": time_shift_to_now,
+                "time_offset_days": seeder.time_offset / 86400 if seeder.time_offset else None,
                 "summary": await seeder.get_org_summary() if seeded or exists else {}
             }
             
