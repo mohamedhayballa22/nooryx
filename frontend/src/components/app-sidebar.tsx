@@ -51,7 +51,7 @@ import { useRouter, usePathname } from "next/navigation"
 import { useQueryClient } from "@tanstack/react-query"
 import { SidebarFeedbackCard } from "./feedback/sidebar-feedback-card"
 import { FeedbackModal } from "./feedback/feedback-modal"
-import { NooryxFont } from "@/app/fonts/typeface"
+import { NooryxFontBlack } from "@/app/fonts/typeface"
 
 const mainItems = [
   { title: "Dashboard", url: "/core/dashboard", icon: HomeSimple },
@@ -197,7 +197,7 @@ export function AppSidebar() {
           />
           <span 
             className={`
-              ${NooryxFont.className}
+              ${NooryxFontBlack.className}
               select-none
               mt-0.5
               text-2xl

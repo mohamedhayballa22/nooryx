@@ -8,7 +8,7 @@ const inter = Inter({ subsets: ['latin'] });
 
 export const metadata: Metadata = {
   title: 'Nooryx Admin',
-  description: 'Admin dashboard for Nooryx inventory management',
+  description: 'Admin dashboard for Nooryx',
 };
 
 export default function RootLayout({

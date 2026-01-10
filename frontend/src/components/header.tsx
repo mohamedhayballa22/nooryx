@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { cn } from "@/lib/utils";
 import { DesktopNav } from "@/components/desktop-nav";
 import { MobileNav } from "@/components/mobile-nav";
-import { NooryxFont } from "@/app/fonts/typeface";
+import { NooryxFontBlack } from "@/app/fonts/typeface";
 import Link from "next/link";
 import { useRouter } from "next/navigation"
 
@@ -39,7 +39,7 @@ export function Header() {
 							height={20}
 							className="flex-shrink-0 dark:invert"
 						/>
-						<span className={`${NooryxFont.className} select-none text-lg font-medium`}>
+						<span className={`${NooryxFontBlack.className} select-none text-lg font-medium`}>
 							Nooryx
 						</span>
 					</Link>
@@ -47,7 +47,7 @@ export function Header() {
 				</div>
 				<div className="hidden items-center gap-2 md:flex">
 					<Button variant="outline" onClick={() => router.push('/login')}>Log In</Button>
-					<Button onClick={() => router.push('/waitlist')}>Early Access</Button>	
+					<Button onClick={() => router.push('#')}>Book a demo</Button>	
 				</div>
 				<MobileNav />
 			</nav>

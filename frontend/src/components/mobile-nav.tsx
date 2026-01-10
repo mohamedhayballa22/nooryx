@@ -85,7 +85,7 @@ export function MobileNav() {
 								<Button className="w-full" variant="outline">
 									Log In
 								</Button>
-								<Button className="w-full">Early Access</Button>
+								<Button className="w-full">Book a demo</Button>
 							</div>
 						</div>
 					</div>,

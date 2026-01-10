@@ -24,9 +24,9 @@ export const productLinks: LinkItemType[] = [
 		icon: GlobeIcon,
 	},
 	{
-		label: "Cloud Platform",
-		href: "#",
-		description: "Deploy and scale apps in the cloud",
+		label: "Documentation",
+		href: "/docs",
+		description: "Learn more about the internals of Nooryx",
 		icon: LayersIcon,
 	},
 	{
