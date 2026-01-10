@@ -1,7 +1,24 @@
+import { Footer } from "@/components/landing/footer";
+import HeroSection from "@/components/landing/hero-section";
+import AlertingSection from "@/components/landing/alerts";
+import AnalyticsSection from "@/components/landing/analytics";
+import BentoGridSection from "@/components/landing/bento";
+import FinalCTASection from "@/components/landing/final-cta";
+import TrustIndicatorSection from "@/components/landing/ledger";
+import FinanceSection from "@/components/landing/valuation";
+
+
 export default function LandingPage() {
   return (
-    <div className="h-200 pt-10">
-      <h1>Hey, This is the landing page (you aren&apos;t logged in)</h1>
-    </div>
+    <> 
+      <HeroSection />
+      <TrustIndicatorSection />
+      <BentoGridSection />
+      <AlertingSection />
+      <FinanceSection />
+      <AnalyticsSection />
+      <FinalCTASection />
+      <Footer />
+    </>
   );
 }

@@ -21,7 +21,7 @@ export default function AlertsHeader({
           <>
             <button
               onClick={onMarkAllRead}
-              className="cursor-pointer text-xs font-medium text-foreground/60 hover:text-foreground transition-colors"
+              className="cursor-pointer text-xs font-medium text-foreground/65 hover:text-foreground transition-colors"
             >
               Mark all as read
             </button>

@@ -85,13 +85,6 @@ const QuantityBadge = ({
       >
         {isPositive ? "+" : ""}{formatQuantity(delta)}
       </span>
-      
-      {/* Show arrow only if it's NOT a reservation and NOT neutral */}
-      {!isReservation && !isNeutral && (
-        <span className="text-[10px] text-muted-foreground/50 font-mono tabular-nums">
-          {formatQuantity(before)} → {formatQuantity(after)}
-        </span>
-      )}
 
       {isReservation && (
         <span className="block text-right text-[10px] text-muted-foreground/40 font-medium">
