@@ -8,22 +8,21 @@ import { createPortal } from "react-dom";
 import { companyLinks, companyLinks2, productLinks } from "@/components/nav-links";
 import { LinkItem } from "@/components/sheard";
 
-interface MobileNavProps {
+interface DocsMobileNavProps {
 	isAuthenticated?: boolean;
 }
 
-export function MobileNav({ isAuthenticated = false }: MobileNavProps) {
+export function DocsMobileNav({ isAuthenticated = false }: DocsMobileNavProps) {
 	const [open, setOpen] = React.useState(false);
 	const { isMobile } = useMediaQuery();
 
-	// 🚫 Disable body scroll when open
+	// Disable body scroll when open
 	React.useEffect(() => {
 		if (open && isMobile) {
 			document.body.style.overflow = "hidden";
 		} else {
 			document.body.style.overflow = "";
 		}
-		// Cleanup on unmount too
 		return () => {
 			document.body.style.overflow = "";
 		};

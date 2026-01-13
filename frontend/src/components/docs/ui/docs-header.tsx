@@ -1,40 +1,41 @@
 "use client";
-import { useScroll } from "@/hooks/use-scroll";
+import { useState, useEffect } from "react";
 import Image from "next/image";
 import { Button } from "@/components/ui/button";
-import { cn } from "@/lib/utils";
-import { DesktopNav } from "@/components/desktop-nav";
-import { MobileNav } from "@/components/mobile-nav";
 import { NooryxFontBlack } from "@/app/fonts/typeface";
 import Link from "next/link";
 import { useRouter } from "next/navigation";
+import { LargeSearchToggle } from "@/components/search-toggle";
+import { DocsDesktopNav } from "./docs-desktop-nav";
+import { DocsMobileNav } from "./docs-mobile-nav";
 import { ArrowRight } from "lucide-react";
 
-interface HeaderProps {
+interface DocsHeaderProps {
 	isAuthenticated?: boolean;
 }
 
-export function Header({ isAuthenticated = false }: HeaderProps) {
+export function DocsHeader({ isAuthenticated = false }: DocsHeaderProps) {
 	const router = useRouter();
-	const scrolled = useScroll(10);
+	const [isScrolled, setIsScrolled] = useState(false);
+
+	useEffect(() => {
+		const handleScroll = () => {
+			setIsScrolled(window.scrollY > 0);
+		};
+		window.addEventListener("scroll", handleScroll);
+		return () => window.removeEventListener("scroll", handleScroll);
+	}, []);
+	
 	return (
-		<header
-			className={cn(
-				"sticky top-0 z-50 mx-auto w-full max-w-5xl border-transparent border-b md:rounded-md md:border md:transition-all md:ease-out",
-				{
-					"border-border bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/50 md:top-2 md:max-w-4xl md:shadow":
-						scrolled,
-				}
-			)}
+		<header 
+			className="sticky top-0 z-40 w-full bg-background/95 backdrop-blur-sm supports-backdrop-filter:bg-background/50 transition-all duration-200"
+			style={{
+				borderBottom: isScrolled
+					? "0.3px solid var(--navbar-border)"
+					: "0.1px solid transparent"
+			}}
 		>
-			<nav
-				className={cn(
-					"flex h-14 w-full items-center justify-between px-4 md:transition-all md:ease-out",
-					{
-						"md:px-2": scrolled,
-					}
-				)}
-			>
+			<nav className="mx-auto flex h-14 max-w-7xl items-center justify-between px-6">
 				<div className="flex items-center gap-5">
 					<Link className="flex items-center gap-2 rounded-md px-3 py-2.5 hover:bg-accent" href="/">
 						<Image
@@ -48,8 +49,13 @@ export function Header({ isAuthenticated = false }: HeaderProps) {
 							Nooryx
 						</span>
 					</Link>
-					<DesktopNav />
+					<DocsDesktopNav />
 				</div>
+				
+				<div className="hidden flex-1 items-center justify-center px-8 md:flex">
+					<LargeSearchToggle className="w-full max-w-md" />
+				</div>
+				
 				<div className="hidden items-center gap-2 md:flex">
 					{isAuthenticated ? (
 						<Button onClick={() => router.push('/core/dashboard')} variant={"outline"}>
@@ -63,7 +69,7 @@ export function Header({ isAuthenticated = false }: HeaderProps) {
 						</>
 					)}
 				</div>
-				<MobileNav isAuthenticated={isAuthenticated} />
+				<DocsMobileNav isAuthenticated={isAuthenticated} />
 			</nav>
 		</header>
 	);

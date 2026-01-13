@@ -45,7 +45,6 @@ import { TreeContextProvider } from 'fumadocs-ui/contexts/tree';
 import { NavProvider } from 'fumadocs-ui/contexts/layout';
 import Link from 'fumadocs-core/link';
 import {
-  LargeSearchToggle,
   SearchToggle,
 } from '../../search-toggle';
 import {
@@ -210,13 +209,6 @@ export function DocsLayout({
             </Link>
             {nav.children}
           </div>
-          {searchToggle.enabled !== false &&
-            (searchToggle.components?.lg ?? (
-              <LargeSearchToggle hideIfDisabled />
-            ))}
-          {tabs.length > 0 && tabMode === 'auto' && (
-            <RootToggle options={tabs} />
-          )}
           {banner}
         </SidebarHeader>
         {viewport}

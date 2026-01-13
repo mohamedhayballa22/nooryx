@@ -101,7 +101,7 @@ const docsStructure = [
     ]
   },
   {
-    header: "Workflows & Transactions",
+    header: "Workflows & Operations",
     url: "/docs/workflows",
     items: [
       { title: "Shipping Stock", url: "/docs/workflows/ship-stock" },
@@ -111,14 +111,14 @@ const docsStructure = [
     ]
   },
   {
-    header: "Monitoring, Analysis & Alerts",
-    url: "/docs/monitoring",
+    header: "Management, Analysis & Alerts",
+    url: "/docs/management",
     items: [
-      { title: "The Nooryx Dashboard", url: "/docs/monitoring/dashboard" },
-      { title: "Stock List", url: "/docs/monitoring/stock-list" },
-      { title: "Audit Trail", url: "/docs/monitoring/audit-trail" },
-      { title: "Inventory Value", url: "/docs/monitoring/inventory-value" },
-      { title: "Alerting", url: "/docs/monitoring/alerts" },
+      { title: "The Nooryx Dashboard", url: "/docs/management/dashboard" },
+      { title: "Stock List", url: "/docs/management/stock-list" },
+      { title: "Audit Trail", url: "/docs/management/audit-trail" },
+      { title: "Inventory Value", url: "/docs/management/inventory-value" },
+      { title: "Alerting", url: "/docs/management/alerts" },
     ]
   },
   {

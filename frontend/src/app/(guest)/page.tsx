@@ -1,4 +1,3 @@
-import { Footer } from "@/components/landing/footer";
 import HeroSection from "@/components/landing/hero-section";
 import AlertingSection from "@/components/landing/alerts";
 import AnalyticsSection from "@/components/landing/analytics";
@@ -18,7 +17,6 @@ export default function LandingPage() {
       <FinanceSection />
       <AnalyticsSection />
       <FinalCTASection />
-      <Footer />
     </>
   );
 }

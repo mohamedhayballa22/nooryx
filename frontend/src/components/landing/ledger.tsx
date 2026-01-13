@@ -166,12 +166,6 @@ const StaticTransactionRow = ({ item, isLast }: { item: typeof STATIC_TRANSACTIO
               >
                 {isPositive ? "+" : ""}{delta === 0 ? "-" : delta}
               </span>
-
-              {isReservation && (
-                <span className="text-[9px] sm:text-[10px] text-muted-foreground/30 font-medium text-right">
-                  No change to on-hand
-                </span>
-              )}
             </div>
           </div>
       </div>

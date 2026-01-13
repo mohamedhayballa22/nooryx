@@ -5,6 +5,7 @@ import { AuthLoading } from "@/components/auth-loading";
 import { useRouter, usePathname } from "next/navigation";
 import { useEffect } from "react";
 import { Header } from "@/components/header";
+import { Footer } from "@/components/landing/footer";
 
 export default function GuestLayout({
   children,
@@ -37,8 +38,9 @@ export default function GuestLayout({
   // For all other guest routes: render normally
   return (
     <div className="min-h-screen flex flex-col">
-      <Header />
-      <main className="flex-1 pt-20">{children}</main>
+      <Header isAuthenticated={isAuthenticated} />
+      <main className="flex-1 pt-10 md:pt-20">{children}</main>
+      <Footer />
     </div>
   );
 }

@@ -3,7 +3,6 @@
 import { type ComponentProps, useMemo } from 'react';
 import { cn } from '../../../lib/cn';
 import { useSidebar } from 'fumadocs-ui/contexts/sidebar';
-import { useNav } from 'fumadocs-ui/contexts/layout';
 import { SearchToggle } from '../../search-toggle';
 import type { Option } from '../../root-toggle';
 import { usePathname } from 'fumadocs-core/framework';
@@ -11,15 +10,12 @@ import { isTabActive } from '../../../lib/is-active';
 import Link from 'fumadocs-core/link';
 
 export function Navbar(props: ComponentProps<'header'>) {
-  const { isTransparent } = useNav();
-
   return (
     <header
       id="nd-subnav"
       {...props}
       className={cn(
         'fixed top-(--fd-banner-height) left-0 right-(--removed-body-scroll-bar-size,0) z-30 flex items-center ps-4 pe-2.5 border-b transition-colors backdrop-blur-sm',
-        !isTransparent && 'bg-fd-background/80',
         props.className,
       )}
     >

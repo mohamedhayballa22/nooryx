@@ -11,6 +11,7 @@ import { Toaster } from "sonner";
 import { useTheme } from "next-themes";
 import { useUserSettings } from "@/hooks/use-user-settings";
 import { useUserAccount } from "./settings/account/hooks/use-account"
+import TopLoadingBar from "../top-loading-bar";
 
 export default function Layout({ children }: { children: React.ReactNode }) {
   const { isAuthenticated, isLoading } = useAuth();
@@ -45,6 +46,7 @@ export default function Layout({ children }: { children: React.ReactNode }) {
         <div className="flex-1 flex flex-col overflow-hidden">
           {/* Navbar */}
           <CoreNavbar />
+          <TopLoadingBar />
 
           {/* Page content */}
           <main className="flex-1 overflow-auto p-8">{children}</main>

@@ -85,12 +85,6 @@ const QuantityBadge = ({
       >
         {isPositive ? "+" : ""}{formatQuantity(delta)}
       </span>
-
-      {isReservation && (
-        <span className="block text-right text-[10px] text-muted-foreground/40 font-medium">
-          No change to on-hand
-        </span>
-      )}
     </div>
   );
 };

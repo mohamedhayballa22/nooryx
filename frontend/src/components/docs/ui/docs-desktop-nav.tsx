@@ -10,7 +10,7 @@ import {
 import { companyLinks, companyLinks2, productLinks } from "@/components/nav-links";
 import { LinkItem } from "@/components/sheard";
 
-export function DesktopNav() {
+export function DocsDesktopNav() {
 	return (
 		<NavigationMenu className="hidden md:flex">
 			<NavigationMenuList>
@@ -77,11 +77,6 @@ export function DesktopNav() {
 						</div>
 					</NavigationMenuContent>
 				</NavigationMenuItem>
-				<NavigationMenuLink asChild className="px-4">
-					<Link className="rounded-md p-2 hover:bg-accent" href="/docs">
-						Docs
-					</Link>
-				</NavigationMenuLink>
 			</NavigationMenuList>
 		</NavigationMenu>
 	);

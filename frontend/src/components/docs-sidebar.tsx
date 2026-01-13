@@ -172,7 +172,7 @@ export function SidebarViewport(props: ScrollAreaProps) {
   return (
     <ScrollArea {...props} className={cn('h-full', props.className)}>
       <ScrollViewport
-        className="pl-10 py-4 overscroll-contain"
+        className="pl-10 py-1.5 overscroll-contain"
         style={{
           '--sidebar-item-offset': 'calc(var(--spacing) * 2)',
           maskImage: 'linear-gradient(to bottom, transparent, white 12px, white calc(100% - 12px), transparent)',

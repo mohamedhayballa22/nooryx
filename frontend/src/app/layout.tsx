@@ -2,7 +2,6 @@ import type { Metadata } from "next";
 import "./globals.css";
 import { ThemeProvider } from "next-themes";
 import { Providers } from "./providers";
-import TopLoadingBar from "./top-loading-bar";
 import { RootProvider } from "fumadocs-ui/provider/next";
 import { Inter } from "next/font/google";
 
@@ -31,7 +30,6 @@ export default function RootLayout({
           disableTransitionOnChange
         >
           <Providers>
-            <TopLoadingBar />
             <RootProvider
               search={{
                 options: {
