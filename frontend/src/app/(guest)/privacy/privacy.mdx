@@ -1,0 +1,81 @@
+# Data & Privacy Policy
+
+**Last Updated:** January 12, 2026
+
+At Nooryx, we do not view your data as a commodity to be mined. We view it as **financial infrastructure** that we are privileged to host.
+
+Because Nooryx acts as the system of record for your inventory assets and Cost of Goods Sold (COGS), we hold ourselves to a standard of confidentiality and integrity higher than typical SaaS applications. This document outlines exactly how we handle, store, and protect your business intelligence.
+
+---
+
+## 1. You Own Your Data
+This is the foundation of our relationship.
+*   **Ownership:** You retain full ownership of all inventory data, customer lists, order history, and pricing configurations you upload to Nooryx.
+*   **No Data Trading:** We do not sell, rent, trade, or share your proprietary business data with third parties.
+*   **Portability:** You may export your complete inventory state and history at any time in standard, open formats (CSV/JSON).
+
+---
+
+## 2. Infrastructure & Data Residency
+Nooryx runs on infrastructure we directly control and manage.
+
+*   **Primary Hosting:** Our application and database infrastructure are hosted on **Hetzner Online GmbH**.
+*   **Location:** All data is physically stored in **Data Centers located in the European Union (Germany/Finland)**. This ensures your data benefits from strict EU privacy protections, regardless of where your company is based.
+*   **Isolation:** We architect our database infrastructure to minimize shared-resource exposure. Your data resides in a Nooryx-managed environment designed for isolation and performance.
+
+---
+
+## 3. Employee Access
+We practice the principle of **Least Privilege**. Nooryx engineers do not have standing access to your production environment.
+
+*   **No Casual Browsing:** Our team cannot view your dashboard, inventory values, or customer PII during the normal course of development.
+*   **Support Access:** If you encounter a critical bug or data discrepancy, you may grant our support team temporary, time-bound access to your account. This access is logged, auditable, and revoked immediately after the issue is resolved.
+
+---
+
+## 4. Analytics & Telemetry
+We use analytics to improve software performance, not to track your customers.
+
+*   **What We Track:** We track application telemetry (e.g., "Page load time," "API latency," "Feature usage frequency"). We use **PostHog** (hosted in the EU) for this purpose.
+*   **What We Exclude:** We explicitly exclude Sensitive Business Data from our analytics payloads. We do not track specific SKU names, inventory quantities, dollar values, or your end-customer's PII in our analytics tools.
+*   **No Marketing Pixels:** There are no Facebook, LinkedIn, or Google advertising pixels running inside the logged-in application experience.
+
+---
+
+## 5. AI & Machine Learning Stance
+As an AI-aware company, we want to be explicit about how your data interacts with models.
+
+*   **No Training on Customer Data:** We **do not** use your proprietary inventory data, sales history, or vendor lists to train global Artificial Intelligence models. Your business logic remains yours.
+*   **Deterministic Logic:** Our core valuation engines (FIFO/LIFO/WAC) run on deterministic, auditable code, not probabilistic AI models.
+
+---
+
+## 6. Subprocessors
+To provide the Service, we utilize a minimal set of trusted third-party infrastructure providers ("Subprocessors").
+
+| Subprocessor | Purpose | Location |
+| :--- | :--- | :--- |
+| **Hetzner Online GmbH** | Cloud Infrastructure & Database Hosting | European Union |
+| **PostHog** | Product Analytics & Telemetry | European Union |
+
+---
+
+## 7. Your Rights (Universal GDPR)
+Regardless of your physical location, Nooryx extends GDPR-standard rights to all customers:
+
+1.  **Right to Access:** You may request a copy of all personal and business data we hold about you.
+2.  **Right to Rectification:** You may correct any incomplete or inaccurate data within the application settings.
+3.  **Right to Erasure ("Right to be Forgotten"):** Upon account cancellation, you may request the permanent deletion of your workspace and all associated data. We will scrub your data from our active databases within 30 days of this request.
+4.  **Right to Portability:** As stated in Section 1, you can export your data at any time.
+
+---
+
+## 8. Data Retention
+*   **Active Accounts:** We retain your data for as long as your account is active to provide the Service.
+*   **Deleted Accounts:** If you cancel your subscription, we retain your data in a dormant state for 30 days to allow for accidental cancellation recovery or final data export. After 30 days, your data is permanently deleted from our production database.
+*   **Backups:** Encrypted database backups are retained for disaster recovery purposes for up to 30 days and are then overwritten.
+
+---
+
+## 9. Contact Us
+For any privacy-related questions, Data Subject Access Requests (DSAR), or security concerns, please contact us at: contact@nooryx.com

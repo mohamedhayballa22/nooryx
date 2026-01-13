@@ -1,0 +1,63 @@
+# Security at Nooryx
+
+**Last Updated:** January 12, 2026
+
+We understand that Nooryx is not just a productivity tool; it is the financial backbone of your operations. Trusting us with your inventory ledger requires us to secure that data against loss, corruption, and unauthorized access.
+
+This document outlines the technical controls, architectural decisions, and development practices we use to protect your business.
+
+---
+
+## 1. Infrastructure Security
+We do not host your financial data on generic, shared hosting environments. Our infrastructure is designed for isolation and resilience.
+
+*   **Cloud Provider:** Our infrastructure is hosted on **Hetzner Online GmbH**, located in ISO 27001 certified data centers within the European Union.
+*   **Network Isolation:** Our databases and application servers communicate over a private, isolated network. Your data store is not directly accessible from the public internet; it can only be accessed by the application layer via strict allow-lists.
+*   **Encryption in Transit:** All data transmitted between your device and Nooryx, as well as between our internal services, is encrypted using **TLS 1.2+ (HTTPS)**. We enforce **HSTS** (HTTP Strict Transport Security) to prevent protocol downgrade attacks.
+*   **Encryption at Rest:** Data persists on volumes that utilize industry-standard database encryption to protect against physical theft or improper drive disposal.
+
+---
+
+## 2. Application Security
+Our application is built on a modern, type-safe stack designed to eliminate entire classes of common vulnerabilities.
+
+### Strong Authentication
+*   **Password Hashing:** We never store passwords in plain text. User credentials are hashed and salted using industry-standard algorithms before storage.
+*   **Session Management:** We utilize **HttpOnly, Secure, and SameSite** cookies for session management. This architecture mitigates the risk of Cross-Site Scripting (XSS) attacks stealing user tokens.
+
+### Type Safety as Security
+*   **Input Validation:** We leverage **Pydantic** for rigorous data validation at the API edge. Every incoming request is strictly validated against a schema before it touches our business logic. This prevents malformed data injection and ensures that invalid states (e.g., negative inventory where physically impossible) are rejected at the door.
+*   **SQL Injection Prevention:** Our database interactions utilize an ORM (Object-Relational Mapping) layer that automatically parameterizes queries, neutralizing SQL injection risks.
+
+### Vulnerability Management
+*   **Dependency Scanning:** We use automated tools to scan our code repositories and dependencies for known Common Vulnerabilities and Exposures (CVEs) prior to every deployment.
+*   **Patch Management:** We apply security patches to our underlying operating systems and libraries promptly upon release.
+
+---
+
+## 3. Development Lifecycle (SDLC)
+*   **Peer Review:** No code reaches production without a Pull Request (PR) review. We adhere to the "Four-Eyes Principle," ensuring that every line of code is reviewed by a qualified engineer.
+*   **CI/CD Pipelines:** We utilize **GitHub Actions** for continuous integration and deployment. This ensures that tests (unit, integration, and security) must pass before any update is shipped.
+*   **Environment Separation:** We strictly separate our `Development` and `Staging` environments from `Production`. Test data is never mixed with live customer data.
+
+---
+
+## 4. Data Integrity & Availability
+Security also means ensuring your data is accurate and available when you need it.
+
+*   **Immutable Ledger:** Our core architecture treats inventory events as an append-only ledger. This design provides an internal security control against data corruption or malicious editing. History cannot be rewritten, only appended to.
+*   **Backups:** We perform automated, encrypted backups of the database. These backups are tested periodically to ensure recoverability in the event of a disaster.
+
+---
+
+## 5. Compliance & Personnel
+*   **Internal Access:** We follow the Principle of Least Privilege. Nooryx employees do not have standing access to customer data. Access is granted only when necessary for support or engineering diagnostics and is revoked immediately after.
+*   **Compliance Alignment:** While we are an early-stage company and not yet SOC 2 Type II certified, our internal controls are designed in alignment with SOC 2 Trust Services Criteria (Security, Availability, and Confidentiality).
+
+---
+
+## 6. Vulnerability Reporting
+If you believe you have found a security vulnerability in Nooryx, please report it to us immediately at **security@nooryx.com**.
+
+*   **Responsible Disclosure:** We ask that you give us a reasonable amount of time to remediate the issue before making it public.
+*   **Safe Harbor:** We will not pursue legal action against researchers who report vulnerabilities in good faith and in accordance with this policy.
