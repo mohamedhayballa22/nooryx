@@ -60,7 +60,7 @@ export function DocsDesktopNav() {
 									</NavigationMenuLink>
 								))}
 							</div>
-							<div className="space-y-2 p-3">
+							<div className="space-y-2 p-3 flex flex-col justify-center">
 								{companyLinks2.map((item, i) => (
 									<NavigationMenuLink
 										asChild

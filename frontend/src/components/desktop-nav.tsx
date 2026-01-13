@@ -60,17 +60,17 @@ export function DesktopNav() {
 									</NavigationMenuLink>
 								))}
 							</div>
-							<div className="space-y-2 p-3">
+							<div className="space-y-2 p-3 flex flex-col justify-center">
 								{companyLinks2.map((item, i) => (
 									<NavigationMenuLink
-										asChild
-										className="flex-row items-center gap-x-2"
-										key={`item-${item.label}-${i}`}
+									asChild
+									className="flex-row items-center gap-x-2"
+									key={`item-${item.label}-${i}`}
 									>
-										<Link href={item.href} className="flex items-center gap-x-2">
-											<item.icon className="size-4 text-foreground" />
-											<span className="font-medium">{item.label}</span>
-										</Link>
+									<Link href={item.href} className="flex items-center gap-x-2">
+										<item.icon className="size-4 text-foreground" />
+										<span className="font-medium">{item.label}</span>
+									</Link>
 									</NavigationMenuLink>
 								))}
 							</div>

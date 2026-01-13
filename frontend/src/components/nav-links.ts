@@ -2,21 +2,16 @@ import {
 	BarChart,
 	BookOpen,
 	Briefcase,
-	Eye,
-	EyeClosed,
-	EyeOff,
 	FileText,
 	Handshake,
 	History,
 	Lock,
 	Mail,
-	RotateCcw,
 	Shield,
 	Users,
 	Workflow,
 } from "lucide-react";
 import type { LinkItemType } from "@/components/sheard";
-import { PrivacyPolicy } from "iconoir-react";
 
 export const productLinks: LinkItemType[] = [
 	{
