@@ -15,7 +15,7 @@ export function BarcodeIllustration() {
           <div className="flex flex-col md:grid md:grid-cols-[220px_1fr_220px] md:h-[300px] items-center gap-6 md:gap-0">
             
             {/* Left Column (Barcode Cards) */}
-            <div className="grid grid-cols-1 gap-3 md:gap-0 md:grid-rows-3 h-full w-full relative">
+            <div className="grid grid-cols-1 gap-3 md:gap-0 md:grid-rows-3 h-full w-full relative z-10">
               <div className="flex items-center">
                 <BarcodeCard type="UPC-A" value="012345678905" icon={<BarcodeIcon />} />
               </div>
@@ -51,7 +51,7 @@ export function BarcodeIllustration() {
             </div>
 
             {/* Right Column (SKU Box) */}
-            <div className="relative flex items-center justify-center h-full w-full">
+            <div className="relative flex items-center justify-center h-full w-full z-10">
               <div className="w-full group relative flex flex-col items-start gap-4 rounded-xl border border-neutral-200 bg-background p-5 shadow-[0_4px_12px_rgba(0,0,0,0.05)] transition-all hover:border-neutral-300 dark:border-neutral-800 dark:hover:border-neutral-700">
                 
                 {/* Desktop Connector Dot */}

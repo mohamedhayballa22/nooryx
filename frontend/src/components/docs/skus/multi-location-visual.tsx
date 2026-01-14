@@ -9,7 +9,7 @@ export function MultiLocationVisual() {
         
         <div className="relative mx-auto max-w-2xl">
           
-          <div className="flex justify-center relative">
+          <div className="flex justify-center relative z-10">
             <div className="group relative flex items-center gap-3 rounded-lg border border-neutral-200 bg-background px-5 py-3 shadow-sm transition-all hover:border-neutral-300 dark:border-neutral-800 dark:hover:border-neutral-700">
               
               <div className="flex h-8 w-8 items-center justify-center rounded bg-neutral-100 text-neutral-500 dark:bg-neutral-800 dark:text-neutral-400">
